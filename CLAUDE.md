@@ -30,6 +30,7 @@ reachable here this afternoon with no registration.
 ./dokploy.sh                                  # usage, generated from dokploy.yaml + bin/dokploy/
 ./dokploy.sh kodemeio applications list       # resolved: kctl-dokploy -p kodemeio ...
 ./dokploy.sh health kodemeio                  # a repo tool from bin/dokploy/
+./dokploy.sh backup idtpp                     # backup status for every service
 ./dokploy.sh commands tree                    # passthrough, verbatim
 ```
 
@@ -58,10 +59,45 @@ after a CLI upgrade and check it with:
 ../kodemeio-skills/scripts/frontdoor-guards verify dokploy.yaml
 ```
 
-`dokploy.sh` and `bin/dokploy/*` are **vendored byte-identical** from
-`kodemeio-skills/templates/frontdoor/`. Never edit them in place — edit the
-template and run `scripts/frontdoor-sync --write`. `--check` fails on drift.
-`dokploy.yaml` is the only per-repo file. Full standard:
+### Backup status — `./dokploy.sh backup <platform>`
+
+```bash
+./dokploy.sh backup idtpp                    # every service, every backup, with a verdict
+./dokploy.sh backup idtpp --service postgres # narrow it
+./dokploy.sh backup abcfood --json           # for a schedule; exits 1 on any problem
+```
+
+Reads only. It joins each backup CONFIG to the OBJECTS actually in its S3
+destination and reports the age of the newest one, because **`enabled: true` is
+not a backup** — it says a schedule exists, not that anything reached the bucket.
+
+It also scans `deploys/instances/` for two silent manifest defects the Dokploy
+API cannot show:
+
+🔴 **`backup: {}` and `backup: {enabled: false}` DO NOT DISABLE ANYTHING.**
+`InstanceManifest.backup` is `BackupConfig | None` and only `None` makes
+`orchestrator.phase_backup()` skip (`orchestrator.py:1006`). Both forms parse to
+a `BackupConfig` with `destination=""`, so the phase runs, fails to resolve the
+empty destination, and records `failed: Destination '' not found` **on every
+deploy**. `BackupConfig` has no `enabled` field at all — pydantic drops the key
+silently. **Only `backup: null` works.** Five instances are currently wrong;
+`./dokploy.sh backup <platform>` names them.
+
+A missing `backup:` key **inherits the base's block**, which is usually right and
+occasionally very wrong — the infra base targets postgres, so an instance with no
+database inherits a dump it cannot perform.
+
+### Editing the door
+
+`dokploy.sh`, `bin/dokploy/_boot.sh`, `bin/dokploy/_dispatch.sh` and
+`bin/dokploy/health` are **vendored byte-identical** from
+`kodemeio-skills/templates/frontdoor/`. Never edit those four in place — edit the
+template and run `scripts/frontdoor-sync --write`; `--check` fails on drift.
+
+Everything else in `bin/dokploy/` is **repo-specific and not vendored** —
+`backup` is the first of those. Drop a new executable in and it becomes a
+reserved word automatically; there is no table to register it in.
+`dokploy.yaml` is the only per-repo data file. Full standard:
 `kodemeio-skills/docs/frontdoor.md`.
 
 ## Commands

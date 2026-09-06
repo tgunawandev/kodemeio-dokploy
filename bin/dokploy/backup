@@ -1,0 +1,306 @@
+#!/usr/bin/env bash
+#
+# backup — read-only backup status for every service on a platform.
+#
+# Usage:
+#   ./dokploy.sh backup <platform> [options]
+#
+#   platform ∈ {kodemeio, idtpp, abcfood, local}
+#
+# Options:
+#   --service SUBSTR   only services whose name contains SUBSTR
+#   --stale-hours N    age at which a backup is STALE (default 26)
+#   --warn-hours N     age at which a backup is WARN   (default 50)
+#   --json             machine-readable, for a schedule or an agent
+#   --no-manifests     skip the manifest defect scan
+#
+# Examples:
+#   ./dokploy.sh backup idtpp
+#   ./dokploy.sh backup idtpp --service postgres
+#   ./dokploy.sh backup abcfood --json
+#
+# Reads only. It runs `compose list`, `compose backups list` and
+# `backups list-files`, none of which is in dokploy.yaml's guard table, so there
+# is no --yes and no --dry-run.
+#
+# WHY THIS EXISTS. `enabled: true` is not a backup. It says a schedule is
+# configured, not that anything reached S3 — and the two disagree in practice.
+# This joins the CONFIG to the OBJECTS actually in the destination bucket and
+# reports the age of the newest one, which is the only fact that answers "are we
+# covered?". A backup nobody has proven is a backup nobody has.
+#
+# It also reads the deploy manifests, because two silent defects live there and
+# neither shows up in the Dokploy API:
+#
+#   1. `backup: {}` and `backup: {enabled: false}` DO NOT DISABLE ANYTHING.
+#      `InstanceManifest.backup` is `BackupConfig | None`, and only None makes
+#      `orchestrator.phase_backup()` skip (orchestrator.py:1006). Both of those
+#      forms parse to a BackupConfig with `destination=""`, so the phase runs,
+#      fails to resolve the empty destination, and records
+#      `failed: Destination '' not found` on EVERY deploy. `BackupConfig` has no
+#      `enabled` field at all — pydantic drops the key silently.
+#      Only `backup: null` works.
+#
+#   2. A missing `backup:` key INHERITS the base's block. That is usually right
+#      and occasionally very wrong: the infra base targets postgres, so an
+#      instance with no database inherits a postgres dump it cannot perform.
+#
+set -euo pipefail
+# shellcheck source=./_boot.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_boot.sh"
+
+[[ "${1:-}" == "-h" || "${1:-}" == "--help" ]] && { fd_usage_from_header "$0"; exit 0; }
+
+for _a in "$@"; do
+  [[ "$_a" == "--dry-run" || "$_a" == "--yes" ]] && {
+    c_red "backup only reads; it has no $_a."
+    exit 1
+  }
+done
+
+[[ $# -ge 1 ]] || { c_red "Need: <platform>"; fd_usage_from_header "$0"; exit 1; }
+
+PLATFORM="$1"; shift
+fd_resolve "$PLATFORM"
+
+SERVICE_FILTER=""; STALE_HOURS=26; WARN_HOURS=50; AS_JSON=0; SCAN_MANIFESTS=1
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --service)       SERVICE_FILTER="${2:-}"; shift 2 ;;
+    --stale-hours)   STALE_HOURS="${2:-26}";  shift 2 ;;
+    --warn-hours)    WARN_HOURS="${2:-50}";   shift 2 ;;
+    --json)          AS_JSON=1; shift ;;
+    --no-manifests)  SCAN_MANIFESTS=0; shift ;;
+    *) c_red "Unknown option '$1'"; fd_usage_from_header "$0"; exit 2 ;;
+  esac
+done
+
+CLI="$(fd_cli)"
+need "$CLI" "Install it from kodemeio-skills/packages/$CLI"
+need python3
+
+K=("$CLI" -p "$FD_PROFILE" --json)
+(( AS_JSON )) || c_dim "▶ ${FD_TARGET}  profile=${FD_PROFILE}  backup status"
+
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
+
+# 1. Every compose service on this platform. Applications and databases are
+#    deliberately not queried: this fleet deploys everything as compose, and
+#    both of those groups return zero rows on every platform (checked
+#    2026-09-07). If that changes, add them here.
+"${K[@]}" compose list > "$WORK/compose.json" 2>/dev/null || {
+  c_red "Could not list compose services on ${FD_TARGET}."; exit 1; }
+
+mapfile -t SERVICES < <(python3 -c "
+import json,sys
+d=json.load(open('$WORK/compose.json')); rows=d if isinstance(d,list) else d.get('data',[])
+f='''$SERVICE_FILTER'''
+for r in rows:
+    name = r.get('name') or r.get('appName') or '?'
+    if f and f not in name: continue
+    print(r['composeId'] + '\t' + name)
+")
+
+(( AS_JSON )) || c_dim "  ${#SERVICES[@]} compose service(s) to check — roughly $(( ${#SERVICES[@]} * 2 ))s"
+
+# 2. Backup configs per service. One call each; there is no fleet-wide listing
+#    (`backups list` refuses without --compose).
+: > "$WORK/configs.jsonl"
+i=0
+for row in ${SERVICES[@]+"${SERVICES[@]}"}; do
+  id="${row%%$'\t'*}"; name="${row##*$'\t'}"
+  i=$(( i + 1 ))
+  (( AS_JSON )) || printf '\r  scanning %d/%d %-42s' "$i" "${#SERVICES[@]}" "${name:0:42}" >&2
+  # tr -d '\n': the CLI pretty-prints its JSON across many lines, and this file
+  # is one TAB-separated record PER LINE. Removing literal newlines is safe —
+  # a newline inside a JSON string is escaped as \\n, never literal.
+  js="$("${K[@]}" compose backups list -c "$id" 2>/dev/null | tr -d '\n')"
+  [[ -n "$js" ]] || js='[]'
+  printf '%s\t%s\t%s\n' "$id" "$name" "$js" >> "$WORK/configs.jsonl"
+done
+(( AS_JSON )) || printf '\r%*s\r' 70 '' >&2
+
+# 3. The object listing for every destination that a config actually uses —
+#    one call per destination, not per backup, because a bucket holds every
+#    database's objects and the config's `prefix` selects within it.
+mapfile -t DESTS < <(python3 -c "
+import json
+seen=set()
+for line in open('$WORK/configs.jsonl'):
+    parts=line.rstrip('\n').split('\t',2)
+    if len(parts)<3: continue
+    try: b=json.loads(parts[2] or '[]')
+    except Exception: continue
+    for x in (b if isinstance(b,list) else b.get('data',[])):
+        d=x.get('destinationId')
+        if d and d not in seen: seen.add(d); print(d)
+")
+for d in ${DESTS[@]+"${DESTS[@]}"}; do
+  "${K[@]}" backups list-files -d "$d" --limit 0 > "$WORK/files-$d.json" 2>/dev/null || echo '[]' > "$WORK/files-$d.json"
+done
+
+# 4. Manifest defect scan — the two silent failures documented in the header.
+MANIFEST_ARG=""
+if (( SCAN_MANIFESTS )) && [[ -d "$FD_REPO_ROOT/deploys/instances" ]]; then
+  MANIFEST_ARG="$FD_REPO_ROOT/deploys/instances"
+fi
+
+STALE_HOURS="$STALE_HOURS" WARN_HOURS="$WARN_HOURS" AS_JSON="$AS_JSON" \
+TARGET="$FD_TARGET" WORK="$WORK" MANIFESTS="$MANIFEST_ARG" python3 - <<'PY'
+import json, os, re, sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+WORK = Path(os.environ["WORK"])
+STALE = float(os.environ["STALE_HOURS"]); WARN = float(os.environ["WARN_HOURS"])
+AS_JSON = os.environ["AS_JSON"] == "1"; TARGET = os.environ["TARGET"]
+now = datetime.now(timezone.utc)
+
+# objects per destination
+files = {}
+for p in WORK.glob("files-*.json"):
+    dest = p.stem[len("files-"):]
+    try:
+        d = json.loads(p.read_text())
+    except Exception:
+        d = []
+    files[dest] = d if isinstance(d, list) else d.get("data", [])
+
+def newest_for(dest, prefix):
+    """Newest object in `dest` whose key contains `prefix`.
+
+    Substring, not startswith: Dokploy prepends its generated appName to the
+    key ("compose-input-multi-byte-port-qsokry_postgres/<prefix>/..."), so the
+    configured prefix sits in the MIDDLE of the key, never at the front.
+    """
+    best = None
+    n = 0
+    for o in files.get(dest, []):
+        if prefix and prefix not in o.get("key", ""):
+            continue
+        n += 1
+        ts = o.get("lastModified")
+        if not ts:
+            continue
+        try:
+            t = datetime.fromisoformat(str(ts))
+        except ValueError:
+            continue
+        if best is None or t > best:
+            best = t
+    return best, n
+
+configured, no_config = [], []
+for line in (WORK / "configs.jsonl").read_text().splitlines():
+    parts = line.split("\t", 2)
+    if len(parts) < 3:
+        continue
+    cid, name, raw = parts
+    try:
+        b = json.loads(raw or "[]")
+    except Exception:
+        b = []
+    b = b if isinstance(b, list) else b.get("data", [])
+    if not b:
+        no_config.append(name)
+        continue
+    for x in b:
+        prefix = x.get("prefix") or ""
+        dest = x.get("destinationId") or ""
+        newest, count = newest_for(dest, prefix)
+        age = (now - newest).total_seconds() / 3600 if newest else None
+        enabled = bool(x.get("enabled"))
+        if not enabled:
+            verdict = "DISABLED"
+        elif newest is None:
+            verdict = "NO FILES"
+        elif age > STALE * 2:
+            verdict = "STALE"
+        elif age > WARN:
+            verdict = "WARN"
+        else:
+            verdict = "OK"
+        configured.append({
+            "service": name, "database": x.get("database"), "schedule": x.get("schedule"),
+            "enabled": enabled, "prefix": prefix, "destination": dest,
+            "keep_latest": x.get("keepLatestCount"), "files": count,
+            "newest": newest.isoformat() if newest else None,
+            "age_hours": round(age, 1) if age is not None else None,
+            "verdict": verdict,
+        })
+
+# manifest defects
+defects = []
+mdir = os.environ.get("MANIFESTS") or ""
+if mdir:
+    for f in sorted(Path(mdir).rglob("*.yaml")):
+        text = f.read_text(encoding="utf-8", errors="replace")
+        m = re.search(r"^backup:[ \t]*(.*)$", text, re.M)
+        if not m:
+            continue
+        inline = m.group(1).strip()
+        block = []
+        for ln in text[m.end():].split("\n"):
+            if ln[:1] not in (" ", "\t") and ln.strip():
+                break
+            if ln.strip() and not ln.strip().startswith("#"):
+                block.append(ln.strip())
+        rel = str(f.relative_to(Path(mdir).parent.parent))
+        if inline in ("{}", "{ }"):
+            defects.append((rel, "backup: {}", "parses to BackupConfig(destination='') — phase RUNS and FAILS; use `backup: null`"))
+        elif any(x.replace(" ", "") == "enabled:false" for x in block):
+            defects.append((rel, "backup: enabled: false", "`enabled` is not a field on BackupConfig; pydantic drops it — phase RUNS and FAILS; use `backup: null`"))
+
+if AS_JSON:
+    print(json.dumps({
+        "target": TARGET,
+        "generated": now.isoformat(),
+        "thresholds": {"warn_hours": WARN, "stale_hours": STALE * 2},
+        "backups": configured,
+        "services_without_backup": sorted(no_config),
+        "manifest_defects": [{"file": a, "form": b, "why": c} for a, b, c in defects],
+    }, indent=2))
+    sys.exit(1 if any(c["verdict"] in ("STALE", "NO FILES") for c in configured) or defects else 0)
+
+RED, YEL, GRN, DIM, OFF = "\033[1;31m", "\033[1;33m", "\033[1;32m", "\033[2m", "\033[0m"
+if not sys.stderr.isatty():
+    RED = YEL = GRN = DIM = OFF = ""
+COLOR = {"OK": GRN, "WARN": YEL, "STALE": RED, "NO FILES": RED, "DISABLED": YEL}
+
+print(f"\n  CONFIGURED BACKUPS — {len(configured)} on {TARGET}\n")
+print(f"  {'service':26}{'database':22}{'schedule':16}{'files':>6}{'newest':>9}  verdict")
+print("  " + "─" * 88)
+for c in sorted(configured, key=lambda x: (x["verdict"] == "OK", x["service"], x["database"] or "")):
+    age = f"{c['age_hours']:.0f}h" if c["age_hours"] is not None else "—"
+    col = COLOR.get(c["verdict"], "")
+    print(f"  {c['service'][:25]:26}{(c['database'] or '—')[:21]:22}{(c['schedule'] or '—'):16}"
+          f"{c['files']:>6}{age:>9}  {col}{c['verdict']}{OFF}")
+
+noretention = [c for c in configured if c["keep_latest"] in (None, 0)]
+if noretention:
+    print(f"\n  {YEL}RETENTION{OFF}  {len(noretention)} of {len(configured)} have no keepLatestCount —")
+    print("            nothing prunes them and the bucket grows without bound.")
+
+if defects:
+    print(f"\n  {RED}MANIFEST DEFECTS{OFF} — these look disabled and are not\n")
+    for a, b, c in defects:
+        print(f"  {RED}✗{OFF} {a}")
+        print(f"      {b}  →  {c}")
+
+if no_config:
+    print(f"\n  {DIM}No backup configured on {len(no_config)} service(s).{OFF}")
+    print(f"  {DIM}Most are stateless and correctly have none; volumes are backed up by the")
+    print(f"  self-contained restic stacks (*-backup), which this tool cannot see.{OFF}")
+    for n in sorted(no_config)[:12]:
+        print(f"  {DIM}    {n}{OFF}")
+    if len(no_config) > 12:
+        print(f"  {DIM}    … and {len(no_config) - 12} more (--json for all){OFF}")
+
+bad = [c for c in configured if c["verdict"] in ("STALE", "NO FILES")]
+print()
+if bad or defects:
+    print(f"  {RED}VERDICT: {len(bad)} backup(s) not proven, {len(defects)} manifest defect(s).{OFF}")
+    sys.exit(1)
+print(f"  {GRN}VERDICT: every configured backup has a recent object in its destination.{OFF}")
+PY
