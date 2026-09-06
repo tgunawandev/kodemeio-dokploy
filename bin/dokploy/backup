@@ -136,8 +136,21 @@ for line in open('$WORK/configs.jsonl'):
         d=x.get('destinationId')
         if d and d not in seen: seen.add(d); print(d)
 ")
+# 🔴 A FAILED LISTING IS NOT AN EMPTY BUCKET. If this call errors, the objects
+# are UNKNOWN, not absent, and reporting "no files" would be the exact false
+# alarm this tool exists to prevent. abcfood's `hz-abcfood-dokploy` destination
+# is stored with a schemeless endpoint ("nbg1.your-objectstorage.com"), and
+# botocore refuses it outright with `ValueError: Invalid endpoint`, so every
+# listing there fails while the backups themselves may be uploading fine —
+# Dokploy's own uploader is a different S3 client. A marker file records the
+# difference and the verdict becomes UNVERIFIED.
 for d in ${DESTS[@]+"${DESTS[@]}"}; do
-  "${K[@]}" backups list-files -d "$d" --limit 0 > "$WORK/files-$d.json" 2>/dev/null || echo '[]' > "$WORK/files-$d.json"
+  if err="$("${K[@]}" backups list-files -d "$d" --limit 0 2>&1 >"$WORK/files-$d.json")"; then
+    [[ -s "$WORK/files-$d.json" ]] || echo '[]' > "$WORK/files-$d.json"
+  else
+    echo '[]' > "$WORK/files-$d.json"
+    printf '%s' "$(printf '%s' "$err" | tr -d '\n' | tail -c 160)" > "$WORK/failed-$d.txt"
+  fi
 done
 
 # 4. Manifest defect scan — the two silent failures documented in the header.
@@ -167,17 +180,35 @@ for p in WORK.glob("files-*.json"):
         d = []
     files[dest] = d if isinstance(d, list) else d.get("data", [])
 
-def newest_for(dest, prefix):
-    """Newest object in `dest` whose key contains `prefix`.
+# Destinations whose listing errored — their object count is unknown, not zero.
+unlistable = {}
+for p in WORK.glob("failed-*.json"):
+    pass
+for p in WORK.glob("failed-*.txt"):
+    unlistable[p.stem[len("failed-"):]] = p.read_text().strip()
 
-    Substring, not startswith: Dokploy prepends its generated appName to the
-    key ("compose-input-multi-byte-port-qsokry_postgres/<prefix>/..."), so the
-    configured prefix sits in the MIDDLE of the key, never at the front.
+def newest_for(dest, prefix):
+    """Newest object in `dest` whose key contains `prefix` as a path segment.
+
+    Two shapes in this fleet, and a naive match gets one of them wrong:
+
+      idtpp    prefix "tpp-infra-postgres/tpp_odoo_erp"
+               key    "compose-…_postgres/tpp-infra-postgres/tpp_odoo_erp/….gz"
+               -> the prefix sits in the MIDDLE, so startswith() fails.
+
+      abcfood  prefix "/hris_db"          (leading slash, as Dokploy stored it)
+               key    "hris_db/backup-….gz"
+               -> the key has NO leading slash, so a literal substring fails.
+
+    So: strip the slashes off the prefix, then match it as a whole path
+    segment — at the start of the key or after any "/".
     """
     best = None
     n = 0
+    needle = (prefix or "").strip("/")
     for o in files.get(dest, []):
-        if prefix and prefix not in o.get("key", ""):
+        key = o.get("key", "")
+        if needle and not (key.startswith(needle + "/") or ("/" + needle + "/") in key):
             continue
         n += 1
         ts = o.get("lastModified")
@@ -213,6 +244,8 @@ for line in (WORK / "configs.jsonl").read_text().splitlines():
         enabled = bool(x.get("enabled"))
         if not enabled:
             verdict = "DISABLED"
+        elif dest in unlistable:
+            verdict = "UNVERIFIED"
         elif newest is None:
             verdict = "NO FILES"
         elif age > STALE * 2:
@@ -257,16 +290,17 @@ if AS_JSON:
         "target": TARGET,
         "generated": now.isoformat(),
         "thresholds": {"warn_hours": WARN, "stale_hours": STALE * 2},
+        "unlistable_destinations": unlistable,
         "backups": configured,
         "services_without_backup": sorted(no_config),
         "manifest_defects": [{"file": a, "form": b, "why": c} for a, b, c in defects],
     }, indent=2))
-    sys.exit(1 if any(c["verdict"] in ("STALE", "NO FILES") for c in configured) or defects else 0)
+    sys.exit(1 if any(c["verdict"] in ("STALE", "NO FILES", "UNVERIFIED") for c in configured) or defects else 0)
 
 RED, YEL, GRN, DIM, OFF = "\033[1;31m", "\033[1;33m", "\033[1;32m", "\033[2m", "\033[0m"
 if not sys.stderr.isatty():
     RED = YEL = GRN = DIM = OFF = ""
-COLOR = {"OK": GRN, "WARN": YEL, "STALE": RED, "NO FILES": RED, "DISABLED": YEL}
+COLOR = {"OK": GRN, "WARN": YEL, "STALE": RED, "NO FILES": RED, "DISABLED": YEL, "UNVERIFIED": YEL}
 
 print(f"\n  CONFIGURED BACKUPS — {len(configured)} on {TARGET}\n")
 print(f"  {'service':26}{'database':22}{'schedule':16}{'files':>6}{'newest':>9}  verdict")
@@ -297,10 +331,30 @@ if no_config:
     if len(no_config) > 12:
         print(f"  {DIM}    … and {len(no_config) - 12} more (--json for all){OFF}")
 
+if unlistable:
+    print(f"\n  {YEL}UNVERIFIABLE DESTINATIONS{OFF} — their backups may be fine; nothing here proves it\n")
+    for dest, err in sorted(unlistable.items()):
+        print(f"  {YEL}?{OFF} {dest}")
+        print(f"      {err[:150]}")
+    print(f"\n      A schemeless endpoint is the usual cause: botocore requires https://.")
+    print(f"      Fix the destination's endpoint, then re-run to get a real verdict.")
+
+# UNVERIFIED counts as not proven. Claiming success while a destination could
+# not even be listed is precisely the false confidence this tool exists to
+# remove — "we could not check" must never render as "it is fine".
 bad = [c for c in configured if c["verdict"] in ("STALE", "NO FILES")]
+unproven = [c for c in configured if c["verdict"] == "UNVERIFIED"]
 print()
-if bad or defects:
-    print(f"  {RED}VERDICT: {len(bad)} backup(s) not proven, {len(defects)} manifest defect(s).{OFF}")
+if bad or unproven or defects:
+    parts = []
+    if bad:
+        parts.append(f"{len(bad)} backup(s) STALE or empty")
+    if unproven:
+        parts.append(f"{len(unproven)} UNVERIFIABLE")
+    if defects:
+        parts.append(f"{len(defects)} manifest defect(s)")
+    print(f"  {RED}VERDICT: {', '.join(parts)}.{OFF}")
     sys.exit(1)
-print(f"  {GRN}VERDICT: every configured backup has a recent object in its destination.{OFF}")
+print(f"  {GRN}VERDICT: all {len(configured)} configured backups have a recent object "
+      f"in their destination.{OFF}")
 PY
