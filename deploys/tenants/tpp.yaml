@@ -152,7 +152,12 @@ hermes:
           allowed_users:
             - xz85cyd7xjy55m9yp15jkgqa1c  # tri.gunawan
 
-# Filestore (attachment) backups — production only.
+# Filestore (attachment) backups.
+#
+# One entry per Odoo instance that holds attachments. As of 2026-09-07 that
+# is all three production instances (erp, hrms, helpdesk) plus the staging
+# canary; hrms and helpdesk were added after a coverage audit found they had
+# a database dump and no filestore snapshot at all.
 #
 # volume MUST be the exact docker volume name on the host: Dokploy names
 # compose volumes {appName}_{volume} and ignores COMPOSE_PROJECT_NAME, so
@@ -167,6 +172,50 @@ filestore_backups:
     database: tpp_odoo_erp
     min_files: 36000
     pinned_cron: "50 2 * * *"
+    bucket: hz-tpp-odoo-filestore
+    server: tpp-prod-03
+
+  # HRMS. Added 2026-09-07: tpp_odoo_hrms had a nightly pg_dump and NO filestore
+  # backup, so a restore would have come back with every attachment missing —
+  # Odoo keeps attachments on disk, not in Postgres.
+  #
+  # instance_short is REQUIRED here and on helpdesk below. Without it every
+  # production entry renders to the same tpp-odoo-filestore-backup.yaml and the
+  # write loop in main() keeps only the last, so two of the three repositories
+  # would never exist while the deploy reported success (see
+  # gen_filestore_backup's docstring). The erp entry above deliberately OMITS it
+  # so its live compose and already-seeded repo name do not change.
+  #
+  # volume resolved on tpp-prod-03 2026-09-07, not derived from the name:
+  #   docker ps -a --filter volume=<v>            -> the odoo-web/cron/gevent trio
+  #   docker inspect <container> | grep PGDATABASE -> tpp_odoo_hrms
+  # The same method reproduces the erp volume above, which is how it was checked.
+  # Measured 2026-09-07: 434 files / 6.0 MB.
+  #
+  # pinned_cron is 15 min after this database's own 02:40 pg_dump, matching erp's
+  # +15, so the filestore snapshot is always NEWER than the dump it restores with.
+  - short: hrms
+    instance_short: hrms
+    volume: compose-navigate-back-end-pixel-w33iir_odoo-filestore
+    database: tpp_odoo_hrms
+    min_files: 380
+    pinned_cron: "55 2 * * *"
+    bucket: hz-tpp-odoo-filestore
+    server: tpp-prod-03
+
+  # IT Service Desk. Same gap and same date as hrms above. Its attachments are
+  # ticket files and asset_it QR labels — 641 files / 56 MB measured 2026-09-07,
+  # against 753 ir_attachment rows, the difference being Odoo's checksum dedup.
+  #
+  # volume resolved the same way on tpp-prod-03 -> PGDATABASE=tpp_odoo_helpdesk.
+  # pinned_cron is 15 min after this database's 02:50 pg_dump. 03:05 also stays
+  # clear of tpp25's 03:20, which runs on tpp-prod-07 anyway.
+  - short: helpdesk
+    instance_short: helpdesk
+    volume: compose-bypass-optical-bus-3nlvg5_odoo-filestore
+    database: tpp_odoo_helpdesk
+    min_files: 570
+    pinned_cron: "5 3 * * *"
     bucket: hz-tpp-odoo-filestore
     server: tpp-prod-03
 

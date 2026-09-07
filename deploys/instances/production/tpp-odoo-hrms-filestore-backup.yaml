@@ -1,0 +1,18 @@
+# GENERATED FROM tenants/tpp.yaml — DO NOT EDIT
+kind: instance
+extends: ../../bases/odoo-filestore-backup.yaml
+instance:
+  name: tpp-odoo-hrms-filestore-backup
+  description: Pakerti — filestore backup (hrms) → hz-tpp-odoo-filestore
+project: tpp
+environment: production
+server: tpp-prod-03
+env_file: ../../env/production/.env.tpp-odoo-hrms-filestore-backup
+env_overrides:
+  TENANT: tpp
+  FILESTORE_VOLUME: compose-navigate-back-end-pixel-w33iir_odoo-filestore
+  FILESTORE_DB: tpp_odoo_hrms
+  FILESTORE_MIN_FILES: '380'
+  BACKUP_TAG: tpp-odoo-hrms
+  BACKUP_CRON_PINNED: 55 2 * * *
+  RESTIC_REPOSITORY: s3:https://fsn1.your-objectstorage.com/hz-tpp-odoo-filestore/tpp-odoo-hrms

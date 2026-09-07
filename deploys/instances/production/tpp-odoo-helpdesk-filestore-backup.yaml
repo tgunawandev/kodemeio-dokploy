@@ -1,0 +1,18 @@
+# GENERATED FROM tenants/tpp.yaml — DO NOT EDIT
+kind: instance
+extends: ../../bases/odoo-filestore-backup.yaml
+instance:
+  name: tpp-odoo-helpdesk-filestore-backup
+  description: Pakerti — filestore backup (helpdesk) → hz-tpp-odoo-filestore
+project: tpp
+environment: production
+server: tpp-prod-03
+env_file: ../../env/production/.env.tpp-odoo-helpdesk-filestore-backup
+env_overrides:
+  TENANT: tpp
+  FILESTORE_VOLUME: compose-bypass-optical-bus-3nlvg5_odoo-filestore
+  FILESTORE_DB: tpp_odoo_helpdesk
+  FILESTORE_MIN_FILES: '570'
+  BACKUP_TAG: tpp-odoo-helpdesk
+  BACKUP_CRON_PINNED: 5 3 * * *
+  RESTIC_REPOSITORY: s3:https://fsn1.your-objectstorage.com/hz-tpp-odoo-filestore/tpp-odoo-helpdesk
