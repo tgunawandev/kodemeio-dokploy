@@ -294,29 +294,30 @@ def cell(text, width, colour="", right=True):
     pad = text.rjust(width) if right else text.ljust(width)
     return f"{colour}{pad}{OFF}" if colour else pad
 
-def render_services(h):
-    """Wrap a host's assigned services under it, colouring anything not `done`.
+def svc_grid(svcs, indent="      ", width=78):
+    """Service names in aligned columns, widest-name driven.
 
-    Placement is Dokploy's assignment, which is NOT the same question as the
-    container count beside it: a service assigned to a host Dokploy cannot reach
-    still shows up here, which is how two services pinned to a deleted server
-    were found. A host with an assignment but no containers is worth a look.
+    The first version wrapped names into a ragged run-on paragraph, which is
+    unreadable at 12 services on one host: nothing lines up, so the eye cannot
+    scan down a column to find a name.
     """
-    if not placement:
-        return
-    svcs = h.get("services") or []
     if not svcs:
-        print(f"      {DIM}(no services assigned){OFF}")
         return
-    line, width = [], 0
-    for s in svcs:
-        col = "" if s["status"] == "done" else (RED if s["status"] == "error" else YEL)
-        tag = f"{col}{s['name']}{OFF}" if col else s["name"]
-        if width + len(s["name"]) + 2 > 72 and line:
-            print("      " + "  ".join(line)); line, width = [], 0
-        line.append(tag); width += len(s["name"]) + 2
-    if line:
-        print("      " + "  ".join(line))
+    w = max(len(s["name"]) for s in svcs) + 2
+    cols = max(1, (width - len(indent)) // w)
+    rows = (len(svcs) + cols - 1) // cols
+    for r in range(rows):
+        cells = []
+        for c in range(cols):
+            i = r + c * rows          # column-major: read DOWN, then across
+            if i >= len(svcs):
+                continue
+            s = svcs[i]
+            col = "" if s["status"] == "done" else (RED if s["status"] == "error" else YEL)
+            pad = s["name"].ljust(w)
+            cells.append(f"{col}{pad}{OFF}" if col else pad)
+        print(indent + "".join(cells).rstrip())
+
 
 hz_col = "hetzner" if hz_seen else ""
 print(f"\n  {'host':<14}{'dokploy':<9}{hz_col:<10}{'cpu 5m':>10}{'memory':>16}{'disk':>14}{'ctr':>6}{'up':>7}")
@@ -329,7 +330,11 @@ for h in hosts:
     if h["probe"] != "ok":
         col = RED if h["probe"] == "unreachable" else DIM
         print(f"  {h['name']:<14}{h['dokploy_status']:<9}{hzc}{cell(h['probe'], 10, col)}")
-        render_services(h)
+        if placement:
+            svcs = h.get("services") or []
+            print(f"      {DIM}{len(svcs)} service(s){OFF}" if svcs else f"      {DIM}no services assigned{OFF}")
+            svc_grid(svcs)
+            print()
         continue
     cpu = cell(f"{h['load_per_core']:.2f}/core", 10, RED if h["load_per_core"] >= LW else "")
     mem_txt = f"{h['mem_used_mb'] // 1024}/{h['mem_total_mb'] // 1024}G {h['mem_pct']:.0f}%"
@@ -338,7 +343,11 @@ for h in hosts:
           f"{cell(mem_txt, 16, colour_for(h['mem_pct'], MW))}"
           f"{cell(disk_txt, 14, colour_for(h['disk_pct'], DW))}"
           f"{h['containers']:>6}{str(h['uptime_days']) + 'd':>7}")
-    render_services(h)
+    if placement:
+        svcs = h.get("services") or []
+        print(f"      {DIM}{len(svcs)} service(s){OFF}" if svcs else f"      {DIM}no services assigned{OFF}")
+        svc_grid(svcs)
+        print()
 
 recl = [h for h in hosts if h.get("docker_reclaimable") and not h["docker_reclaimable"].startswith("0")]
 if recl:
@@ -359,15 +368,7 @@ if placement:
     if house:
         print(f"\n  {DIM}placement not recorded by Dokploy (no serverId) — these still run somewhere;{OFF}")
         print(f"  {DIM}check with: ./dokploy.sh <platform> docker containers -s <host>{OFF}")
-        line, width = [], 0
-        for s in sorted(house, key=lambda x: x["name"]):
-            col = "" if s["status"] == "done" else (RED if s["status"] == "error" else YEL)
-            tag = f"{col}{s['name']}{OFF}" if col else s["name"]
-            if width + len(s["name"]) + 2 > 72 and line:
-                print("      " + "  ".join(line)); line, width = [], 0
-            line.append(tag); width += len(s["name"]) + 2
-        if line:
-            print("      " + "  ".join(line))
+        svc_grid(sorted(house, key=lambda x: x["name"]))
     total = sum(len(v) for v in placement.values())
     shown = sum(len(h.get("services") or []) for h in hosts) + len(house)
     if shown != total:
