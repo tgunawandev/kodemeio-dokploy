@@ -151,6 +151,15 @@ fd_split_globals() {
 fd_guard_check() {
   FD_GUARD_KEY=""
   local target="$1"; shift
+
+  # --help never writes, so it is never guarded. Without this the guard denies
+  # `<group> <verb> --help` — because the argv walk skips flags and then matches
+  # the verb — while fd_guard_deny's own message tells you to run exactly that
+  # to check before writing. The door contradicting its own advice teaches people
+  # that the guard is noise.
+  local _h
+  for _h in "$@"; do [[ "$_h" == "--help" || "$_h" == "-h" ]] && return 0; done
+
   [[ -n "$target" ]] && fd_is_safe_target "$target" && return 0
 
   local group="$1"; shift
