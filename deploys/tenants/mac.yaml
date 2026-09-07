@@ -38,27 +38,25 @@ services:
   # registered in env/production/.env.kod-infra-notify ALLOWED_ORIGINS.
   redis: true
 
-# Hermes — agent on tpp-prod-05, co-located with mac-mm.idtpp.com. Mattermost
-# inbound only. mac-mm.idtpp.com actually resolves to 178.104.171.122 (tpp-prod-05),
-# not tpp-stg-01 as the mac-infra-mattermost.yaml manifest claims. Honcho disabled
-# until Phase D of the 2026-05-23 Honcho rollout.
-hermes:
-  enabled: true
-  edition: business
-  server: tpp-prod-05
-  inbound:
-    telegram:
-      enabled: false
-    mattermost:
-      enabled: true
-      url: https://mac-mm.idtpp.com
-      reply_mode: thread
-      require_mention: true
-      allowed_channels:
-        - bnms3rw37iya5b8g1fdyg3edph
-  memory:
-    honcho:
-      enabled: false
+# Hermes — RETIRED 2026-09-07. The agent ran on tpp-prod-05, and that server no
+# longer exists: Hetzner has six servers for this account and tpp-prod-05 is not
+# among them, while Dokploy still carried an `active` record for it. The agent
+# had been in `error` ever since, because its host was deleted out from under it.
+#
+# Retired rather than repointed, by decision — there was no replacement running
+# anywhere and nobody had missed it.
+#
+# The comment that used to sit here claimed "mac-mm.idtpp.com actually resolves
+# to 178.104.171.122 (tpp-prod-05), not tpp-stg-01". That is no longer true and
+# is worth recording as wrong rather than deleting silently: mac-mm.idtpp.com now
+# resolves to 5.223.69.142 (tpp-prod-06, Singapore) and answers HTTP 200, because
+# the migration in ops/runbooks/mattermost-sg-migration.md completed. The live
+# service is mac-infra-mattermost-sg-prod, which is `done` and backed up.
+#
+# To bring a MAC agent back, re-add a `hermes:` block here pointing at a server
+# that exists — tpp-prod-06 keeps the original "co-located with mac-mm" intent —
+# and regenerate. Do NOT reuse the deleted instance name blindly; check what
+# Dokploy still holds first.
 
 # volume MUST be the exact docker volume name on tpp-prod-02: Dokploy names
 # compose volumes {appName}_{volume} and ignores COMPOSE_PROJECT_NAME, so decoy

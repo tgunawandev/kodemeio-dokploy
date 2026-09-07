@@ -3,7 +3,7 @@ extends: ../../bases/infra.yaml
 
 instance:
   name: mac-infra-mattermost-sg-prod
-  description: "MAC Mattermost — PRODUCTION on Singapore (tpp-prod-06). Migration target for mac-mm.idtpp.com. DNS flips at cutover; until then live prod stays on tpp-prod-05."
+  description: "MAC Mattermost — PRODUCTION on Singapore (tpp-prod-06). Cutover COMPLETE: mac-mm.idtpp.com resolves here (5.223.69.142) and answers 200. The tpp-prod-05 predecessor is gone — that server was deleted and its mac-infra-mattermost record retired 2026-09-07."
 
 project: mac
 environment: production
