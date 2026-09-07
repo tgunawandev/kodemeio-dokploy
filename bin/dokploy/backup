@@ -204,6 +204,7 @@ def newest_for(dest, prefix):
     segment — at the start of the key or after any "/".
     """
     best = None
+    best_size = None
     n = 0
     needle = (prefix or "").strip("/")
     for o in files.get(dest, []):
@@ -220,7 +221,8 @@ def newest_for(dest, prefix):
             continue
         if best is None or t > best:
             best = t
-    return best, n
+            best_size = o.get("size")
+    return best, n, best_size
 
 configured, no_config = [], []
 for line in (WORK / "configs.jsonl").read_text().splitlines():
@@ -239,7 +241,7 @@ for line in (WORK / "configs.jsonl").read_text().splitlines():
     for x in b:
         prefix = x.get("prefix") or ""
         dest = x.get("destinationId") or ""
-        newest, count = newest_for(dest, prefix)
+        newest, count, newest_size = newest_for(dest, prefix)
         age = (now - newest).total_seconds() / 3600 if newest else None
         enabled = bool(x.get("enabled"))
         if not enabled:
@@ -248,6 +250,12 @@ for line in (WORK / "configs.jsonl").read_text().splitlines():
             verdict = "UNVERIFIED"
         elif newest is None:
             verdict = "NO FILES"
+        # 🔴 A FRESH BACKUP CAN STILL BE EMPTY. abcfood's `abcfood_dwh` wrote a
+        # 0-byte object as its final dump on 2025-12-31 before stopping
+        # altogether; on the day that landed, a freshness-only check would have
+        # called it OK. Size is checked before age for that reason.
+        elif not newest_size:
+            verdict = "EMPTY"
         elif age > STALE * 2:
             verdict = "STALE"
         elif age > WARN:
@@ -259,6 +267,7 @@ for line in (WORK / "configs.jsonl").read_text().splitlines():
             "enabled": enabled, "prefix": prefix, "destination": dest,
             "keep_latest": x.get("keepLatestCount"), "files": count,
             "newest": newest.isoformat() if newest else None,
+            "newest_bytes": newest_size,
             "age_hours": round(age, 1) if age is not None else None,
             "verdict": verdict,
         })
@@ -295,12 +304,12 @@ if AS_JSON:
         "services_without_backup": sorted(no_config),
         "manifest_defects": [{"file": a, "form": b, "why": c} for a, b, c in defects],
     }, indent=2))
-    sys.exit(1 if any(c["verdict"] in ("STALE", "NO FILES", "UNVERIFIED") for c in configured) or defects else 0)
+    sys.exit(1 if any(c["verdict"] in ("STALE", "NO FILES", "UNVERIFIED", "EMPTY") for c in configured) or defects else 0)
 
 RED, YEL, GRN, DIM, OFF = "\033[1;31m", "\033[1;33m", "\033[1;32m", "\033[2m", "\033[0m"
 if not sys.stderr.isatty():
     RED = YEL = GRN = DIM = OFF = ""
-COLOR = {"OK": GRN, "WARN": YEL, "STALE": RED, "NO FILES": RED, "DISABLED": YEL, "UNVERIFIED": YEL}
+COLOR = {"OK": GRN, "WARN": YEL, "STALE": RED, "NO FILES": RED, "DISABLED": YEL, "UNVERIFIED": YEL, "EMPTY": RED}
 
 print(f"\n  CONFIGURED BACKUPS — {len(configured)} on {TARGET}\n")
 print(f"  {'service':26}{'database':22}{'schedule':16}{'files':>6}{'newest':>9}  verdict")
@@ -342,7 +351,7 @@ if unlistable:
 # UNVERIFIED counts as not proven. Claiming success while a destination could
 # not even be listed is precisely the false confidence this tool exists to
 # remove — "we could not check" must never render as "it is fine".
-bad = [c for c in configured if c["verdict"] in ("STALE", "NO FILES")]
+bad = [c for c in configured if c["verdict"] in ("STALE", "NO FILES", "EMPTY")]
 unproven = [c for c in configured if c["verdict"] == "UNVERIFIED"]
 print()
 if bad or unproven or defects:
@@ -355,6 +364,9 @@ if bad or unproven or defects:
         parts.append(f"{len(defects)} manifest defect(s)")
     print(f"  {RED}VERDICT: {', '.join(parts)}.{OFF}")
     sys.exit(1)
-print(f"  {GRN}VERDICT: all {len(configured)} configured backups have a recent object "
-      f"in their destination.{OFF}")
+if not configured:
+    print(f"  {DIM}VERDICT: no backups are configured on this platform — nothing to verify.{OFF}")
+else:
+    print(f"  {GRN}VERDICT: all {len(configured)} configured backups have a recent, "
+          f"non-empty object in their destination.{OFF}")
 PY
