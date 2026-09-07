@@ -11,6 +11,9 @@
 #   --services      list the services assigned to each host (one extra API call
 #                   per service, so it is opt-in)
 #   --jobs N        parallelism for that mapping (default 8)
+#   --describe      preview a description for each server, generated from the
+#                   services on it; add --yes to write it to Dokploy
+#   --force         also replace descriptions a person wrote by hand
 #   --name SUBSTR   only hosts whose name contains SUBSTR
 #   --disk-warn N   disk %% that counts as a problem   (default 85)
 #   --load-warn N   load per core that counts as a problem (default 1.5, 5-min avg)
@@ -56,21 +59,33 @@ set -euo pipefail
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_boot.sh"
 
 [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]] && { fd_usage_from_header "$0"; exit 0; }
+# hosts is read-only EXCEPT for --describe --yes, which writes each server's
+# description field. --yes is refused on its own so it cannot be pasted in from
+# another command and silently do nothing.
+_want_describe=0
+for _a in "$@"; do [[ "$_a" == "--describe" ]] && _want_describe=1; done
 for _a in "$@"; do
-  [[ "$_a" == "--dry-run" || "$_a" == "--yes" ]] && { c_red "hosts only reads; it has no $_a."; exit 1; }
+  [[ "$_a" == "--dry-run" ]] && { c_red "hosts has no --dry-run; without --yes it already only previews."; exit 1; }
+  if [[ "$_a" == "--yes" && $_want_describe -eq 0 ]]; then
+    c_red "--yes is only meaningful with --describe; everything else here reads."
+    exit 1
+  fi
 done
 [[ $# -ge 1 ]] || { c_red "Need: <platform>"; fd_usage_from_header "$0"; exit 1; }
 
 PLATFORM="$1"; shift
 fd_resolve "$PLATFORM"
 
-NO_SSH=0; NO_HZ=0; WITH_SVC=0; FD_JOBS=8; NAME=""; DISK_WARN=85; MEM_WARN=90; LOAD_WARN=1.5; AS_JSON=0
+NO_SSH=0; NO_HZ=0; WITH_SVC=0; DESCRIBE=0; ASSUME_YES=0; FORCE=0; FD_JOBS=8; NAME=""; DISK_WARN=85; MEM_WARN=90; LOAD_WARN=1.5; AS_JSON=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --no-ssh)     NO_SSH=1; shift ;;
     --no-hetzner) NO_HZ=1; shift ;;
     --services)   WITH_SVC=1; shift ;;
     --jobs)       FD_JOBS="${2:-8}"; shift 2 ;;
+    --describe)   WITH_SVC=1; DESCRIBE=1; shift ;;
+    --force)      FORCE=1; shift ;;
+    --yes)        ASSUME_YES=1; shift ;;
     --name)      NAME="${2:-}"; shift 2 ;;
     --disk-warn) DISK_WARN="${2:-85}"; shift 2 ;;
     --load-warn) LOAD_WARN="${2:-1.5}"; shift 2 ;;
@@ -176,15 +191,22 @@ except Exception: print(\"\")" || true)"
       ' _ {} >> "$WORK/placement.tsv"
 fi
 
+# set +e so a non-zero verdict from the reader does not skip the apply below;
+# its exit code is captured and re-raised at the end.
+set +e
 DISK_WARN="$DISK_WARN" MEM_WARN="$MEM_WARN" LOAD_WARN="$LOAD_WARN" AS_JSON="$AS_JSON" TARGET="$FD_TARGET" \
+DESCRIBE="$DESCRIBE" FORCE="$FORCE" \
 WORK="$WORK" python3 - <<'PY'
 import json, os, re, sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 WORK = Path(os.environ["WORK"])
 DW = float(os.environ["DISK_WARN"]); MW = float(os.environ["MEM_WARN"])
 LW = float(os.environ["LOAD_WARN"])
 AS_JSON = os.environ["AS_JSON"] == "1"; TARGET = os.environ["TARGET"]
+DESCRIBE = os.environ.get("DESCRIBE") == "1"
+FORCE = os.environ.get("FORCE") == "1"
 
 def kv(blob):
     out = {}
@@ -219,6 +241,18 @@ if _pl.is_file():
         bits = line.split("\t")
         if len(bits) == 3:
             placement.setdefault(bits[0], []).append({"name": bits[1], "status": bits[2]})
+
+# Current descriptions, straight from the server records, so the preview can
+# show now-vs-new rather than asserting a change it has not checked for.
+current_desc = {}
+try:
+    _s = json.loads((WORK / "servers.json").read_text())
+    for x in (_s if isinstance(_s, list) else _s.get("data", [])):
+        current_desc[x.get("serverId") or ""] = x.get("description") or ""
+except Exception:
+    pass
+
+TODAY = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
 hosts, problems = [], []
 for line in (WORK / "stats.tsv").read_text().splitlines():
@@ -374,6 +408,75 @@ if placement:
     if shown != total:
         print(f"\n  {YEL}note: {total - shown} service(s) assigned to a server not in this list{OFF}")
 
+def describe_for(h):
+    """A factual description of a host, built from the services Dokploy places there.
+
+    Grouped by the common `<tenant>-<family>` prefix so twelve names compress to
+    something readable in a UI field, and NOT given an invented role label —
+    "TPP shared infrastructure" would be a guess that quietly goes stale, while
+    a list of what is actually there cannot.
+
+    It ends with a generated-on marker for the same reason the manifests carry
+    "GENERATED FROM": whoever opens this dialog next needs to know an edit here
+    will be overwritten, and by what.
+    """
+    svcs = [s["name"] for s in (h.get("services") or [])]
+    if not svcs:
+        return f"No services assigned. Generated {TODAY} by ./dokploy.sh hosts --describe"
+    groups = {}
+    for n in sorted(svcs):
+        bits = n.split("-")
+        key = "-".join(bits[:2]) if len(bits) > 2 else n
+        groups.setdefault(key, []).append("-".join(bits[2:]) if len(bits) > 2 else n)
+    parts = []
+    for key, members in sorted(groups.items()):
+        if len(members) == 1 and members[0] == key:
+            parts.append(key)
+        elif len(members) == 1:
+            parts.append(f"{key}-{members[0]}")
+        else:
+            parts.append(f"{key} x{len(members)} ({', '.join(sorted(members))})")
+    body = " | ".join(parts)
+    desc = f"{len(svcs)} services: {body}. Generated {TODAY} by ./dokploy.sh hosts --describe -- edits here are overwritten."
+    return desc if len(desc) <= 480 else desc[:477] + "..."
+
+MARKER = "./dokploy.sh hosts --describe"
+
+if DESCRIBE:
+    plan, protected = [], []
+    print(f"\n  DESCRIPTIONS — generated from placement\n")
+    for h in hosts:
+        sid = h.get("server_id") or ""
+        cur = (current_desc.get(sid) or "").strip()
+        new = describe_for(h)
+        same = cur == new
+        # 🔴 NEVER CLOBBER A HUMAN'S NOTE. A description that is non-empty and
+        # does NOT carry this tool's marker was written by a person —
+        # tpp-prod-01 said "Postgres, Authentik, Mailcow" and tpp-prod-02 said
+        # "Odoo MAC, Postgres MAC, HRMS MAC". Overwriting those silently would
+        # destroy the only place someone recorded intent, in exchange for a list
+        # the tool can print on demand anyway. --force is the deliberate override.
+        mine = (not cur) or (MARKER in cur)
+        print(f"  {h['name']}")
+        print(f"    {DIM}now :{OFF} {cur if cur else DIM + '(empty)' + OFF}")
+        if not mine and not FORCE:
+            print(f"    {YEL}skip:{OFF} hand-written, kept. --force to replace it with:")
+            print(f"    {DIM}      {new}{OFF}")
+            protected.append(h["name"])
+        else:
+            print(f"    {GRN if not same else DIM}new :{OFF} {new}")
+            if not same and sid:
+                plan.append((sid, h["name"], new))
+        print()
+    (WORK / "describe.tsv").write_text(
+        "".join(f"{sid}\t{name}\t{d}\n" for sid, name, d in plan), encoding="utf-8")
+    if protected:
+        print(f"  {YEL}{len(protected)} hand-written description(s) kept: {', '.join(protected)}{OFF}")
+    if plan:
+        print(f"  {YEL}{len(plan)} server(s) would change. Re-run with --yes to write them.{OFF}")
+    elif not protected:
+        print(f"  {GRN}Every description already matches.{OFF}")
+
 print()
 if problems:
     for name, why in problems:
@@ -382,3 +485,29 @@ if problems:
     sys.exit(1)
 print(f"  {GRN}VERDICT: all {len(hosts)} hosts within thresholds.{OFF}")
 PY
+_reader_rc=$?
+set -e
+
+# ── Apply, only with --describe --yes ────────────────────────────────────────
+# The plan was written by the reader above, so what gets applied is exactly what
+# was printed — there is no second generation pass that could differ from the
+# preview.
+if (( DESCRIBE && ASSUME_YES )); then
+  if [[ ! -s "$WORK/describe.tsv" ]]; then
+    c_dim "Nothing to write."
+  else
+    _n=0
+    while IFS=$'\t' read -r _sid _name _desc; do
+      [[ -n "$_sid" ]] || continue
+      if "$CLI" -p "$FD_PROFILE" servers update "$_sid" --description "$_desc" >/dev/null 2>&1; then
+        c_green "updated  $_name"
+        _n=$(( _n + 1 ))
+      else
+        c_red "FAILED   $_name"
+      fi
+    done < "$WORK/describe.tsv"
+    c_dim "$_n description(s) written."
+  fi
+fi
+
+exit "$_reader_rc"
