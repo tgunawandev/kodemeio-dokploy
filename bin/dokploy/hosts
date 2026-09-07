@@ -7,8 +7,10 @@
 #
 # Options:
 #   --no-ssh        Dokploy's own record only; no live stats
+#   --no-hetzner    skip the Hetzner Cloud cross-check
 #   --name SUBSTR   only hosts whose name contains SUBSTR
 #   --disk-warn N   disk %% that counts as a problem   (default 85)
+#   --load-warn N   load per core that counts as a problem (default 1.5, 5-min avg)
 #   --mem-warn N    memory %% that counts as a problem (default 90)
 #   --json          machine-readable; exits 1 on any problem or unreachable host
 #
@@ -33,6 +35,14 @@
 # dokploy.yaml exists to refuse. Naming it `hosts` avoids the collision entirely
 # and keeps `./dokploy.sh <platform> servers list` working as passthrough.
 #
+# 🔴 THREE SOURCES, BECAUSE THEY DISAGREE. Dokploy's `serverStatus` is a stored
+# record, not a liveness check: on 2026-09-07 it reported tpp-prod-05 `active`
+# while SSH could not reach it AND Hetzner had no such server at all — a
+# deleted machine still listed as a deploy target. Hetzner Cloud is the
+# authority on whether the machine EXISTS, SSH on whether it is USABLE, and
+# Dokploy only on whether it is CONFIGURED. A host missing from Hetzner is
+# marked GHOST.
+#
 # 🔴 AN UNREACHABLE HOST IS REPORTED, NEVER SKIPPED. A server missing from a
 # capacity report reads as "nothing wrong there". tpp-prod-05 is unreachable
 # today and says so.
@@ -50,12 +60,14 @@ done
 PLATFORM="$1"; shift
 fd_resolve "$PLATFORM"
 
-NO_SSH=0; NAME=""; DISK_WARN=85; MEM_WARN=90; AS_JSON=0
+NO_SSH=0; NO_HZ=0; NAME=""; DISK_WARN=85; MEM_WARN=90; LOAD_WARN=1.5; AS_JSON=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --no-ssh)    NO_SSH=1; shift ;;
+    --no-ssh)     NO_SSH=1; shift ;;
+    --no-hetzner) NO_HZ=1; shift ;;
     --name)      NAME="${2:-}"; shift 2 ;;
     --disk-warn) DISK_WARN="${2:-85}"; shift 2 ;;
+    --load-warn) LOAD_WARN="${2:-1.5}"; shift 2 ;;
     --mem-warn)  MEM_WARN="${2:-90}"; shift 2 ;;
     --json)      AS_JSON=1; shift ;;
     *) c_red "Unknown option '$1'"; fd_usage_from_header "$0"; exit 2 ;;
@@ -97,7 +109,10 @@ for row in ${ROWS[@]+"${ROWS[@]}"}; do
   out="$(timeout 25 ssh -n -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=accept-new \
         -p "$port" "$user@$ip" '
       cores=$(nproc 2>/dev/null || echo 1)
-      load=$(cut -d" " -f1 /proc/loadavg 2>/dev/null || echo 0)
+      # Field 2 = the 5-MINUTE average, deliberately not field 1. The 1-minute
+      # figure spikes on any single build or backup run, and a load threshold
+      # that fires on a spike is an alarm people learn to ignore.
+      load=$(cut -d" " -f2 /proc/loadavg 2>/dev/null || echo 0)
       read _ mt ma _ < <(free -m | awk "/^Mem:/{print \$1, \$2, \$7}")
       dl=$(df -P / | awk "NR==2{print \$2, \$3, \$5}")
       ctr=$(docker ps -q 2>/dev/null | wc -l)
@@ -113,13 +128,21 @@ for row in ${ROWS[@]+"${ROWS[@]}"}; do
 done
 (( AS_JSON )) || printf '\r%*s\r' 40 '' >&2
 
-DISK_WARN="$DISK_WARN" MEM_WARN="$MEM_WARN" AS_JSON="$AS_JSON" TARGET="$FD_TARGET" \
+# Hetzner Cloud: does the machine actually exist, and what is it? Uses the same
+# platform profile name — kctl-hz and kctl-dokploy share the profile taxonomy.
+: > "$WORK/hetzner.json"
+if (( ! NO_HZ )) && command -v kctl-hz >/dev/null 2>&1; then
+  kctl-hz -p "$FD_PROFILE" --json servers list > "$WORK/hetzner.json" 2>/dev/null || : > "$WORK/hetzner.json"
+fi
+
+DISK_WARN="$DISK_WARN" MEM_WARN="$MEM_WARN" LOAD_WARN="$LOAD_WARN" AS_JSON="$AS_JSON" TARGET="$FD_TARGET" \
 WORK="$WORK" python3 - <<'PY'
 import json, os, re, sys
 from pathlib import Path
 
 WORK = Path(os.environ["WORK"])
 DW = float(os.environ["DISK_WARN"]); MW = float(os.environ["MEM_WARN"])
+LW = float(os.environ["LOAD_WARN"])
 AS_JSON = os.environ["AS_JSON"] == "1"; TARGET = os.environ["TARGET"]
 
 def kv(blob):
@@ -128,12 +151,35 @@ def kv(blob):
         out[m.group(1)] = m.group(2).strip()
     return out
 
+# Hetzner inventory, keyed by public IPv4 — names can differ between systems,
+# an IP cannot.
+hz_by_ip, hz_seen = {}, False
+try:
+    raw = (WORK / "hetzner.json").read_text().strip()
+    if raw:
+        d = json.loads(raw)
+        for s in (d if isinstance(d, list) else d.get("data", [])):
+            pn = s.get("public_net") or {}
+            ip = (pn.get("ipv4") or {}).get("ip") if isinstance(pn, dict) else None
+            ip = ip or s.get("ipv4") or s.get("ip")
+            if ip:
+                st = s.get("server_type") or {}
+                hz_by_ip[ip] = {"name": s.get("name"), "status": s.get("status"),
+                                "type": st.get("name") if isinstance(st, dict) else st}
+        hz_seen = True
+except Exception:
+    hz_seen = False
+
 hosts, problems = [], []
 for line in (WORK / "stats.tsv").read_text().splitlines():
     parts = line.split("\t")
     name, ip, status, probe = parts[0], parts[1], parts[2], parts[3]
     blob = parts[4] if len(parts) > 4 else ""
     h = {"name": name, "ip": ip, "dokploy_status": status, "probe": probe}
+    if hz_seen:
+        hz = hz_by_ip.get(ip)
+        h["hetzner"] = hz["status"] if hz else "absent"
+        h["hetzner_type"] = hz["type"] if hz else None
     if probe == "ok" and blob:
         d = kv(blob)
         try:
@@ -156,20 +202,24 @@ for line in (WORK / "stats.tsv").read_text().splitlines():
     hosts.append(h)
 
     why = []
+    if h.get("hetzner") == "absent":
+        why.append("GHOST — no such server in Hetzner")
+    elif h.get("hetzner") not in (None, "running"):
+        why.append(f"Hetzner says {h['hetzner']}")
     if h["probe"] == "unreachable":
         why.append("unreachable over SSH")
     if h.get("disk_pct") is not None and h["disk_pct"] >= DW:
         why.append(f"disk {h['disk_pct']:.0f}%")
     if h.get("mem_pct") is not None and h["mem_pct"] >= MW:
         why.append(f"memory {h['mem_pct']:.0f}%")
-    if h.get("load_per_core") is not None and h["load_per_core"] >= 1.5:
+    if h.get("load_per_core") is not None and h["load_per_core"] >= LW:
         why.append(f"load {h['load_per_core']}/core")
     if why:
         problems.append((name, ", ".join(why)))
 
 if AS_JSON:
     print(json.dumps({"target": TARGET, "hosts": hosts,
-                      "thresholds": {"disk_pct": DW, "mem_pct": MW},
+                      "thresholds": {"disk_pct": DW, "mem_pct": MW, "load_per_core": LW},
                       "problems": [{"host": a, "why": b} for a, b in problems]}, indent=2))
     sys.exit(1 if problems else 0)
 
@@ -192,17 +242,22 @@ def cell(text, width, colour="", right=True):
     pad = text.rjust(width) if right else text.ljust(width)
     return f"{colour}{pad}{OFF}" if colour else pad
 
-print(f"\n  {'host':<14}{'status':<9}{'cpu':>10}{'memory':>16}{'disk':>14}{'ctr':>6}{'up':>7}")
-print("  " + "─" * 78)
+hz_col = "hetzner" if hz_seen else ""
+print(f"\n  {'host':<14}{'dokploy':<9}{hz_col:<10}{'cpu 5m':>10}{'memory':>16}{'disk':>14}{'ctr':>6}{'up':>7}")
+print("  " + "─" * (78 + (10 if hz_seen else 0)))
 for h in hosts:
+    hzc = ""
+    if hz_seen:
+        v = h.get("hetzner") or "?"
+        hzc = cell(v, 10, RED if v == "absent" else ("" if v == "running" else YEL), right=False)
     if h["probe"] != "ok":
         col = RED if h["probe"] == "unreachable" else DIM
-        print(f"  {h['name']:<14}{h['dokploy_status']:<9}{cell(h['probe'], 10, col)}")
+        print(f"  {h['name']:<14}{h['dokploy_status']:<9}{hzc}{cell(h['probe'], 10, col)}")
         continue
-    cpu = cell(f"{h['load_per_core']}/core", 10, RED if h["load_per_core"] >= 1.5 else "")
+    cpu = cell(f"{h['load_per_core']:.2f}/core", 10, RED if h["load_per_core"] >= LW else "")
     mem_txt = f"{h['mem_used_mb'] // 1024}/{h['mem_total_mb'] // 1024}G {h['mem_pct']:.0f}%"
     disk_txt = f"{h['disk_total_gb']:.0f}G {h['disk_pct']:.0f}%"
-    print(f"  {h['name']:<14}{h['dokploy_status']:<9}{cpu}"
+    print(f"  {h['name']:<14}{h['dokploy_status']:<9}{hzc}{cpu}"
           f"{cell(mem_txt, 16, colour_for(h['mem_pct'], MW))}"
           f"{cell(disk_txt, 14, colour_for(h['disk_pct'], DW))}"
           f"{h['containers']:>6}{str(h['uptime_days']) + 'd':>7}")
