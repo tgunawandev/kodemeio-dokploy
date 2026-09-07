@@ -10,6 +10,7 @@
 #   --no-hetzner    skip the Hetzner Cloud cross-check
 #   --services      list the services assigned to each host (one extra API call
 #                   per service, so it is opt-in)
+#   --jobs N        parallelism for that mapping (default 8)
 #   --name SUBSTR   only hosts whose name contains SUBSTR
 #   --disk-warn N   disk %% that counts as a problem   (default 85)
 #   --load-warn N   load per core that counts as a problem (default 1.5, 5-min avg)
@@ -63,12 +64,13 @@ done
 PLATFORM="$1"; shift
 fd_resolve "$PLATFORM"
 
-NO_SSH=0; NO_HZ=0; WITH_SVC=0; NAME=""; DISK_WARN=85; MEM_WARN=90; LOAD_WARN=1.5; AS_JSON=0
+NO_SSH=0; NO_HZ=0; WITH_SVC=0; FD_JOBS=8; NAME=""; DISK_WARN=85; MEM_WARN=90; LOAD_WARN=1.5; AS_JSON=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --no-ssh)     NO_SSH=1; shift ;;
     --no-hetzner) NO_HZ=1; shift ;;
     --services)   WITH_SVC=1; shift ;;
+    --jobs)       FD_JOBS="${2:-8}"; shift 2 ;;
     --name)      NAME="${2:-}"; shift 2 ;;
     --disk-warn) DISK_WARN="${2:-85}"; shift 2 ;;
     --load-warn) LOAD_WARN="${2:-1.5}"; shift 2 ;;
@@ -149,31 +151,29 @@ if (( WITH_SVC )); then
   mapfile -t SVCS < <("$CLI" -p "$FD_PROFILE" --json compose list 2>/dev/null | python3 -c "
 import json,sys
 d=json.load(sys.stdin); r=d if isinstance(d,list) else d.get('data',[])
-for x in r: print(x['composeId'] + '	' + (x.get('name') or '?') + '	' + (x.get('status') or '?'))
+for x in r: print(x['composeId'] + chr(9) + (x.get('name') or '?') + chr(9) + (x.get('status') or '?'))
 ")
-  i=0; n=${#SVCS[@]}
-  for s in ${SVCS[@]+"${SVCS[@]}"}; do
-    IFS=$'	' read -r cid cname cstatus <<<"$s"
-    i=$(( i + 1 ))
-    (( AS_JSON )) || printf '
-  mapping service %d/%d %-32s' "$i" "$n" "${cname:0:32}" >&2
-    # `|| true` is load-bearing: `set -o pipefail` is on, and a single service
-    # whose `compose get` returns non-zero would otherwise kill the whole loop
-    # mid-scan with no output at all — which is what happened on service 4 of 45
-    # while writing this. A service that cannot be read is recorded as
-    # unplaced, not allowed to abort the run.
-    sid="$("$CLI" -p "$FD_PROFILE" --json compose get "$cid" 2>/dev/null | tr -d '\n' | python3 -c "
+  n=${#SVCS[@]}
+  (( AS_JSON )) || c_dim "  mapping $n service(s) to hosts, $FD_JOBS at a time..."
+  # PARALLEL, because this is one API call per service and 45 in series took 81
+  # seconds measured — long enough that people stop using the flag.
+  #
+  # Concurrent appends are safe: each line is a few dozen bytes, far below
+  # PIPE_BUF, so O_APPEND writes cannot interleave. Order is not preserved and
+  # does not matter — the reader groups by serverId.
+  export _FD_CLI="$CLI" _FD_PROF="$FD_PROFILE"
+  printf '%s\n' ${SVCS[@]+"${SVCS[@]}"} \
+    | xargs -P "$FD_JOBS" -d '\n' -I{} bash -c '
+        IFS=$'"'"'\t'"'"' read -r cid cname cstatus <<<"$1"
+        sid="$("$_FD_CLI" -p "$_FD_PROF" --json compose get "$cid" 2>/dev/null \
+               | python3 -c "
 import json,sys
 try:
-    d=json.load(sys.stdin); d=d.get('data',d) if isinstance(d,dict) else d
-    print(d.get('serverId') or '')
-except Exception: print('')" || true)"
-    printf '%s	%s	%s
-' "${sid:-none}" "$cname" "$cstatus" >> "$WORK/placement.tsv"
-  done
-  (( AS_JSON )) || printf '
-%*s
-' 60 '' >&2
+    d=json.load(sys.stdin); d=d.get(\"data\",d) if isinstance(d,dict) else d
+    print(d.get(\"serverId\") or \"\")
+except Exception: print(\"\")" || true)"
+        printf "%s\t%s\t%s\n" "${sid:-none}" "$cname" "$cstatus"
+      ' _ {} >> "$WORK/placement.tsv"
 fi
 
 DISK_WARN="$DISK_WARN" MEM_WARN="$MEM_WARN" LOAD_WARN="$LOAD_WARN" AS_JSON="$AS_JSON" TARGET="$FD_TARGET" \
