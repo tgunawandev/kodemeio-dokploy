@@ -95,6 +95,7 @@ database inherits a dump it cannot perform.
 ./dokploy.sh services idtpp --problems     # only what is not `done`
 ./dokploy.sh services all --status error   # the whole fleet's failures
 ./dokploy.sh hosts idtpp                   # CPU, memory, disk, containers per server
+./dokploy.sh hosts idtpp --services        # …and which services sit on each host
 ```
 
 🔴 **The status field is `status`, not `composeStatus`.** Both are on the record

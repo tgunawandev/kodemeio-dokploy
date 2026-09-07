@@ -8,6 +8,8 @@
 # Options:
 #   --no-ssh        Dokploy's own record only; no live stats
 #   --no-hetzner    skip the Hetzner Cloud cross-check
+#   --services      list the services assigned to each host (one extra API call
+#                   per service, so it is opt-in)
 #   --name SUBSTR   only hosts whose name contains SUBSTR
 #   --disk-warn N   disk %% that counts as a problem   (default 85)
 #   --load-warn N   load per core that counts as a problem (default 1.5, 5-min avg)
@@ -16,6 +18,7 @@
 #
 # Examples:
 #   ./dokploy.sh hosts idtpp
+#   ./dokploy.sh hosts idtpp --services
 #   ./dokploy.sh hosts idtpp --name prod-03
 #   ./dokploy.sh hosts idtpp --json
 #
@@ -60,11 +63,12 @@ done
 PLATFORM="$1"; shift
 fd_resolve "$PLATFORM"
 
-NO_SSH=0; NO_HZ=0; NAME=""; DISK_WARN=85; MEM_WARN=90; LOAD_WARN=1.5; AS_JSON=0
+NO_SSH=0; NO_HZ=0; WITH_SVC=0; NAME=""; DISK_WARN=85; MEM_WARN=90; LOAD_WARN=1.5; AS_JSON=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --no-ssh)     NO_SSH=1; shift ;;
     --no-hetzner) NO_HZ=1; shift ;;
+    --services)   WITH_SVC=1; shift ;;
     --name)      NAME="${2:-}"; shift 2 ;;
     --disk-warn) DISK_WARN="${2:-85}"; shift 2 ;;
     --load-warn) LOAD_WARN="${2:-1.5}"; shift 2 ;;
@@ -100,9 +104,9 @@ for x in r:
 # that looks exactly like a short server list.
 : > "$WORK/stats.tsv"
 for row in ${ROWS[@]+"${ROWS[@]}"}; do
-  IFS=$'\t' read -r name ip user port status _sid <<<"$row"
+  IFS=$'\t' read -r name ip user port status sid <<<"$row"
   if (( NO_SSH )) || [[ -z "$ip" ]]; then
-    printf '%s\t%s\t%s\t%s\t\n' "$name" "$ip" "$status" "skipped" >> "$WORK/stats.tsv"
+    printf '%s\t%s\t%s\t%s\t\t%s\n' "$name" "$ip" "$status" "skipped" "$sid" >> "$WORK/stats.tsv"
     continue
   fi
   (( AS_JSON )) || printf '\r  probing %-20s' "$name" >&2
@@ -121,9 +125,9 @@ for row in ${ROWS[@]+"${ROWS[@]}"}; do
       echo "CORES=$cores LOAD=$load MEMTOTAL=$mt MEMAVAIL=$ma DISK=$dl CTR=$ctr UPDAYS=$up RECL=$recl"
     ' 2>/dev/null)" || out=""
   if [[ -z "$out" ]]; then
-    printf '%s\t%s\t%s\t%s\t\n' "$name" "$ip" "$status" "unreachable" >> "$WORK/stats.tsv"
+    printf '%s\t%s\t%s\t%s\t\t%s\n' "$name" "$ip" "$status" "unreachable" "$sid" >> "$WORK/stats.tsv"
   else
-    printf '%s\t%s\t%s\t%s\t%s\n' "$name" "$ip" "$status" "ok" "$out" >> "$WORK/stats.tsv"
+    printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$name" "$ip" "$status" "ok" "$out" "$sid" >> "$WORK/stats.tsv"
   fi
 done
 (( AS_JSON )) || printf '\r%*s\r' 40 '' >&2
@@ -133,6 +137,43 @@ done
 : > "$WORK/hetzner.json"
 if (( ! NO_HZ )) && command -v kctl-hz >/dev/null 2>&1; then
   kctl-hz -p "$FD_PROFILE" --json servers list > "$WORK/hetzner.json" 2>/dev/null || : > "$WORK/hetzner.json"
+fi
+
+# Which services Dokploy has ASSIGNED to each host. `compose list` does not
+# carry serverId — only the per-service detail does — so this is one call each
+# and therefore opt-in. It is Dokploy's own view of placement, which is worth
+# having beside the container count: the two disagreeing is exactly how a
+# service pinned to a deleted server shows up.
+: > "$WORK/placement.tsv"
+if (( WITH_SVC )); then
+  mapfile -t SVCS < <("$CLI" -p "$FD_PROFILE" --json compose list 2>/dev/null | python3 -c "
+import json,sys
+d=json.load(sys.stdin); r=d if isinstance(d,list) else d.get('data',[])
+for x in r: print(x['composeId'] + '	' + (x.get('name') or '?') + '	' + (x.get('status') or '?'))
+")
+  i=0; n=${#SVCS[@]}
+  for s in ${SVCS[@]+"${SVCS[@]}"}; do
+    IFS=$'	' read -r cid cname cstatus <<<"$s"
+    i=$(( i + 1 ))
+    (( AS_JSON )) || printf '
+  mapping service %d/%d %-32s' "$i" "$n" "${cname:0:32}" >&2
+    # `|| true` is load-bearing: `set -o pipefail` is on, and a single service
+    # whose `compose get` returns non-zero would otherwise kill the whole loop
+    # mid-scan with no output at all — which is what happened on service 4 of 45
+    # while writing this. A service that cannot be read is recorded as
+    # unplaced, not allowed to abort the run.
+    sid="$("$CLI" -p "$FD_PROFILE" --json compose get "$cid" 2>/dev/null | tr -d '\n' | python3 -c "
+import json,sys
+try:
+    d=json.load(sys.stdin); d=d.get('data',d) if isinstance(d,dict) else d
+    print(d.get('serverId') or '')
+except Exception: print('')" || true)"
+    printf '%s	%s	%s
+' "${sid:-none}" "$cname" "$cstatus" >> "$WORK/placement.tsv"
+  done
+  (( AS_JSON )) || printf '
+%*s
+' 60 '' >&2
 fi
 
 DISK_WARN="$DISK_WARN" MEM_WARN="$MEM_WARN" LOAD_WARN="$LOAD_WARN" AS_JSON="$AS_JSON" TARGET="$FD_TARGET" \
@@ -170,12 +211,23 @@ try:
 except Exception:
     hz_seen = False
 
+# serverId -> services assigned to it
+placement = {}
+_pl = WORK / "placement.tsv"
+if _pl.is_file():
+    for line in _pl.read_text().splitlines():
+        bits = line.split("\t")
+        if len(bits) == 3:
+            placement.setdefault(bits[0], []).append({"name": bits[1], "status": bits[2]})
+
 hosts, problems = [], []
 for line in (WORK / "stats.tsv").read_text().splitlines():
     parts = line.split("\t")
     name, ip, status, probe = parts[0], parts[1], parts[2], parts[3]
     blob = parts[4] if len(parts) > 4 else ""
-    h = {"name": name, "ip": ip, "dokploy_status": status, "probe": probe}
+    sid = parts[5] if len(parts) > 5 else ""
+    h = {"name": name, "ip": ip, "dokploy_status": status, "probe": probe, "server_id": sid}
+    h["services"] = sorted(placement.get(sid, []), key=lambda x: x["name"])
     if hz_seen:
         hz = hz_by_ip.get(ip)
         h["hetzner"] = hz["status"] if hz else "absent"
@@ -242,6 +294,30 @@ def cell(text, width, colour="", right=True):
     pad = text.rjust(width) if right else text.ljust(width)
     return f"{colour}{pad}{OFF}" if colour else pad
 
+def render_services(h):
+    """Wrap a host's assigned services under it, colouring anything not `done`.
+
+    Placement is Dokploy's assignment, which is NOT the same question as the
+    container count beside it: a service assigned to a host Dokploy cannot reach
+    still shows up here, which is how two services pinned to a deleted server
+    were found. A host with an assignment but no containers is worth a look.
+    """
+    if not placement:
+        return
+    svcs = h.get("services") or []
+    if not svcs:
+        print(f"      {DIM}(no services assigned){OFF}")
+        return
+    line, width = [], 0
+    for s in svcs:
+        col = "" if s["status"] == "done" else (RED if s["status"] == "error" else YEL)
+        tag = f"{col}{s['name']}{OFF}" if col else s["name"]
+        if width + len(s["name"]) + 2 > 72 and line:
+            print("      " + "  ".join(line)); line, width = [], 0
+        line.append(tag); width += len(s["name"]) + 2
+    if line:
+        print("      " + "  ".join(line))
+
 hz_col = "hetzner" if hz_seen else ""
 print(f"\n  {'host':<14}{'dokploy':<9}{hz_col:<10}{'cpu 5m':>10}{'memory':>16}{'disk':>14}{'ctr':>6}{'up':>7}")
 print("  " + "─" * (78 + (10 if hz_seen else 0)))
@@ -253,6 +329,7 @@ for h in hosts:
     if h["probe"] != "ok":
         col = RED if h["probe"] == "unreachable" else DIM
         print(f"  {h['name']:<14}{h['dokploy_status']:<9}{hzc}{cell(h['probe'], 10, col)}")
+        render_services(h)
         continue
     cpu = cell(f"{h['load_per_core']:.2f}/core", 10, RED if h["load_per_core"] >= LW else "")
     mem_txt = f"{h['mem_used_mb'] // 1024}/{h['mem_total_mb'] // 1024}G {h['mem_pct']:.0f}%"
@@ -261,10 +338,40 @@ for h in hosts:
           f"{cell(mem_txt, 16, colour_for(h['mem_pct'], MW))}"
           f"{cell(disk_txt, 14, colour_for(h['disk_pct'], DW))}"
           f"{h['containers']:>6}{str(h['uptime_days']) + 'd':>7}")
+    render_services(h)
 
 recl = [h for h in hosts if h.get("docker_reclaimable") and not h["docker_reclaimable"].startswith("0")]
 if recl:
     print(f"\n  {DIM}Docker reclaimable: " + "  ".join(f"{h['name']} {h['docker_reclaimable']}" for h in recl) + OFF)
+
+# A service with NO serverId still runs somewhere — the field is simply absent
+# from Dokploy's record, and it does NOT mean "on the control plane".
+# Demonstrated 2026-09-07: tpp-odoo-filestore-backup carries no serverId, yet its
+# container is on tpp-prod-03 (`docker ps` there shows
+# compose-index-mobile-interface-my7gz1-filestore-backup-1) — which it must be,
+# since it mounts that host's odoo-filestore volume.
+#
+# So these are listed as "placement not recorded", not attributed to a host.
+# Guessing would be worse than saying nothing: the whole point of this view is
+# to be trusted about where things run.
+if placement:
+    house = placement.get("none", []) + placement.get("", [])
+    if house:
+        print(f"\n  {DIM}placement not recorded by Dokploy (no serverId) — these still run somewhere;{OFF}")
+        print(f"  {DIM}check with: ./dokploy.sh <platform> docker containers -s <host>{OFF}")
+        line, width = [], 0
+        for s in sorted(house, key=lambda x: x["name"]):
+            col = "" if s["status"] == "done" else (RED if s["status"] == "error" else YEL)
+            tag = f"{col}{s['name']}{OFF}" if col else s["name"]
+            if width + len(s["name"]) + 2 > 72 and line:
+                print("      " + "  ".join(line)); line, width = [], 0
+            line.append(tag); width += len(s["name"]) + 2
+        if line:
+            print("      " + "  ".join(line))
+    total = sum(len(v) for v in placement.values())
+    shown = sum(len(h.get("services") or []) for h in hosts) + len(house)
+    if shown != total:
+        print(f"\n  {YEL}note: {total - shown} service(s) assigned to a server not in this list{OFF}")
 
 print()
 if problems:
