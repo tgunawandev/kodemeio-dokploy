@@ -153,6 +153,11 @@ for d in ${DESTS[@]+"${DESTS[@]}"}; do
   fi
 done
 
+# 3b. Destination catalogue — one call, so the bucket behind each backup has a
+#     name and a size rather than an opaque id. Sizes are summed from the object
+#     listing already fetched above; there is no second S3 round trip.
+"${K[@]}" backups destinations > "$WORK/destinations.json" 2>/dev/null || echo '[]' > "$WORK/destinations.json"
+
 # 4. Manifest defect scan — the two silent failures documented in the header.
 MANIFEST_ARG=""
 if (( SCAN_MANIFESTS )) && [[ -d "$FD_REPO_ROOT/deploys/instances" ]]; then
@@ -223,6 +228,24 @@ def newest_for(dest, prefix):
             best = t
             best_size = o.get("size")
     return best, n, best_size
+
+# destination id -> {name, bucket}
+dests = {}
+try:
+    _d = json.loads((WORK / "destinations.json").read_text())
+    for x in (_d if isinstance(_d, list) else _d.get("data", [])):
+        did = x.get("destinationId") or x.get("id")
+        if did:
+            dests[did] = {"name": x.get("name") or "", "bucket": x.get("bucket") or ""}
+except Exception:
+    pass
+
+def human(n):
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if n < 1024 or unit == "TB":
+            return f"{n:.0f}{unit}" if unit == "B" else f"{n:.1f}{unit}"
+        n /= 1024
+    return f"{n:.1f}TB"
 
 configured, no_config = [], []
 for line in (WORK / "configs.jsonl").read_text().splitlines():
@@ -300,6 +323,10 @@ if AS_JSON:
         "generated": now.isoformat(),
         "thresholds": {"warn_hours": WARN, "stale_hours": STALE * 2},
         "unlistable_destinations": unlistable,
+        "destinations": {d: {**dests.get(d, {}),
+                             "objects": len(files.get(d, [])),
+                             "bytes": sum(o.get("size") or 0 for o in files.get(d, []))}
+                         for d in sorted({c["destination"] for c in configured if c["destination"]})},
         "backups": configured,
         "services_without_backup": sorted(no_config),
         "manifest_defects": [{"file": a, "form": b, "why": c} for a, b, c in defects],
@@ -319,6 +346,20 @@ for c in sorted(configured, key=lambda x: (x["verdict"] == "OK", x["service"], x
     col = COLOR.get(c["verdict"], "")
     print(f"  {c['service'][:25]:26}{(c['database'] or '—')[:21]:22}{(c['schedule'] or '—'):16}"
           f"{c['files']:>6}{age:>9}  {col}{c['verdict']}{OFF}")
+
+used = sorted({c["destination"] for c in configured if c["destination"]})
+if used:
+    print(f"\n  DESTINATIONS — {len(used)} in use\n")
+    print(f"  {'bucket':34}{'objects':>9}{'size':>10}   backups")
+    print("  " + "─" * 74)
+    for d in used:
+        objs = files.get(d, [])
+        total = sum(o.get("size") or 0 for o in objs)
+        n_cfg = sum(1 for c in configured if c["destination"] == d)
+        meta = dests.get(d, {})
+        label = meta.get("bucket") or meta.get("name") or d
+        note = f"{RED}listing failed{OFF}" if d in unlistable else f"{n_cfg} config(s)"
+        print(f"  {label[:33]:34}{len(objs):>9}{human(total):>10}   {note}")
 
 noretention = [c for c in configured if c["keep_latest"] in (None, 0)]
 if noretention:

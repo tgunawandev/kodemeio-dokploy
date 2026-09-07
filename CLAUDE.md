@@ -30,7 +30,9 @@ reachable here this afternoon with no registration.
 ./dokploy.sh                                  # usage, generated from dokploy.yaml + bin/dokploy/
 ./dokploy.sh kodemeio applications list       # resolved: kctl-dokploy -p kodemeio ...
 ./dokploy.sh health kodemeio                  # a repo tool from bin/dokploy/
-./dokploy.sh backup idtpp                     # backup status for every service
+./dokploy.sh backup idtpp                     # backup status + destination sizes
+./dokploy.sh services idtpp --problems        # services that are not `done`
+./dokploy.sh hosts idtpp                      # server CPU / memory / disk
 ./dokploy.sh commands tree                    # passthrough, verbatim
 ```
 
@@ -86,6 +88,30 @@ silently. **Only `backup: null` works.** Five instances are currently wrong;
 A missing `backup:` key **inherits the base's block**, which is usually right and
 occasionally very wrong — the infra base targets postgres, so an instance with no
 database inherits a dump it cannot perform.
+
+### Services and hosts
+
+```bash
+./dokploy.sh services idtpp --problems     # only what is not `done`
+./dokploy.sh services all --status error   # the whole fleet's failures
+./dokploy.sh hosts idtpp                   # CPU, memory, disk, containers per server
+```
+
+🔴 **The status field is `status`, not `composeStatus`.** Both are on the record
+and `composeStatus` is always null, so a hand-written
+`jq 'select(.composeStatus != "done")'` matches everything and reports the whole
+fleet as broken. `services` knows which one is real.
+
+🔴 **`hosts` reads over SSH, not `servers metrics`.** That endpoint returns
+`APIError 400` on every server here because the monitoring agent has never been
+provisioned — all seven idtpp servers carry an empty
+`metricsConfig.server.token`. Run `servers setup-monitoring` if you want the API
+path to work. An unreachable host is reported, never skipped; `tpp-prod-05` is
+unreachable today.
+
+It is called `hosts` rather than `servers` on purpose: `kctl-dokploy` owns a
+`servers` group, and a repo tool by that name would give one typed line two live
+meanings. Passthrough `./dokploy.sh <platform> servers list` still works.
 
 ### Editing the door
 

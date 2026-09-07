@@ -1,0 +1,221 @@
+#!/usr/bin/env bash
+#
+# hosts — the servers behind a platform, with their real resource use.
+#
+# Usage:
+#   ./dokploy.sh hosts <platform> [options]
+#
+# Options:
+#   --no-ssh        Dokploy's own record only; no live stats
+#   --name SUBSTR   only hosts whose name contains SUBSTR
+#   --disk-warn N   disk %% that counts as a problem   (default 85)
+#   --mem-warn N    memory %% that counts as a problem (default 90)
+#   --json          machine-readable; exits 1 on any problem or unreachable host
+#
+# Examples:
+#   ./dokploy.sh hosts idtpp
+#   ./dokploy.sh hosts idtpp --name prod-03
+#   ./dokploy.sh hosts idtpp --json
+#
+# Reads only — `servers list` plus one read-only SSH per host. No --yes, no
+# --dry-run.
+#
+# 🔴 WHY THIS DOES NOT USE `servers metrics`. Dokploy has that endpoint and it
+# returns `APIError 400: Input validation failed` on every server here, because
+# the monitoring agent has never been provisioned: all seven idtpp servers carry
+# an EMPTY `metricsConfig.server.token` and `thresholds {cpu: 0, memory: 0}`
+# (checked 2026-09-07). Until somebody runs `servers setup-monitoring`, the API
+# has no numbers to give, so this reads the hosts directly over SSH.
+#
+# 🔴 WHY IT IS NOT CALLED `servers`. kctl-dokploy owns a `servers` group, and a
+# repo tool by that name would parse <platform> as its own first argument — two
+# live meanings for one typed line, which is the ambiguity `ambiguous:` in
+# dokploy.yaml exists to refuse. Naming it `hosts` avoids the collision entirely
+# and keeps `./dokploy.sh <platform> servers list` working as passthrough.
+#
+# 🔴 AN UNREACHABLE HOST IS REPORTED, NEVER SKIPPED. A server missing from a
+# capacity report reads as "nothing wrong there". tpp-prod-05 is unreachable
+# today and says so.
+#
+set -euo pipefail
+# shellcheck source=./_boot.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_boot.sh"
+
+[[ "${1:-}" == "-h" || "${1:-}" == "--help" ]] && { fd_usage_from_header "$0"; exit 0; }
+for _a in "$@"; do
+  [[ "$_a" == "--dry-run" || "$_a" == "--yes" ]] && { c_red "hosts only reads; it has no $_a."; exit 1; }
+done
+[[ $# -ge 1 ]] || { c_red "Need: <platform>"; fd_usage_from_header "$0"; exit 1; }
+
+PLATFORM="$1"; shift
+fd_resolve "$PLATFORM"
+
+NO_SSH=0; NAME=""; DISK_WARN=85; MEM_WARN=90; AS_JSON=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --no-ssh)    NO_SSH=1; shift ;;
+    --name)      NAME="${2:-}"; shift 2 ;;
+    --disk-warn) DISK_WARN="${2:-85}"; shift 2 ;;
+    --mem-warn)  MEM_WARN="${2:-90}"; shift 2 ;;
+    --json)      AS_JSON=1; shift ;;
+    *) c_red "Unknown option '$1'"; fd_usage_from_header "$0"; exit 2 ;;
+  esac
+done
+
+CLI="$(fd_cli)"
+need "$CLI" "Install it from kodemeio-skills/packages/$CLI"
+need python3
+
+WORK="$(mktemp -d)"; trap 'rm -rf "$WORK"' EXIT
+(( AS_JSON )) || c_dim "▶ ${FD_TARGET}  profile=${FD_PROFILE}  hosts"
+
+"$CLI" -p "$FD_PROFILE" --json servers list > "$WORK/servers.json" 2>/dev/null || {
+  c_red "Could not list servers on ${FD_TARGET}."; exit 1; }
+
+mapfile -t ROWS < <(NAME="$NAME" python3 -c "
+import json, os
+d=json.load(open('$WORK/servers.json')); r=d if isinstance(d,list) else d.get('data',[])
+f=os.environ['NAME']
+for x in r:
+    n=x.get('name') or '?'
+    if f and f not in n: continue
+    print('\t'.join([n, x.get('ipAddress') or '', x.get('username') or 'root',
+                     str(x.get('port') or 22), x.get('serverStatus') or '?', x.get('serverId') or '']))
+")
+
+# One read-only probe per host. `ssh -n` matters: without it ssh consumes this
+# loop's stdin and only the first host is ever visited — a silent truncation
+# that looks exactly like a short server list.
+: > "$WORK/stats.tsv"
+for row in ${ROWS[@]+"${ROWS[@]}"}; do
+  IFS=$'\t' read -r name ip user port status _sid <<<"$row"
+  if (( NO_SSH )) || [[ -z "$ip" ]]; then
+    printf '%s\t%s\t%s\t%s\t\n' "$name" "$ip" "$status" "skipped" >> "$WORK/stats.tsv"
+    continue
+  fi
+  (( AS_JSON )) || printf '\r  probing %-20s' "$name" >&2
+  out="$(timeout 25 ssh -n -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=accept-new \
+        -p "$port" "$user@$ip" '
+      cores=$(nproc 2>/dev/null || echo 1)
+      load=$(cut -d" " -f1 /proc/loadavg 2>/dev/null || echo 0)
+      read _ mt ma _ < <(free -m | awk "/^Mem:/{print \$1, \$2, \$7}")
+      dl=$(df -P / | awk "NR==2{print \$2, \$3, \$5}")
+      ctr=$(docker ps -q 2>/dev/null | wc -l)
+      recl=$(docker system df --format "{{.Reclaimable}}" 2>/dev/null | head -1)
+      up=$(awk "{printf \"%d\", \$1/86400}" /proc/uptime 2>/dev/null || echo 0)
+      echo "CORES=$cores LOAD=$load MEMTOTAL=$mt MEMAVAIL=$ma DISK=$dl CTR=$ctr UPDAYS=$up RECL=$recl"
+    ' 2>/dev/null)" || out=""
+  if [[ -z "$out" ]]; then
+    printf '%s\t%s\t%s\t%s\t\n' "$name" "$ip" "$status" "unreachable" >> "$WORK/stats.tsv"
+  else
+    printf '%s\t%s\t%s\t%s\t%s\n' "$name" "$ip" "$status" "ok" "$out" >> "$WORK/stats.tsv"
+  fi
+done
+(( AS_JSON )) || printf '\r%*s\r' 40 '' >&2
+
+DISK_WARN="$DISK_WARN" MEM_WARN="$MEM_WARN" AS_JSON="$AS_JSON" TARGET="$FD_TARGET" \
+WORK="$WORK" python3 - <<'PY'
+import json, os, re, sys
+from pathlib import Path
+
+WORK = Path(os.environ["WORK"])
+DW = float(os.environ["DISK_WARN"]); MW = float(os.environ["MEM_WARN"])
+AS_JSON = os.environ["AS_JSON"] == "1"; TARGET = os.environ["TARGET"]
+
+def kv(blob):
+    out = {}
+    for m in re.finditer(r"(\w+)=(\S+(?: \S+)*?)(?=\s+\w+=|$)", blob.strip()):
+        out[m.group(1)] = m.group(2).strip()
+    return out
+
+hosts, problems = [], []
+for line in (WORK / "stats.tsv").read_text().splitlines():
+    parts = line.split("\t")
+    name, ip, status, probe = parts[0], parts[1], parts[2], parts[3]
+    blob = parts[4] if len(parts) > 4 else ""
+    h = {"name": name, "ip": ip, "dokploy_status": status, "probe": probe}
+    if probe == "ok" and blob:
+        d = kv(blob)
+        try:
+            cores = int(d.get("CORES", 1)) or 1
+            load = float(d.get("LOAD", 0))
+            mt = int(d.get("MEMTOTAL", 0)); ma = int(d.get("MEMAVAIL", 0))
+            dt, du, dpct = (d.get("DISK", "0 0 0%").split() + ["0", "0", "0%"])[:3]
+            h.update({
+                "cores": cores, "load": load, "load_per_core": round(load / cores, 2),
+                "mem_total_mb": mt, "mem_used_mb": mt - ma,
+                "mem_pct": round((mt - ma) / mt * 100, 1) if mt else None,
+                "disk_pct": float(dpct.rstrip("%")),
+                "disk_total_gb": round(int(dt) / 1048576, 1),
+                "containers": int(d.get("CTR", 0)),
+                "uptime_days": int(d.get("UPDAYS", 0)),
+                "docker_reclaimable": d.get("RECL", ""),
+            })
+        except (ValueError, ZeroDivisionError):
+            h["probe"] = "unparseable"
+    hosts.append(h)
+
+    why = []
+    if h["probe"] == "unreachable":
+        why.append("unreachable over SSH")
+    if h.get("disk_pct") is not None and h["disk_pct"] >= DW:
+        why.append(f"disk {h['disk_pct']:.0f}%")
+    if h.get("mem_pct") is not None and h["mem_pct"] >= MW:
+        why.append(f"memory {h['mem_pct']:.0f}%")
+    if h.get("load_per_core") is not None and h["load_per_core"] >= 1.5:
+        why.append(f"load {h['load_per_core']}/core")
+    if why:
+        problems.append((name, ", ".join(why)))
+
+if AS_JSON:
+    print(json.dumps({"target": TARGET, "hosts": hosts,
+                      "thresholds": {"disk_pct": DW, "mem_pct": MW},
+                      "problems": [{"host": a, "why": b} for a, b in problems]}, indent=2))
+    sys.exit(1 if problems else 0)
+
+RED, YEL, GRN, DIM, OFF = "\033[1;31m", "\033[1;33m", "\033[1;32m", "\033[2m", "\033[0m"
+if not sys.stdout.isatty():
+    RED = YEL = GRN = DIM = OFF = ""
+
+def colour_for(v, warn):
+    if v is None:
+        return ""
+    return RED if v >= warn else (YEL if v >= warn - 15 else "")
+
+def cell(text, width, colour="", right=True):
+    """Pad to `width` on the PLAIN text, then wrap in colour.
+
+    printf-style width counts ANSI bytes, so colouring before padding shifts
+    every column right of it — which is what the first version of this table
+    did. Pad first, colour second.
+    """
+    pad = text.rjust(width) if right else text.ljust(width)
+    return f"{colour}{pad}{OFF}" if colour else pad
+
+print(f"\n  {'host':<14}{'status':<9}{'cpu':>10}{'memory':>16}{'disk':>14}{'ctr':>6}{'up':>7}")
+print("  " + "─" * 78)
+for h in hosts:
+    if h["probe"] != "ok":
+        col = RED if h["probe"] == "unreachable" else DIM
+        print(f"  {h['name']:<14}{h['dokploy_status']:<9}{cell(h['probe'], 10, col)}")
+        continue
+    cpu = cell(f"{h['load_per_core']}/core", 10, RED if h["load_per_core"] >= 1.5 else "")
+    mem_txt = f"{h['mem_used_mb'] // 1024}/{h['mem_total_mb'] // 1024}G {h['mem_pct']:.0f}%"
+    disk_txt = f"{h['disk_total_gb']:.0f}G {h['disk_pct']:.0f}%"
+    print(f"  {h['name']:<14}{h['dokploy_status']:<9}{cpu}"
+          f"{cell(mem_txt, 16, colour_for(h['mem_pct'], MW))}"
+          f"{cell(disk_txt, 14, colour_for(h['disk_pct'], DW))}"
+          f"{h['containers']:>6}{str(h['uptime_days']) + 'd':>7}")
+
+recl = [h for h in hosts if h.get("docker_reclaimable") and not h["docker_reclaimable"].startswith("0")]
+if recl:
+    print(f"\n  {DIM}Docker reclaimable: " + "  ".join(f"{h['name']} {h['docker_reclaimable']}" for h in recl) + OFF)
+
+print()
+if problems:
+    for name, why in problems:
+        print(f"  {RED}✗{OFF} {name}: {why}")
+    print(f"\n  {RED}VERDICT: {len(problems)} host(s) need attention.{OFF}")
+    sys.exit(1)
+print(f"  {GRN}VERDICT: all {len(hosts)} hosts within thresholds.{OFF}")
+PY
