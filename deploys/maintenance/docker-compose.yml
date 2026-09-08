@@ -116,6 +116,18 @@ configs:
               return 200 "ok\n";
           }
 
+          # Deploy state, read by the page. Default "unknown" on purpose: the
+          # page then makes NO claim about WHY the system is down, which is the
+          # only honest wording when it may be a crash rather than an update.
+          # Saying "we are updating the system" during an outage is a lie the
+          # users learn to distrust. Flip this to planned with an ETA only when
+          # something actually knows a deploy is running.
+          location = /maintenance-state.json {
+              access_log off;
+              default_type application/json;
+              return 200 '{"mode":"unknown","expected_minutes":7}';
+          }
+
           location = /maintenance.html {
               internal;
               root /usr/share/nginx/html;
@@ -191,11 +203,10 @@ configs:
           </svg>
         </div>
 
-        <h1>Sistem sedang dalam pemeliharaan</h1>
-        <p class="lead">Kami sedang memperbarui sistem. Halaman ini akan kembali
-        dengan sendirinya begitu selesai — Anda tidak perlu menutup atau memuat
-        ulang halaman.</p>
-        <p>Biasanya selesai dalam beberapa menit. Data Anda aman.</p>
+        <h1 id="h">Sistem sedang tidak dapat diakses</h1>
+        <p class="lead" id="lead">Halaman ini akan kembali dengan sendirinya
+        begitu sistem siap. Anda tidak perlu menutup atau memuat ulang.</p>
+        <p id="dur">Data Anda aman. Semua yang sudah Anda simpan tidak terpengaruh.</p>
 
         <div class="status">
           <span class="dot" aria-hidden="true"></span>
@@ -203,17 +214,72 @@ configs:
         </div>
 
         <div class="en">
-          <strong>System under maintenance.</strong> We are updating the system.
-          This page returns on its own as soon as it is done — no need to close
-          or reload. Your data is safe.
+          <strong id="enh">The system is temporarily unavailable.</strong>
+          <span id="enp">This page returns on its own as soon as the system is
+          ready. No need to close or reload. Your data is safe.</span>
         </div>
       </main>
 
       <script>
       (function () {
-        var el = document.getElementById('s');
+        var el   = document.getElementById('s');
+        var dur  = document.getElementById('dur');
+        var h    = document.getElementById('h');
+        var lead = document.getElementById('lead');
+        var enh  = document.getElementById('enh');
+        var enp  = document.getElementById('enp');
+
+        // Elapsed is measured from the FIRST view, kept across the automatic
+        // reloads this page does, so the number does not reset to zero every
+        // 30 seconds and understate the wait.
+        var KEY = 'kodemeio-maint-since';
+        var since;
+        try {
+          since = parseInt(sessionStorage.getItem(KEY), 10);
+          if (!since) { since = Date.now(); sessionStorage.setItem(KEY, String(since)); }
+        } catch (e) { since = Date.now(); }
+
+        var expected = 7;          // minutes, overridden by /maintenance-state.json
+        var planned  = false;
+
+        function mins() { return Math.floor((Date.now() - since) / 60000); }
+
+        function elapsedText() {
+          var m = mins();
+          if (m < 1) return 'Data Anda aman. Biasanya selesai dalam beberapa menit.';
+          if (m <= expected) {
+            return 'Sudah ' + m + ' menit. Biasanya selesai dalam sekitar ' +
+                   expected + ' menit. Data Anda aman.';
+          }
+          // Past the expected window. Say so rather than keep spinning: the
+          // anxiety is "is it stuck", not the wait itself. Deliberately does
+          // NOT claim anyone has been alerted - that is only true once
+          // monitoring actually watches this host.
+          return 'Sudah ' + m + ' menit, lebih lama dari biasanya. Jika terus ' +
+                 'berlanjut, hubungi tim IT. Data Anda aman.';
+        }
+
+        fetch('/maintenance-state.json', { cache: 'no-store' })
+          .then(function (r) { return r.json(); })
+          .then(function (st) {
+            if (st && st.expected_minutes) { expected = st.expected_minutes; }
+            if (st && st.mode === 'planned') {
+              planned = true;
+              h.textContent = 'Sistem sedang dalam pemeliharaan terjadwal';
+              var back = st.until ? (' Selesai sekitar pukul ' + st.until + '.') : '';
+              lead.textContent = 'Kami sedang memperbarui sistem.' + back +
+                ' Halaman ini akan kembali dengan sendirinya begitu selesai.';
+              enh.textContent = 'Scheduled maintenance.';
+              enp.textContent = 'We are updating the system. This page returns ' +
+                'on its own as soon as it is done. Your data is safe.';
+            }
+            dur.textContent = elapsedText();
+          })
+          .catch(function () { dur.textContent = elapsedText(); });
+
         var left = 25 + Math.floor(Math.random() * 11);   // 25-35s, jittered
         function tick() {
+          dur.textContent = elapsedText();
           if (left > 0) {
             el.textContent = 'Memeriksa kembali dalam ' + left + ' detik…';
             left -= 1;
@@ -224,7 +290,11 @@ configs:
           fetch(window.location.href, {
             method: 'HEAD', cache: 'no-store', redirect: 'manual'
           }).then(function (r) {
-            if (r.status !== 503) { window.location.reload(); return; }
+            if (r.status !== 503) {
+              try { sessionStorage.removeItem(KEY); } catch (e) {}
+              window.location.reload();
+              return;
+            }
             left = 25 + Math.floor(Math.random() * 11);
             setTimeout(tick, 1000);
           }).catch(function () {
