@@ -12,101 +12,94 @@
 # Odoo Instances
 # ---------------------------------------------------------------------------
 endpoints:
-  # -- Odoo: kodeme.io --
-  - name: "Odoo Production"
+  # -- Odoo: idtpp.com (the live production fleet) --
+  # Verified 2026-09-08: every host below returns 200 with body "ok".
+  # The six entries previously here (odoo.kodeme.io, odoo.mandiriagro.com,
+  # odoo.pakerti.com and their -hrms twins) had NO DNS AT ALL and asserted
+  # [BODY] == pass, so they were broken twice over and could never pass.
+  # Result: no production Odoo instance was monitored, and the permanent
+  # failures trained everyone to ignore Gatus.
+
+  - name: "Odoo TPP ERP (production)"
     group: "odoo"
-    url: "https://odoo.kodeme.io/web/health"
+    url: "https://tpp-odoo-erp.idtpp.com/web/health"
     interval: 60s
     conditions:
       - "[STATUS] == 200"
-      - "[BODY] == pass"
+      - "[BODY] == ok"
       - "[RESPONSE_TIME] < 5000"
     alerts:
       - type: telegram
         enabled: true
         failure-threshold: 3
         success-threshold: 2
-      - type: slack
-        enabled: true
-        failure-threshold: 3
-        success-threshold: 2
 
-  - name: "Odoo HRMS"
+  - name: "Odoo TPP HRMS (production)"
     group: "odoo"
-    url: "https://odoo-hrms.kodeme.io/web/health"
+    url: "https://tpp-odoo-hrms.idtpp.com/web/health"
     interval: 60s
     conditions:
       - "[STATUS] == 200"
-      - "[BODY] == pass"
-      - "[RESPONSE_TIME] < 5000"
-    alerts:
-      - type: slack
-        enabled: true
-        failure-threshold: 3
-        success-threshold: 2
-
-  # -- Odoo: mandiriagro.com --
-  - name: "Odoo Trading (MAC)"
-    group: "odoo"
-    url: "https://odoo.mandiriagro.com/web/health"
-    interval: 60s
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY] == pass"
+      - "[BODY] == ok"
       - "[RESPONSE_TIME] < 5000"
     alerts:
       - type: telegram
         enabled: true
         failure-threshold: 3
         success-threshold: 2
-      - type: slack
-        enabled: true
-        failure-threshold: 3
-        success-threshold: 2
 
-  - name: "Odoo HRMS (MAC)"
+  - name: "Odoo TPP Helpdesk (production)"
     group: "odoo"
-    url: "https://odoo-hrms.mandiriagro.com/web/health"
+    url: "https://helpdesk.idtpp.com/web/health"
     interval: 60s
     conditions:
       - "[STATUS] == 200"
-      - "[BODY] == pass"
-      - "[RESPONSE_TIME] < 5000"
-    alerts:
-      - type: slack
-        enabled: true
-        failure-threshold: 3
-        success-threshold: 2
-
-  # -- Odoo: pakerti.com --
-  - name: "Odoo Trading (Pakerti)"
-    group: "odoo"
-    url: "https://odoo.pakerti.com/web/health"
-    interval: 60s
-    conditions:
-      - "[STATUS] == 200"
-      - "[BODY] == pass"
+      - "[BODY] == ok"
       - "[RESPONSE_TIME] < 5000"
     alerts:
       - type: telegram
         enabled: true
         failure-threshold: 3
         success-threshold: 2
-      - type: slack
+
+  - name: "Odoo TPP25 ERP (production)"
+    group: "odoo"
+    url: "https://tpp25-odoo-erp.idtpp.com/web/health"
+    interval: 60s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY] == ok"
+      - "[RESPONSE_TIME] < 5000"
+    alerts:
+      - type: telegram
         enabled: true
         failure-threshold: 3
         success-threshold: 2
 
-  - name: "Odoo HRMS (Pakerti)"
+  - name: "Odoo MAC ERP (production)"
     group: "odoo"
-    url: "https://odoo-hrms.pakerti.com/web/health"
+    url: "https://mac-odoo-erp.idtpp.com/web/health"
     interval: 60s
     conditions:
       - "[STATUS] == 200"
-      - "[BODY] == pass"
+      - "[BODY] == ok"
       - "[RESPONSE_TIME] < 5000"
     alerts:
-      - type: slack
+      - type: telegram
+        enabled: true
+        failure-threshold: 3
+        success-threshold: 2
+
+  - name: "Odoo MAC HRMS (production)"
+    group: "odoo"
+    url: "https://mac-odoo-hrms.idtpp.com/web/health"
+    interval: 60s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY] == ok"
+      - "[RESPONSE_TIME] < 5000"
+    alerts:
+      - type: telegram
         enabled: true
         failure-threshold: 3
         success-threshold: 2
