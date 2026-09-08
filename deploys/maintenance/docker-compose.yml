@@ -51,6 +51,23 @@ services:
       - "traefik.http.routers.kodemeio-maintenance-sec.priority=1"
       - "traefik.http.routers.kodemeio-maintenance-sec.entrypoints=websecure"
       - "traefik.http.routers.kodemeio-maintenance-sec.service=kodemeio-maintenance"
+      # ---------------------------------------------------------------------
+      # Phase 2 — the `errors` middleware that converts a live-but-broken
+      # app's 5xx into this same page. Defined HERE, on the always-up
+      # container, so it still exists when the app that references it is gone.
+      #
+      # Inert on its own: a middleware changes nothing until a router names it.
+      # A router that names it on a server WITHOUT this container is simply
+      # dropped by Traefik, and the app's other router keeps serving — measured
+      # 2026-09-08, the missing-middleware case returned the app's own response,
+      # not a 404. That is what makes it safe to reference fleet-wide.
+      #
+      # Traefik preserves the upstream status, so a 500 stays a 500 and only
+      # the body is replaced. Monitoring still sees a failure.
+      # ---------------------------------------------------------------------
+      - "traefik.http.middlewares.kodemeio-maintenance-errors.errors.status=500-504"
+      - "traefik.http.middlewares.kodemeio-maintenance-errors.errors.service=kodemeio-maintenance"
+      - "traefik.http.middlewares.kodemeio-maintenance-errors.errors.query=/"
       - "app=maintenance"
       - "app.component=fallback"
     healthcheck:
