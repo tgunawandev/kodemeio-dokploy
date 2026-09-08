@@ -1,0 +1,226 @@
+# Fleet maintenance fallback — one per Dokploy server.
+# Design: docs/superpowers/specs/2026-09-08-maintenance-page-design.md
+#
+# Serves a branded 503 maintenance page for any host whose application is down,
+# instead of Traefik's bare `404 page not found`. Deployed once per server; it
+# then covers every domain on that server, present and future.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# 🔴 NEVER add a `ports:` mapping here. Traefik reaches this container over
+#    dokploy-network. A published :80/:443 would contend with Traefik for the
+#    host ports and could take every site on the server down.
+#
+# 🔴 NEVER give this app a domain in Dokploy. It must own no Host router.
+#    Its two routers below are catch-all at priority 1, so they lose to every
+#    real app (Dokploy's Host routers are priority 30, derived from rule length)
+#    and win only when that app's container — and therefore its router — is gone.
+#
+# 🔴 NEVER remove the explicit `priority=1`. Traefik would then derive priority
+#    from rule length: `HostRegexp(`.+`)` is 18, still under 30, so a real app
+#    stays safe — but the margin becomes accidental instead of stated.
+#
+# 🔴 No `$` may appear in the config blocks below. Compose interpolates `$var`
+#    in inline config content, so an nginx variable would be eaten silently.
+#    The nginx config is deliberately written without variables.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  maintenance:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+    configs:
+      - source: maintenance_nginx
+        target: /etc/nginx/conf.d/default.conf
+      - source: maintenance_html
+        target: /usr/share/nginx/html/maintenance.html
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=dokploy-network"
+      - "traefik.http.services.kodemeio-maintenance.loadbalancer.server.port=80"
+      # Catch-all fallback, HTTP. Priority 1 — loses to every real router.
+      - "traefik.http.routers.kodemeio-maintenance-web.rule=HostRegexp(`.+`)"
+      - "traefik.http.routers.kodemeio-maintenance-web.priority=1"
+      - "traefik.http.routers.kodemeio-maintenance-web.entrypoints=web"
+      - "traefik.http.routers.kodemeio-maintenance-web.service=kodemeio-maintenance"
+      # Catch-all fallback, HTTPS. TLS is served from the certificate Traefik
+      # already holds for that SNI; HostRegexp yields no domain, so this router
+      # never triggers an ACME request of its own.
+      - "traefik.http.routers.kodemeio-maintenance-sec.rule=HostRegexp(`.+`)"
+      - "traefik.http.routers.kodemeio-maintenance-sec.priority=1"
+      - "traefik.http.routers.kodemeio-maintenance-sec.entrypoints=websecure"
+      - "traefik.http.routers.kodemeio-maintenance-sec.service=kodemeio-maintenance"
+      - "app=maintenance"
+      - "app.component=fallback"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/maintenance-healthz || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 64M
+        reservations:
+          cpus: '0.01'
+          memory: 16M
+
+configs:
+  maintenance_nginx:
+    content: |
+      server {
+          listen 80 default_server;
+          server_name _;
+
+          add_header Retry-After 30 always;
+          add_header Cache-Control "no-store, no-cache, must-revalidate" always;
+          add_header X-Maintenance "kodemeio-fallback" always;
+
+          # Odoo JSON-RPC surface — the open SPA must get an error envelope it
+          # understands, not an HTML page it will fail to parse.
+          location ~ ^/(web/dataset|jsonrpc|longpolling|websocket) {
+              default_type application/json;
+              return 503 '{"jsonrpc":"2.0","id":null,"error":{"code":503,"message":"Service under maintenance","data":{"name":"maintenance","message":"Sistem sedang dalam pemeliharaan. Silakan coba lagi sebentar lagi."}}}';
+          }
+
+          # PWA / FastAPI surfaces: /sfa/api/... /wms/api/... /hrm/api/... /api/...
+          location ~ ^/([a-z0-9_-]+/)?api/ {
+              default_type application/json;
+              return 503 '{"error":"maintenance","message":"Sistem sedang dalam pemeliharaan. Silakan coba lagi sebentar lagi.","message_en":"System under maintenance. Please try again shortly.","retry_after":30}';
+          }
+
+          # Liveness for the container's own healthcheck. Not a fleet health
+          # endpoint — deliberately named so it cannot be mistaken for one.
+          location = /maintenance-healthz {
+              access_log off;
+              return 200 "ok\n";
+          }
+
+          location = /maintenance.html {
+              internal;
+              root /usr/share/nginx/html;
+          }
+
+          location / {
+              error_page 503 /maintenance.html;
+              return 503;
+          }
+      }
+
+  maintenance_html:
+    content: |
+      <!doctype html>
+      <html lang="id">
+      <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <meta name="robots" content="noindex">
+      <meta http-equiv="refresh" content="60">
+      <title>Sedang Pemeliharaan</title>
+      <style>
+        :root {
+          color-scheme: light dark;
+          --bg: #f6f7f9; --card: #ffffff; --fg: #1b1f24; --muted: #5b6470;
+          --line: #e3e6ea; --accent: #1f6feb;
+        }
+        @media (prefers-color-scheme: dark) {
+          :root { --bg:#12151a; --card:#191d24; --fg:#e8eaed; --muted:#9aa4b2;
+                  --line:#272c34; --accent:#4d8ef7; }
+        }
+        * { box-sizing: border-box; }
+        body {
+          margin: 0; min-height: 100vh; display: flex; align-items: center;
+          justify-content: center; padding: 24px; background: var(--bg);
+          color: var(--fg);
+          font: 15px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        }
+        .card {
+          background: var(--card); border: 1px solid var(--line);
+          border-radius: 14px; padding: 40px 36px; max-width: 520px; width: 100%;
+          box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06);
+        }
+        .mark {
+          width: 42px; height: 42px; border-radius: 10px; background: var(--accent);
+          display: flex; align-items: center; justify-content: center;
+          margin-bottom: 22px;
+        }
+        h1 { font-size: 21px; line-height: 1.35; margin: 0 0 12px; font-weight: 650; }
+        p { margin: 0 0 12px; color: var(--muted); }
+        p.lead { color: var(--fg); }
+        .en { margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--line);
+              font-size: 13.5px; }
+        .status {
+          margin-top: 24px; display: flex; align-items: center; gap: 9px;
+          font-size: 13px; color: var(--muted);
+        }
+        .dot {
+          width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+          animation: pulse 1.6s ease-in-out infinite; flex: none;
+        }
+        @keyframes pulse { 0%,100% { opacity: .25 } 50% { opacity: 1 } }
+        @media (prefers-reduced-motion: reduce) { .dot { animation: none; opacity: .7 } }
+      </style>
+      </head>
+      <body>
+      <main class="card" role="main">
+        <div class="mark" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+               stroke="#fff" stroke-width="2.2" stroke-linecap="round"
+               stroke-linejoin="round">
+            <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>
+          </svg>
+        </div>
+
+        <h1>Sistem sedang dalam pemeliharaan</h1>
+        <p class="lead">Kami sedang memperbarui sistem. Halaman ini akan kembali
+        dengan sendirinya begitu selesai — Anda tidak perlu menutup atau memuat
+        ulang halaman.</p>
+        <p>Biasanya selesai dalam beberapa menit. Data Anda aman.</p>
+
+        <div class="status">
+          <span class="dot" aria-hidden="true"></span>
+          <span id="s">Memeriksa kembali sebentar lagi…</span>
+        </div>
+
+        <div class="en">
+          <strong>System under maintenance.</strong> We are updating the system.
+          This page returns on its own as soon as it is done — no need to close
+          or reload. Your data is safe.
+        </div>
+      </main>
+
+      <script>
+      (function () {
+        var el = document.getElementById('s');
+        var left = 25 + Math.floor(Math.random() * 11);   // 25-35s, jittered
+        function tick() {
+          if (left > 0) {
+            el.textContent = 'Memeriksa kembali dalam ' + left + ' detik…';
+            left -= 1;
+            setTimeout(tick, 1000);
+            return;
+          }
+          el.textContent = 'Memeriksa…';
+          fetch(window.location.href, {
+            method: 'HEAD', cache: 'no-store', redirect: 'manual'
+          }).then(function (r) {
+            if (r.status !== 503) { window.location.reload(); return; }
+            left = 25 + Math.floor(Math.random() * 11);
+            setTimeout(tick, 1000);
+          }).catch(function () {
+            left = 25 + Math.floor(Math.random() * 11);
+            setTimeout(tick, 1000);
+          });
+        }
+        setTimeout(tick, 1000);
+      })();
+      </script>
+      </body>
+      </html>
+
+networks:
+  dokploy-network:
+    external: true
