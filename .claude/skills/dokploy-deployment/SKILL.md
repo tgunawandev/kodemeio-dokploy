@@ -71,11 +71,22 @@ purpose: over-guarding a read is as much a bug as under-guarding a write.
 
 `compose`(109) · `servers`(28) · `deploy`(23) · `applications`(16) · `projects`(12) · `databases`(12) · `docker`(9) · `git`(8) · `notifications`(7) · `template`(7) · `registry`(6) · `users`(6) · `certificates`(6) · `settings`(6) · `diagnose`(6) · `report`(5) · `audit`(4) · `setup`(2) · `dashboard`(1) · `doctor`(1)
 
-## Health
+## Health and status — the read-only repo tools
 
 ```bash
-./dokploy.sh health kodemeio   # read-only: HTTP reachability plus the CLI's own checks
+./dokploy.sh check idtpp                 # every service: status AND backup, with last backup date + size
+./dokploy.sh check idtpp --problems      # only what is not done or not proven backed up
+./dokploy.sh check all --no-backup       # fleet-wide service status in seconds
+./dokploy.sh services idtpp --problems   # status only; `status` is the real field, never `composeStatus`
+./dokploy.sh backup idtpp                # backup CONFIG joined to the OBJECTS in S3, plus manifest defects
+./dokploy.sh hosts idtpp                 # CPU / memory / disk per server, over SSH
+./dokploy.sh health kodemeio             # HTTP reachability plus the CLI's own checks
 ```
+
+Reach for `check` first: it is a join of `services --json` and `backup --json`
+and answers "is it up, and is it backed up?" on one screen. All of these only
+read, so none takes `--yes` or `--dry-run`. `check all` and `backup` are slow
+(about 2s per service, abcfood ≈ 4 min); `--no-backup` is the fast path.
 
 ## Discovery — use this instead of guessing
 

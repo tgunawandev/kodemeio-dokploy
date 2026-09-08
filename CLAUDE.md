@@ -61,6 +61,22 @@ after a CLI upgrade and check it with:
 ../kodemeio-skills/scripts/frontdoor-guards verify dokploy.yaml
 ```
 
+### One pass — `./dokploy.sh check <platform|all>`
+
+```bash
+./dokploy.sh check idtpp                 # every service with its status AND its backup
+./dokploy.sh check idtpp --problems      # only what needs attention
+./dokploy.sh check all --no-backup       # fleet-wide service status in seconds
+./dokploy.sh check all --json            # for a schedule; exits 1 on any problem
+```
+
+Reads only. It is a join of `services --json` and `backup --json` with no API
+call of its own: one row per service carrying both status and backup verdict,
+then the backup detail with the newest object's **date and size**, not just its
+age. `all` runs the platforms in parallel, so it costs the slowest one (abcfood,
+about four minutes), not the sum. Named `check` because `audit`, `status`,
+`report` and `dashboard` are all `kctl-dokploy` groups.
+
 ### Backup status — `./dokploy.sh backup <platform>`
 
 ```bash
@@ -122,7 +138,7 @@ meanings. Passthrough `./dokploy.sh <platform> servers list` still works.
 template and run `scripts/frontdoor-sync --write`; `--check` fails on drift.
 
 Everything else in `bin/dokploy/` is **repo-specific and not vendored** —
-`backup` is the first of those. Drop a new executable in and it becomes a
+`backup`, `services`, `hosts` and `check` are those. Drop a new executable in and it becomes a
 reserved word automatically; there is no table to register it in.
 `dokploy.yaml` is the only per-repo data file. Full standard:
 `kodemeio-skills/docs/frontdoor.md`.

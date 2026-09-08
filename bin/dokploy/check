@@ -1,0 +1,296 @@
+#!/usr/bin/env bash
+#
+# check — one read-only pass over a platform: every service with its status
+#         AND its backup, joined, with the last backup's date and size.
+#
+# Usage:
+#   ./dokploy.sh check <platform|all> [options]
+#
+#   platform ∈ {kodemeio, idtpp, abcfood, local}, or `all` for every one.
+#
+# Options:
+#   --problems         only services that are not `done` or whose backup is not OK
+#   --no-backup        services only — fast, skips the S3 listing entirely
+#   --no-manifests     skip the manifest defect scan (passed through to `backup`)
+#   --stale-hours N    passed through to `backup` (default 26)
+#   --warn-hours N     passed through to `backup` (default 50)
+#   --json             machine-readable; exits 1 on any problem
+#
+# Examples:
+#   ./dokploy.sh check idtpp                 # the whole picture, one screen
+#   ./dokploy.sh check idtpp --problems      # just what needs attention
+#   ./dokploy.sh check all --no-backup       # fleet-wide service status in seconds
+#   ./dokploy.sh check all --json            # for a schedule; exits 1 on any problem
+#
+# Reads only. It is a join of two existing tools — `services --json` and
+# `backup --json` — and adds no API call of its own, so anything either of them
+# learns shows up here without a second implementation to keep in step.
+# Neither underlying verb is in dokploy.yaml's guard table, so there is no
+# --yes and no --dry-run.
+#
+# WHY A THIRD TOOL. "Are the services up, and are they backed up?" is one
+# question asked every morning, and it took two commands and a mental join to
+# answer: `services` knows status but nothing about backups, `backup` knows
+# backups but lists a service that has none only by name. This renders one row
+# per service with both facts on it, then the backup detail underneath with the
+# newest object's DATE and SIZE — not just its age — because "8h" says it ran,
+# and "2026-09-08 19:05, 412MB" says what you would actually be restoring.
+#
+# Timing is dominated by `backup`, roughly 2s per service (one `compose backups
+# list` call each). `all` runs the platforms in parallel so it costs the slowest
+# platform, not the sum; abcfood alone is about four minutes.
+#
+# It is called `check`, not `audit`, `status`, `report` or `dashboard`: those
+# four are kctl-dokploy groups, and a repo tool by any of those names would give
+# one typed word two live meanings.
+#
+set -euo pipefail
+# shellcheck source=./_boot.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_boot.sh"
+
+[[ "${1:-}" == "-h" || "${1:-}" == "--help" ]] && { fd_usage_from_header "$0"; exit 0; }
+
+for _a in "$@"; do
+  [[ "$_a" == "--dry-run" || "$_a" == "--yes" ]] && { c_red "check only reads; it has no $_a."; exit 1; }
+done
+
+[[ $# -ge 1 ]] || { c_red "Need: <platform|all>"; fd_usage_from_header "$0"; exit 1; }
+
+WHICH="$1"; shift
+PROBLEMS=0; AS_JSON=0; WITH_BACKUP=1
+BACKUP_OPTS=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --problems)     PROBLEMS=1; shift ;;
+    --no-backup)    WITH_BACKUP=0; shift ;;
+    --no-manifests) BACKUP_OPTS+=("$1"); shift ;;
+    --stale-hours|--warn-hours) BACKUP_OPTS+=("$1" "${2:-}"); shift 2 ;;
+    --json)         AS_JSON=1; shift ;;
+    *) c_red "Unknown option '$1'"; fd_usage_from_header "$0"; exit 2 ;;
+  esac
+done
+
+need "$(fd_cli)" "Install it from kodemeio-skills/packages/$(fd_cli)"
+need python3
+
+TARGETS=()
+if [[ "$WHICH" == "all" ]]; then
+  mapfile -t TARGETS < <(fd_targets)
+else
+  fd_resolve "$WHICH"
+  TARGETS=("$FD_TARGET")
+fi
+
+WORK="$(mktemp -d)"; trap 'rm -rf "$WORK"' EXIT
+
+# Both tools exit 1 when they find a problem, which is the normal case here and
+# not a failure of the tool; the JSON on stdout is what we want either way.
+# Only an EMPTY stdout means the tool itself could not run.
+collect() {
+  local t="$1"
+  "$FD_BIN_DIR/services" "$t" --json > "$WORK/$t.services.json" 2>"$WORK/$t.services.err" || true
+  if (( WITH_BACKUP )); then
+    "$FD_BIN_DIR/backup" "$t" --json ${BACKUP_OPTS[@]+"${BACKUP_OPTS[@]}"} \
+      > "$WORK/$t.backup.json" 2>"$WORK/$t.backup.err" || true
+  fi
+}
+
+if (( ! AS_JSON )); then
+  if (( WITH_BACKUP )); then
+    c_dim "▶ check ${TARGETS[*]}  — services + backups; the backup scan is ~2s per service"
+  else
+    c_dim "▶ check ${TARGETS[*]}  — services only"
+  fi
+fi
+
+if (( ${#TARGETS[@]} > 1 )); then
+  for t in "${TARGETS[@]}"; do collect "$t" & done
+  wait
+else
+  collect "${TARGETS[0]}"
+fi
+
+PROBLEMS="$PROBLEMS" AS_JSON="$AS_JSON" WITH_BACKUP="$WITH_BACKUP" WORK="$WORK" \
+TARGETS="$(printf '%s\n' "${TARGETS[@]}")" python3 - <<'PY'
+import json, os, sys
+from datetime import datetime
+from pathlib import Path
+
+WORK = Path(os.environ["WORK"])
+PROBLEMS = os.environ["PROBLEMS"] == "1"
+AS_JSON = os.environ["AS_JSON"] == "1"
+WITH_BACKUP = os.environ["WITH_BACKUP"] == "1"
+TARGETS = [t for t in os.environ["TARGETS"].split("\n") if t]
+
+BAD_BACKUP = {"STALE", "NO FILES", "EMPTY", "UNVERIFIED"}
+
+
+def load(path):
+    try:
+        text = path.read_text()
+    except FileNotFoundError:
+        return None
+    if not text.strip():
+        return None
+    try:
+        return json.loads(text)
+    except Exception:
+        return None
+
+
+def human(n):
+    if n is None:
+        return "—"
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if n < 1024 or unit == "TB":
+            return f"{n:.0f}{unit}" if unit == "B" else f"{n:.1f}{unit}"
+        n /= 1024
+    return f"{n:.1f}TB"
+
+
+def local_stamp(iso):
+    if not iso:
+        return "—"
+    try:
+        return datetime.fromisoformat(iso).astimezone().strftime("%Y-%m-%d %H:%M")
+    except ValueError:
+        return iso[:16]
+
+
+platforms, errors, defects = {}, {}, []
+for t in TARGETS:
+    svc = load(WORK / f"{t}.services.json")
+    if svc is None:
+        err = (WORK / f"{t}.services.err").read_text().strip()[:200] if (WORK / f"{t}.services.err").exists() else ""
+        errors[t] = f"services: {err or 'no output'}"
+        continue
+    if t in svc.get("errors", {}):
+        errors[t] = f"services: {svc['errors'][t]}"
+        continue
+    rows = svc["platforms"].get(t, {}).get("matched", [])
+
+    bk = load(WORK / f"{t}.backup.json") if WITH_BACKUP else None
+    if WITH_BACKUP and bk is None:
+        err = (WORK / f"{t}.backup.err").read_text().strip()[:200] if (WORK / f"{t}.backup.err").exists() else ""
+        errors[t] = f"backup: {err or 'no output'}"
+        continue
+
+    backups = bk.get("backups", []) if bk else []
+    by_service = {}
+    for b in backups:
+        by_service.setdefault(b["service"], []).append(b)
+    if bk and not defects:
+        # The manifest scan reads this repo, not the platform, so every target
+        # returns the same list; keep it once.
+        defects = bk.get("manifest_defects", [])
+
+    services = []
+    for r in sorted(rows, key=lambda x: (x["status"] != "done", x["status"], x["name"] or "")):
+        mine = by_service.get(r["name"], [])
+        verdicts = sorted({b["verdict"] for b in mine})
+        bad = r["status"] != "done" or any(v in BAD_BACKUP for v in verdicts)
+        services.append({**r, "backups": len(mine), "backup_verdicts": verdicts, "problem": bad})
+
+    platforms[t] = {
+        "services": services,
+        "backups": sorted(backups, key=lambda b: (b["verdict"] == "OK", b["service"], b["database"] or "")),
+        "destinations": bk.get("destinations", {}) if bk else {},
+        "unlistable_destinations": bk.get("unlistable_destinations", {}) if bk else {},
+        "thresholds": bk.get("thresholds") if bk else None,
+    }
+
+if AS_JSON:
+    print(json.dumps({"platforms": platforms, "manifest_defects": defects, "errors": errors}, indent=2))
+    any_bad = errors or defects or any(s["problem"] for p in platforms.values() for s in p["services"])
+    sys.exit(1 if any_bad else 0)
+
+RED, YEL, GRN, DIM, BOLD, OFF = "\033[1;31m", "\033[1;33m", "\033[1;32m", "\033[2m", "\033[1m", "\033[0m"
+if not sys.stdout.isatty():
+    RED = YEL = GRN = DIM = BOLD = OFF = ""
+SCOL = {"done": GRN, "error": RED, "idle": YEL}
+VCOL = {"OK": GRN, "WARN": YEL, "STALE": RED, "NO FILES": RED, "DISABLED": YEL, "UNVERIFIED": YEL, "EMPTY": RED}
+
+
+def paint_verdicts(vs, n):
+    if not vs:
+        return f"{DIM}none{OFF}"
+    return "  ".join(f"{VCOL.get(v, '')}{v}{OFF}" for v in vs) + (f" {DIM}×{n}{OFF}" if n > 1 else "")
+
+
+total_bad = 0
+for t, p in platforms.items():
+    svcs = p["services"]
+    counts = {}
+    for s in svcs:
+        counts[s["status"]] = counts.get(s["status"], 0) + 1
+    summary = "  ".join(f"{SCOL.get(k, '')}{k} {n}{OFF}" for k, n in sorted(counts.items()))
+    shown = [s for s in svcs if s["problem"]] if PROBLEMS else svcs
+    n_bad = sum(1 for s in svcs if s["problem"])
+    total_bad += n_bad
+
+    print(f"\n{BOLD}  {t}{OFF}  —  {len(svcs)} service(s)  ·  {summary}")
+    print(f"\n  {'status':9}{'service':38}{'project':28}" + ("backup" if WITH_BACKUP else ""))
+    print("  " + "─" * (96 if WITH_BACKUP else 74))
+    if not shown:
+        print(f"    {DIM}nothing to show{OFF}")
+    for s in shown:
+        col = SCOL.get(s["status"], "")
+        print(f"  {col}{s['status']:<9}{OFF}{(s['name'] or '')[:37]:38}{DIM}{(s['project'] or '')[:27]:28}{OFF}"
+              + (paint_verdicts(s['backup_verdicts'], s['backups']) if WITH_BACKUP else ""))
+
+    if not WITH_BACKUP:
+        continue
+
+    bks = [b for b in p["backups"] if (not PROBLEMS or b["verdict"] != "OK")]
+    if bks:
+        print(f"\n  BACKUPS — {len(p['backups'])} configured on {t}"
+              + (f", showing {len(bks)} not OK" if PROBLEMS else "") + "\n")
+        print(f"  {'service':26}{'database':20}{'schedule':15}{'last backup':18}{'size':>9}{'age':>6}{'files':>7}  verdict")
+        print("  " + "─" * 108)
+        for b in bks:
+            age = f"{b['age_hours']:.0f}h" if b["age_hours"] is not None else "—"
+            col = VCOL.get(b["verdict"], "")
+            print(f"  {b['service'][:25]:26}{(b['database'] or '—')[:19]:20}{(b['schedule'] or '—')[:14]:15}"
+                  f"{local_stamp(b['newest']):18}{human(b['newest_bytes']):>9}{age:>6}{b['files']:>7}  {col}{b['verdict']}{OFF}")
+        nokeep = [b for b in p["backups"] if b["keep_latest"] in (None, 0)]
+        if nokeep:
+            print(f"\n  {YEL}RETENTION{OFF}  {len(nokeep)} of {len(p['backups'])} have no keepLatestCount — nothing prunes them.")
+    elif not p["backups"]:
+        print(f"\n  {DIM}BACKUPS — none configured on {t}.{OFF}")
+
+    dests = p["destinations"]
+    if dests:
+        print(f"\n  DESTINATIONS — {len(dests)} in use\n")
+        print(f"  {'bucket':34}{'objects':>9}{'size':>10}   note")
+        print("  " + "─" * 70)
+        for d, m in dests.items():
+            label = m.get("bucket") or m.get("name") or d
+            note = f"{RED}listing failed{OFF}" if d in p["unlistable_destinations"] else ""
+            print(f"  {label[:33]:34}{m.get('objects', 0):>9}{human(m.get('bytes', 0)):>10}   {note}")
+    for d, err in sorted(p["unlistable_destinations"].items()):
+        print(f"\n  {YEL}UNVERIFIABLE{OFF} destination {d}: {err[:120]}")
+        print(f"      A schemeless endpoint is the usual cause: botocore requires https://.")
+
+if defects:
+    print(f"\n  {RED}MANIFEST DEFECTS{OFF} — repo-wide; these look disabled and are not\n")
+    for d in defects:
+        print(f"  {RED}✗{OFF} {d['file']}")
+        print(f"      {d['form']}  →  {d['why']}")
+
+for t, msg in errors.items():
+    print(f"\n  {RED}{t}: could not check — {msg}{OFF}")
+
+print()
+parts = []
+if total_bad:
+    parts.append(f"{total_bad} service(s) not done" + (" or not proven backed up" if WITH_BACKUP else ""))
+if defects:
+    parts.append(f"{len(defects)} manifest defect(s)")
+if errors:
+    parts.append(f"{len(errors)} platform(s) unreachable")
+if parts:
+    print(f"  {RED if errors or total_bad else YEL}VERDICT: {', '.join(parts)}.{OFF}")
+    sys.exit(1)
+what = "up and every configured backup has a recent, non-empty object" if WITH_BACKUP else "`done`"
+print(f"  {GRN}VERDICT: every service on {', '.join(platforms)} is {what}.{OFF}")
+PY
