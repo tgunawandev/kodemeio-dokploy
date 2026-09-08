@@ -86,7 +86,7 @@ structural property of the change.
 | Breaks routing for other apps | Traefik validates labels per container. A malformed label invalidates only our own router. We declare no entrypoint override, no TLS store, no default certificate, and no middleware that another router references. |
 | Triggers ACME / Let's Encrypt rate limits | `HostRegexp` yields no domain, so Traefik requests no certificate. **Measured**: over the whole spike window Traefik logged exactly one ACME line — the challenge lookup we issued ourselves, answered by `acme-http@internal`. Zero cert requests caused by the catch-all. |
 | Breaks the ACME HTTP-01 challenge | `acme-http@internal` runs at priority `9223372036854775807`. **Measured**: `/.well-known/acme-challenge/<token>` was answered by the ACME router, not the 503 page, with the fallback live. |
-| Serves the maintenance page over a bad certificate | TLS is served from the existing Let's Encrypt cert by SNI. Corroborated by current fleet behaviour: `poll_health()` (`bin/odoo/release:151`) runs plain `curl` with no `-k` and returns **404** during every deploy — an invalid or missing cert would give `000`. **Confirmed live on staging before any prod rollout.** |
+| Serves the maintenance page over a bad certificate | **Measured live during a real `tpp staging` addon upgrade, 2026-09-08.** With the router gone and the page being served, a plain `curl` with no `-k` returned `http=503 ssl_verify=0`, and the presented certificate was `CN=tpp-odoo-erp-stg.idtpp.com`, issuer `Let's Encrypt YR2` — the real production certificate, not a default or self-signed one. Traefik keeps serving a stored ACME certificate by SNI after the router that requested it disappears. **Caveat:** a host that never had a certificate issued (a typo, an undeployed domain) has none to serve, so an HTTPS probe of one fails the handshake before HTTP — that is expected, and is not the case this feature targets. |
 | Starves the server | `nginx:1.27-alpine`, `restart: unless-stopped`, explicit cpu/memory limits per the infrastructure rules. |
 | Leaves residue if abandoned | **Measured**: after teardown, the unrouted host returned to 404 and the live app to 301. Rollback is removing one Dokploy app; Odoo is never touched. |
 
@@ -144,9 +144,52 @@ Acceptance is the four-case replay, run on the local rig and again on staging:
 3. `/.well-known/acme-challenge/<token>` → answered by the ACME router
 4. app restored → app answers again, no manual step
 
-Then the real thing: deploy on `tpp-stg-01`, run an actual addon upgrade on tpp
-staging, and capture status codes across the whole window. Must be 503
-throughout, never 404.
+### Result — first live run, 2026-09-08
+
+Deployed on **tpp-prod-07** (where tpp staging actually lives — there is no
+`tpp-stg-01` server in Dokploy, despite 14 staging manifests naming one) and
+driven by a real `./odoo.sh addon tpp staging upgrade base_management --yes`.
+Sampled every 3 s, 116 samples:
+
+```
+01:47:49  target=200  maint=0   tpp25prod=200    Odoo up
+01:49:27  ---------------- deploy window opens ----------------
+01:49:32  target=503  maint=1   tpp25prod=200    maintenance page
+01:56:24  target=200  maint=0   tpp25prod=200    returned by itself
+```
+
+| assertion | result |
+|---|---|
+| 404 seen at any point | **0 of 116** |
+| window covered by the page | 01:49:32 -> 01:56:24, **~6m52s** |
+| return to service | automatic, no manual step |
+| TLS during the window | `ssl_verify=0`, `CN=tpp-odoo-erp-stg.idtpp.com`, Let's Encrypt YR2 |
+| `tpp25-odoo-erp` **production** on the same Traefik | **0 of 116 non-200** |
+| `release` health gate | logged `HTTP 503` for 7 min, then `Healthy after 7m30s`, exit 0 |
+
+That last row is the before/after: `release` previously logged **404** through
+this same phase (CLAUDE.md: "404 during a deploy is normal for 3-7 min"). Same
+tool, same phase, now 503 — and the gate still behaved correctly, confirming
+that 503-never-200 does not fool the tooling.
+
+### What this run also proved is NOT covered
+
+The same session produced a **500 Internal Server Error** on
+`tpp-odoo-erp-stg.idtpp.com/odoo`, and the fallback correctly did **not**
+intercept it: Odoo was up, its router matched, and it served its own Werkzeug
+error page.
+
+Cause was unrelated to this feature — `release … reliable base_management`
+shipped the whole new image while upgrading only that module, leaving
+`account_payment_advance` at `db=18.0.3.0.0` against `image=18.0.4.0.0`, so
+`res_company.advance_transfer_enabled` did not exist. The documented `reliable`
+trap; `bin/deploy-preflight` would have blocked it and was not run.
+
+**The lesson for this spec:** a user cannot tell a 404 from a 500 from a 502 —
+all three read as "the system is broken". Phase 1 converts only the 404. Phase 2
+(the Traefik `errors` middleware) is what converts 5xx from a live-but-broken
+Odoo, and this incident is the argument for promoting it rather than deferring
+it.
 
 **The revert that must go red:** remove the maintenance app and re-run the
 identical capture. It **must** show `404 page not found`. A capture that passes
