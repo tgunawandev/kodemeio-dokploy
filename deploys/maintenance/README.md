@@ -48,7 +48,7 @@ catch-all covers every domain on that server — present and future.
 | tpp-prod-03 | `tpp-infra-maintenance-prod03` | tpp / production |
 | tpp-prod-04 | `tpp-infra-maintenance-prod04` | tpp / production |
 | tpp-prod-06 | `tpp-infra-maintenance-prod06` | tpp / production |
-| tpp-prod-07 | `tpp-infra-maintenance-prod07` | tpp / production |
+| tpp-prod-07 | `tpp-infra-maintenance-prod07` | tpp / **staging** — mis-filed 2026-09-08, not repairable |
 
 The tenant prefix follows the project the app is filed under, not the server —
 tpp-prod-02 hosts the mac instances, so its fallback is filed under `mac`.
@@ -72,15 +72,22 @@ through `compose create -f` rather than `deploy apply`:
 
 ```bash
 ./dokploy.sh <platform> compose create <environmentId> \
-  --name <tenant>-infra-maintenance \
+  --name <tenant>-infra-maintenance-<server> \
   --server <serverId> \
   -f deploys/maintenance/docker-compose.yml \
   --no-auto-deploy --yes
 
-# 🔴 Both of the following are REQUIRED — see the two traps below.
+# 🔴 ORDER MATTERS. --compose-file RESETS sourceType back to github, so
+#    --source-type raw must come LAST, or the deploy dies with
+#    "❌ Github Provider not found". One field per call.
 ./dokploy.sh <platform> compose update <composeId> --no-auto-deploy --yes
+./dokploy.sh <platform> compose update <composeId> --compose-file deploys/maintenance/docker-compose.yml --yes
 ./dokploy.sh <platform> compose update <composeId> --source-type raw --yes
 
+# 🔴 GATE THE START, AND BRANCH ON THE GATE. On 2026-09-08 the check
+#    printed raw=FAIL and the start ran anyway, because the abort lived in
+#    the check's output and not in the command. A gate you do not branch on
+#    is decoration.
 ./dokploy.sh <platform> compose start <composeId> --yes
 ```
 
