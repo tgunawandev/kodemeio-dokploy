@@ -89,12 +89,24 @@ certificate, so the page is served over valid TLS.
 
 ## Editing the page
 
-Change `docker-compose.yml`, then re-import and redeploy. There is no image
-build and no registry:
+Change `docker-compose.yml`, then push the content and redeploy. There is no
+image build and no registry:
 
 ```bash
-./dokploy.sh <platform> compose import <composeId> -f deploys/maintenance/docker-compose.yml --yes
+./dokploy.sh <platform> compose update <composeId> --compose-file deploys/maintenance/docker-compose.yml --yes
 ./dokploy.sh <platform> compose redeploy <composeId> --yes
+```
+
+🔴 **`compose import -f` does NOT work here — it returns
+`APIError (400): Input validation failed` and writes nothing.** It fails
+*silently* in a loop, because a redeploy afterwards still succeeds and simply
+redeploys the old content, so the change looks applied and is not. Use
+`compose update --compose-file`, and **verify by byte count** before redeploying:
+
+```bash
+./dokploy.sh <platform> --json compose get <composeId> \
+  | python3 -c "import json,sys;t=sys.stdin.read();d=json.loads(t[t.find('{'):]);c=d.get('composeFile') or '';print(len(c))"
+wc -c < deploys/maintenance/docker-compose.yml     # the two must match
 ```
 
 Read the four `🔴` rules at the top of `docker-compose.yml` first. The sharpest:

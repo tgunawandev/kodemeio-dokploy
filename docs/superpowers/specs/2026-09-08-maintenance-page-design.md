@@ -1,6 +1,6 @@
 # Maintenance page instead of 404 during a deploy
 
-Status: design approved 2026-09-08 · Phase 1 only (the 404 window)
+Status: **Phase 1 LIVE on all five tpp servers, 2026-09-08.** Phase 2 half-shipped (middleware defined, router not yet enabled).
 Owner repo: **kodemeio-dokploy**. Phase 1 changes **nothing** in `kodemeio-odoo`.
 
 ## Problem
@@ -50,11 +50,11 @@ compose app, owning two Traefik routers at **`priority=1`**:
 traefik.enable                                             = true
 traefik.docker.network                                     = dokploy-network
 traefik.http.services.maintenance.loadbalancer.server.port = 80
-traefik.http.routers.maintenance-web.rule                  = HostRegexp(`^.+$`)
+traefik.http.routers.maintenance-web.rule                  = HostRegexp(`.+`)
 traefik.http.routers.maintenance-web.priority              = 1
 traefik.http.routers.maintenance-web.entrypoints           = web
 traefik.http.routers.maintenance-web.service               = maintenance
-traefik.http.routers.maintenance-sec.rule                  = HostRegexp(`^.+$`)
+traefik.http.routers.maintenance-sec.rule                  = HostRegexp(`.+`)
 traefik.http.routers.maintenance-sec.priority              = 1
 traefik.http.routers.maintenance-sec.entrypoints           = websecure
 traefik.http.routers.maintenance-sec.service               = maintenance
@@ -80,7 +80,7 @@ structural property of the change.
 
 | Risk | Why it cannot happen |
 |---|---|
-| Steals traffic from a healthy Odoo | Priority 1 vs 30. **Measured**: with the fallback live, `whoami` and `dbgate` still returned 301/200. Even a *forgotten* priority label is safe — `HostRegexp(^.+$)` is 21 characters, so Traefik's length-derived default is 21, still below 30. |
+| Steals traffic from a healthy Odoo | Priority 1 vs 30. **Measured**: with the fallback live, `whoami` and `dbgate` still returned 301/200. Even a *forgotten* priority label is safe — `HostRegexp(`.+`)` is 18 characters, so Traefik's length-derived default is 18, still below 30. |
 | Restarts or disturbs Odoo containers | Separate Dokploy app, separate compose project. `docker compose up -d` touches only its own project. Phase 1 modifies no Odoo file, triggers no image build, and requires no Odoo redeploy. |
 | Fights Traefik for :80/:443 | **Hard rule: the compose declares no `ports:`.** Traefik reaches it over `dokploy-network`. A published port here would contend for the host ports and could take every site on the server down. |
 | Breaks routing for other apps | Traefik validates labels per container. A malformed label invalidates only our own router. We declare no entrypoint override, no TLS store, no default certificate, and no middleware that another router references. |
@@ -120,11 +120,20 @@ returns the exact behaviour we have today, a 404. No worse than the status quo.
 
 ## Scope
 
-Four production servers carry every Odoo and PWA domain:
+### Rolled out 2026-09-08 — every tpp server, verified `404 -> 503`
+
+| server | compose | composeId |
+|---|---|---|
+| `tpp-prod-01` | `tpp-infra-maintenance-prod01` | `Pt3LdHhmJdEID1-xPjNyG` |
+| `tpp-prod-03` | `tpp-infra-maintenance-prod03` | `X-G1ET5jvRvSrKqWJc4hN` |
+| `tpp-prod-04` | `tpp-infra-maintenance-prod04` | `uGikL1Hp8BhVhcB5ssgRJ` |
+| `tpp-prod-06` | `tpp-infra-maintenance-prod06` | `0ryky5TpEpB9ZXEUDB_d2` |
+| `tpp-prod-07` | `tpp-infra-maintenance` | `aQ5yl8FCqZxjTdIUc8dfg` |
+
+### Not rolled out
 
 | server | domains | Odoo instances |
 |---|---|---|
-| `tpp-prod-03` | 11 | tpp-odoo-erp, tpp-odoo-hrms, tpp-odoo-helpdesk, tpp-odoo-erp-light |
 | `tpp-prod-02` | 6 | mac-odoo-erp, mac-odoo-hrms, mac-odoo-erp-light |
 | `kod-prod-02` | 21 | kod-odoo-full |
 | `tpp-prod-07` | 1 | tpp25-odoo-erp |
@@ -209,10 +218,59 @@ to today's behaviour within one Traefik watch interval. Measured clean on the ri
 
 ## Out of scope
 
-- **Phase 2 — the 502 tail** (~60–90 s while Odoo loads its registry). Needs a
-  Traefik `errors` middleware defined on the always-up maintenance container plus
-  a router we own in `compose/odoo.prod.yml`, mirroring the existing `-ws` router
-  at priority 300. Requires an image build and a release on every instance.
 - **Phase 3 — armed message.** `./odoo.sh release` setting "planned upgrade, back
   by ~12:45" before it starts and clearing it after, so a planned deploy reads
   differently from a crash.
+
+## Phase 2 — designed and half-shipped, NOT yet enabled
+
+Covers 5xx from a **live but broken** app: the 502 tail while Odoo loads its
+registry, and the 500 from a half-upgraded instance seen on 2026-09-08.
+
+**Shipped already (inert).** The `errors` middleware is defined on the
+maintenance container itself, so it survives when the app referencing it is gone.
+A middleware changes nothing until a router names it, so this is live on all five
+tpp servers and currently does nothing.
+
+**Not shipped: the router that names it.** Dokploy's own router cannot carry a
+middleware — `compose domains` exposes no such option — so it needs a router we
+own, added to `odoo-web` in `compose/odoo.prod.yml`, mirroring the `-ws` router
+that already works there:
+
+```yaml
+- "traefik.enable=true"
+- "traefik.http.services.${COMPOSE_PROJECT_NAME:-odoo}-app.loadbalancer.server.port=8069"
+- "traefik.http.routers.${COMPOSE_PROJECT_NAME:-odoo}-app.rule=Host(`${DOMAIN}`)"
+- "traefik.http.routers.${COMPOSE_PROJECT_NAME:-odoo}-app.priority=100"
+- "traefik.http.routers.${COMPOSE_PROJECT_NAME:-odoo}-app.entrypoints=websecure"
+- "traefik.http.routers.${COMPOSE_PROJECT_NAME:-odoo}-app.tls=true"
+- "traefik.http.routers.${COMPOSE_PROJECT_NAME:-odoo}-app.tls.certresolver=letsencrypt"
+- "traefik.http.routers.${COMPOSE_PROJECT_NAME:-odoo}-app.service=${COMPOSE_PROJECT_NAME:-odoo}-app"
+- "traefik.http.routers.${COMPOSE_PROJECT_NAME:-odoo}-app.middlewares=kodemeio-maintenance-errors@docker"
+```
+
+Priority 100 beats Dokploy's 30 and loses to the `/websocket` router's 300, so
+websocket routing is untouched.
+
+**Measured on the rig, 2026-09-08:**
+
+| case | result |
+|---|---|
+| app returns 500 through a router carrying the middleware | maintenance page body, upstream status preserved |
+| router names a middleware that does **not** exist | Traefik drops only that router; the priority-30 Dokploy router serves the app's own response — **not a 404** |
+
+That second row is why the labels are safe to ship fleet-wide even where the
+maintenance container is absent.
+
+### What phase 2 still needs before it goes live
+
+🔴 **It is not a label change you can drop in.** `compose/odoo.prod.yml` is
+pulled from the repo at deploy time, so it needs a **redeploy of every Odoo
+instance** — and a redeploy runs `pull_policy: always`, so it also pulls a
+newer `latest` image. That is exactly what produced the 2026-09-08 outage.
+
+1. `bin/deploy-preflight <tenant> <target>` on every target first, and resolve
+   every BLOCK. Skipping it is what broke staging.
+2. Prove it on one instance before the fleet — our router replaces Dokploy's for
+   normal traffic, so confirm TLS and login on that one instance before going on.
+3. A production deploy window, and its own fresh confirmation.
