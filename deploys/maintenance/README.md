@@ -104,10 +104,18 @@ redeploys the old content, so the change looks applied and is not. Use
 `compose update --compose-file`, and **verify by byte count** before redeploying:
 
 ```bash
-./dokploy.sh <platform> --json compose get <composeId> \
-  | python3 -c "import json,sys;t=sys.stdin.read();d=json.loads(t[t.find('{'):]);c=d.get('composeFile') or '';print(len(c))"
-wc -c < deploys/maintenance/docker-compose.yml     # the two must match
+./dokploy.sh <platform> --json compose get <composeId> | python3 -c "
+import json,sys
+t=sys.stdin.read(); d=json.loads(t[t.find('{'):])
+c=d.get('composeFile') or ''
+local=open('deploys/maintenance/docker-compose.yml').read()
+print(f'stored={len(c)} local={len(local)} MATCH={len(c)==len(local)}')"
 ```
+
+🔴 **Compare characters to characters.** This file contains non-ASCII (`🔴`,
+`—`), so `wc -c` (bytes, 11017) and `len(open(f).read())` (characters, 10669)
+disagree by 348 on the same file. A verification that mixes the two never
+matches and teaches you to ignore it.
 
 Read the four `🔴` rules at the top of `docker-compose.yml` first. The sharpest:
 **never add `ports:`** — a published `:80`/`:443` would contend with Traefik for
