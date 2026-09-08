@@ -147,161 +147,261 @@ configs:
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <meta name="robots" content="noindex">
-      <meta http-equiv="refresh" content="60">
+      <meta http-equiv="refresh" content="90">
       <title>Sedang Pemeliharaan</title>
       <style>
+        /* Kodemeio brand tokens, taken from kodemeio_theme/static/src/scss.
+           Warm paper and graphite with a muted indigo accent, so this page looks
+           like the system the reader just lost rather than a stranger's error page.
+           System type stack on purpose: the app is down, and a webfont request
+           would hang the one screen that has to appear instantly. */
         :root {
           color-scheme: light dark;
-          --bg: #f6f7f9; --card: #ffffff; --fg: #1b1f24; --muted: #5b6470;
-          --line: #e3e6ea; --accent: #1f6feb;
+          --paper:  #faf9f6;
+          --card:   #ffffff;
+          --ink:    #3a3633;
+          --soft:   #6f6960;
+          --line:   #e8e3d9;
+          --accent: #0176d3;
+          --warn:   #a8621f;
+          --track:  #ece7dd;
         }
         @media (prefers-color-scheme: dark) {
-          :root { --bg:#12151a; --card:#191d24; --fg:#e8eaed; --muted:#9aa4b2;
-                  --line:#272c34; --accent:#4d8ef7; }
+          :root {
+            --paper:  #161513;
+            --card:   #1d1c19;
+            --ink:    #f0ece4;
+            --soft:   #a9a298;
+            --line:   #2a2823;
+            --accent: #5eb0ea;
+            --warn:   #e0a367;
+            --track:  #2a2823;
+          }
         }
         * { box-sizing: border-box; }
+        html, body { margin: 0; }
         body {
-          margin: 0; min-height: 100vh; display: flex; align-items: center;
-          justify-content: center; padding: 24px; background: var(--bg);
-          color: var(--fg);
-          font: 15px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+          min-height: 100vh;
+          background: var(--paper);
+          color: var(--ink);
+          font: 400 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+          -webkit-font-smoothing: antialiased;
+          padding: clamp(28px, 7vh, 72px) clamp(20px, 6vw, 40px) 40px;
         }
-        .card {
-          background: var(--card); border: 1px solid var(--line);
-          border-radius: 14px; padding: 40px 36px; max-width: 520px; width: 100%;
-          box-shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.06);
+        main { max-width: 34rem; margin: 0 auto; }
+        @media (min-height: 640px) and (min-width: 700px) {
+          body { display: grid; place-content: center; padding-bottom: clamp(28px, 7vh, 72px); }
+          main { width: 34rem; }
         }
+
+        /* Brand row — small, so it identifies without competing. */
+        .brand { display: flex; align-items: center; gap: 10px; margin-bottom: clamp(28px, 6vh, 52px); }
         .mark {
-          width: 42px; height: 42px; border-radius: 10px; background: var(--accent);
-          display: flex; align-items: center; justify-content: center;
-          margin-bottom: 22px;
+          width: 26px; height: 26px; border-radius: 7px; background: var(--accent);
+          display: grid; place-items: center; flex: none;
+          color: #fff; font-weight: 700; font-size: 14px; letter-spacing: -.02em;
         }
-        h1 { font-size: 21px; line-height: 1.35; margin: 0 0 12px; font-weight: 650; }
-        p { margin: 0 0 12px; color: var(--muted); }
-        p.lead { color: var(--fg); }
-        .en { margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--line);
-              font-size: 13.5px; }
-        .status {
-          margin-top: 24px; display: flex; align-items: center; gap: 9px;
-          font-size: 13px; color: var(--muted);
+        @media (prefers-color-scheme: dark) { .mark { color: #10171c; } }
+        .wordmark { font-weight: 600; letter-spacing: -.01em; }
+        .host {
+          margin-left: auto; font-size: 12.5px; color: var(--soft);
+          font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis;
+          white-space: nowrap; max-width: 55%;
         }
-        .dot {
-          width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
-          animation: pulse 1.6s ease-in-out infinite; flex: none;
+
+        h1 {
+          font-size: clamp(22px, 4.4vw, 30px); line-height: 1.22; font-weight: 600;
+          letter-spacing: -.021em; margin: 0 0 28px;
         }
-        @keyframes pulse { 0%,100% { opacity: .25 } 50% { opacity: 1 } }
-        @media (prefers-reduced-motion: reduce) { .dot { animation: none; opacity: .7 } }
+
+        /* The one bold element: how long it has been. That is the question the
+           reader actually has, and a countdown that resets every 30s answers it
+           worse than nothing. */
+        .elapsed { display: flex; align-items: baseline; gap: 12px; }
+        .count {
+          font-size: clamp(52px, 13vw, 68px); line-height: .9; font-weight: 350;
+          letter-spacing: -.045em; font-variant-numeric: tabular-nums;
+        }
+        .unit { font-size: 15px; color: var(--soft); }
+        .bar { height: 3px; background: var(--track); border-radius: 2px; margin: 20px 0 10px; overflow: hidden; }
+        .fill {
+          height: 100%; width: 0%; background: var(--accent); border-radius: 2px;
+          transition: width .8s linear;
+        }
+        .bar.over .fill { width: 100% !important; background: var(--warn); opacity: .55; }
+        .note { font-size: 14px; color: var(--soft); margin: 0; }
+
+        .assure {
+          margin: 30px 0 0; padding-top: 24px; border-top: 1px solid var(--line);
+          font-size: 17px; font-weight: 500;
+        }
+        .assure span { display: block; font-size: 15px; font-weight: 400; color: var(--soft); margin-top: 5px; }
+
+        .meta { margin: 26px 0 0; font-size: 14px; color: var(--soft); }
+        .en {
+          margin: 22px 0 0; padding-top: 18px; border-top: 1px solid var(--line);
+          font-size: 13px; color: var(--soft);
+        }
+        a { color: inherit; text-underline-offset: 3px; }
+        a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+        @media (prefers-reduced-motion: reduce) { .fill { transition: none; } }
       </style>
       </head>
       <body>
-      <main class="card" role="main">
-        <div class="mark" aria-hidden="true">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-               stroke="#fff" stroke-width="2.2" stroke-linecap="round"
-               stroke-linejoin="round">
-            <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>
-          </svg>
+      <main>
+        <div class="brand">
+          <div class="mark" id="mark" aria-hidden="true"></div>
+          <div class="wordmark" id="wordmark"></div>
+          <div class="host" id="host"></div>
         </div>
 
         <h1 id="h">Sistem sedang tidak dapat diakses</h1>
-        <p class="lead" id="lead">Halaman ini akan kembali dengan sendirinya
-        begitu sistem siap. Anda tidak perlu menutup atau memuat ulang.</p>
-        <p id="dur">Data Anda aman. Semua yang sudah Anda simpan tidak terpengaruh.</p>
 
-        <div class="status">
-          <span class="dot" aria-hidden="true"></span>
-          <span id="s">Memeriksa kembali sebentar lagi…</span>
+        <div class="elapsed">
+          <div class="count" id="count">0</div>
+          <div class="unit" id="unit">menit</div>
         </div>
+        <div class="bar" id="bar"><div class="fill" id="fill"></div></div>
+        <p class="note" id="note">Biasanya selesai dalam beberapa menit.</p>
 
-        <div class="en">
-          <strong id="enh">The system is temporarily unavailable.</strong>
-          <span id="enp">This page returns on its own as soon as the system is
-          ready. No need to close or reload. Your data is safe.</span>
-        </div>
+        <p class="assure">
+          Data Anda aman.
+          <span>Semua yang sudah Anda simpan tidak terpengaruh.</span>
+        </p>
+
+        <p class="meta" id="meta">Halaman ini kembali dengan sendirinya. Anda tidak perlu menutup atau memuat ulang.</p>
+
+        <p class="meta" id="support" hidden></p>
+
+        <p class="en" id="en">The system is temporarily unavailable. This page returns on its own once it is ready.</p>
       </main>
 
       <script>
       (function () {
-        var el   = document.getElementById('s');
-        var dur  = document.getElementById('dur');
-        var h    = document.getElementById('h');
-        var lead = document.getElementById('lead');
-        var enh  = document.getElementById('enh');
-        var enp  = document.getElementById('enp');
+        var el = {
+          count: document.getElementById('count'), unit: document.getElementById('unit'),
+          bar: document.getElementById('bar'), fill: document.getElementById('fill'),
+          note: document.getElementById('note'), meta: document.getElementById('meta'),
+          h: document.getElementById('h'), host: document.getElementById('host'),
+          en: document.getElementById('en'), support: document.getElementById('support'),
+          mark: document.getElementById('mark'), wordmark: document.getElementById('wordmark')
+        };
 
-        // Elapsed is measured from the FIRST view, kept across the automatic
-        // reloads this page does, so the number does not reset to zero every
-        // 30 seconds and understate the wait.
-        var KEY = 'kodemeio-maint-since';
-        var since;
+        // Every instance is white-labelled to the TENANT, never to the vendor:
+        // measured on prod 2026-09-08, brand_name is TPP / MAC / MAC HRMS / Helpdesk
+        // and no instance carries a logo image. One container serves several hosts,
+        // so the brand has to come from the hostname. Unknown hosts show no wordmark
+        // rather than a wrong one.
+        function brandFor(host) {
+          host = (host || '').toLowerCase();
+          if (host.indexOf('mac-odoo-hrms') === 0 || host.indexOf('mac-hrm') === 0) return 'MAC HRMS';
+          if (host.indexOf('mac') === 0) return 'MAC';
+          if (host.indexOf('helpdesk') === 0) return 'Helpdesk';
+          // INFERRED, not measured: tpp-odoo-hrms has no tenant in odoo.yaml, so the
+          // front door cannot read its brand. Mirrors the measured mac-odoo-hrms
+          // ("MAC HRMS"). Verify and correct if it differs.
+          if (host.indexOf('tpp-odoo-hrms') === 0 || host.indexOf('tpp-hrm') === 0) return 'TPP HRMS';
+          if (host.indexOf('tpp') === 0 || host === 'idtpp.com') return 'TPP';
+          return '';
+        }
+        window.__brandFor = brandFor;
+
+        // Showing the host answers the doubt an outage creates: is this even our
+        // system. It costs one line and removes a real reason to hesitate.
+        try {
+          var hostname = window.location.hostname;
+          el.host.textContent = hostname;
+          var brand = brandFor(hostname);
+          if (brand) {
+            el.wordmark.textContent = brand;
+            el.mark.textContent = brand.charAt(0);
+          } else {
+            el.mark.hidden = true;
+          }
+        } catch (e) {}
+
+        // Elapsed is measured from the FIRST view and survives the reloads this page
+        // performs, so the number never resets to zero and understates the wait.
+        var KEY = 'kodemeio-maint-since', since;
         try {
           since = parseInt(sessionStorage.getItem(KEY), 10);
           if (!since) { since = Date.now(); sessionStorage.setItem(KEY, String(since)); }
         } catch (e) { since = Date.now(); }
 
-        var expected = 7;          // minutes, overridden by /maintenance-state.json
-        var planned  = false;
+        var expected = 7, planned = false, until = '';
 
-        function mins() { return Math.floor((Date.now() - since) / 60000); }
-
-        function elapsedText() {
-          var m = mins();
-          if (m < 1) return 'Data Anda aman. Biasanya selesai dalam beberapa menit.';
-          if (m <= expected) {
-            return 'Sudah ' + m + ' menit. Biasanya selesai dalam sekitar ' +
-                   expected + ' menit. Data Anda aman.';
+        function render() {
+          var secs = Math.floor((Date.now() - since) / 1000);
+          var mins = Math.floor(secs / 60);
+          if (mins < 1) {
+            el.count.textContent = secs;
+            el.unit.textContent = 'detik berjalan';
+          } else {
+            el.count.textContent = mins;
+            el.unit.textContent = 'menit berjalan';
           }
-          // Past the expected window. Say so rather than keep spinning: the
-          // anxiety is "is it stuck", not the wait itself. Deliberately does
-          // NOT claim anyone has been alerted - that is only true once
-          // monitoring actually watches this host.
-          return 'Sudah ' + m + ' menit, lebih lama dari biasanya. Jika terus ' +
-                 'berlanjut, hubungi tim IT. Data Anda aman.';
+          var frac = Math.min(secs / (expected * 60), 1);
+          el.fill.style.width = (frac * 100).toFixed(1) + '%';
+
+          if (mins > expected) {
+            el.bar.classList.add('over');
+            // Past the expected window, say so. The anxiety is "is it stuck", not the
+            // wait. No claim that anyone was alerted -- that is only true once
+            // monitoring watches this host.
+            el.note.innerHTML = 'Lebih lama dari biasanya. Jika terus berlanjut, hubungi tim IT.';
+          } else {
+            el.note.textContent = planned && until
+              ? ('Pembaruan terjadwal, selesai sekitar pukul ' + until + '.')
+              : ('Biasanya selesai dalam sekitar ' + expected + ' menit.');
+          }
         }
 
         fetch('/maintenance-state.json', { cache: 'no-store' })
           .then(function (r) { return r.json(); })
           .then(function (st) {
             if (st && st.expected_minutes) { expected = st.expected_minutes; }
+            // Only render a support line when a real channel is configured. A
+            // "contact IT" with nowhere to go is worse than saying nothing.
+            if (st && st.support_url && st.support_label) {
+              var a = document.createElement('a');
+              a.href = st.support_url; a.textContent = st.support_label;
+              el.support.textContent = 'Butuh bantuan? ';
+              el.support.appendChild(a);
+              el.support.hidden = false;
+            }
             if (st && st.mode === 'planned') {
               planned = true;
-              h.textContent = 'Sistem sedang dalam pemeliharaan terjadwal';
-              var back = st.until ? (' Selesai sekitar pukul ' + st.until + '.') : '';
-              lead.textContent = 'Kami sedang memperbarui sistem.' + back +
-                ' Halaman ini akan kembali dengan sendirinya begitu selesai.';
-              enh.textContent = 'Scheduled maintenance.';
-              enp.textContent = 'We are updating the system. This page returns ' +
-                'on its own as soon as it is done. Your data is safe.';
+              until = st.until || '';
+              el.h.textContent = 'Pemeliharaan terjadwal';
+              el.en.textContent = 'Scheduled maintenance. This page returns on its own once it is done.';
             }
-            dur.textContent = elapsedText();
+            render();
           })
-          .catch(function () { dur.textContent = elapsedText(); });
+          .catch(render);
 
-        var left = 25 + Math.floor(Math.random() * 11);   // 25-35s, jittered
+        var left = 25 + Math.floor(Math.random() * 11);
         function tick() {
-          dur.textContent = elapsedText();
+          render();
           if (left > 0) {
-            el.textContent = 'Memeriksa kembali dalam ' + left + ' detik…';
+            el.meta.textContent = 'Halaman ini kembali dengan sendirinya. Memeriksa dalam ' + left + ' detik.';
             left -= 1;
             setTimeout(tick, 1000);
             return;
           }
-          el.textContent = 'Memeriksa…';
-          fetch(window.location.href, {
-            method: 'HEAD', cache: 'no-store', redirect: 'manual'
-          }).then(function (r) {
-            if (r.status !== 503) {
-              try { sessionStorage.removeItem(KEY); } catch (e) {}
-              window.location.reload();
-              return;
-            }
-            left = 25 + Math.floor(Math.random() * 11);
-            setTimeout(tick, 1000);
-          }).catch(function () {
-            left = 25 + Math.floor(Math.random() * 11);
-            setTimeout(tick, 1000);
-          });
+          el.meta.textContent = 'Memeriksa…';
+          fetch(window.location.href, { method: 'HEAD', cache: 'no-store', redirect: 'manual' })
+            .then(function (r) {
+              if (r.status !== 503) {
+                try { sessionStorage.removeItem(KEY); } catch (e) {}
+                window.location.reload();
+                return;
+              }
+              left = 25 + Math.floor(Math.random() * 11);
+              setTimeout(tick, 1000);
+            })
+            .catch(function () { left = 25 + Math.floor(Math.random() * 11); setTimeout(tick, 1000); });
         }
+        render();
         setTimeout(tick, 1000);
       })();
       </script>
