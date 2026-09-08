@@ -32,6 +32,38 @@ while anything is up and answers only where Traefik already answered 404.
 **Deploy one per server, not one per app.** Traefik is per Dokploy server, and a
 catch-all covers every domain on that server — present and future.
 
+## Naming and placement
+
+**One app per Dokploy server**, named to match the existing convention
+(`tpp-infra-alloy`, `tpp-infra-postgres`):
+
+```
+<tenant>-infra-maintenance-<server>
+```
+
+| server | compose name | project / environment |
+|---|---|---|
+| tpp-prod-01 | `tpp-infra-maintenance-prod01` | tpp / production |
+| tpp-prod-02 | `mac-infra-maintenance-prod02` | mac / production |
+| tpp-prod-03 | `tpp-infra-maintenance-prod03` | tpp / production |
+| tpp-prod-04 | `tpp-infra-maintenance-prod04` | tpp / production |
+| tpp-prod-06 | `tpp-infra-maintenance-prod06` | tpp / production |
+| tpp-prod-07 | `tpp-infra-maintenance-prod07` | tpp / production |
+
+The tenant prefix follows the project the app is filed under, not the server —
+tpp-prod-02 hosts the mac instances, so its fallback is filed under `mac`.
+
+🔴 **Pass the PRODUCTION environment id.** The environment is chosen by the
+`environmentId` argument to `compose create`, and it cannot be corrected later:
+`compose move` returns `APIError (400): Input validation failed` both through
+`./dokploy.sh` and through `kctl-dokploy` directly. Getting it wrong means
+deleting and recreating the app. Only `--name` is fixable after the fact, via
+`compose update --name`.
+
+Placement on a server is by `--server <serverId>` and is independent of the
+environment, so a mis-filed app still runs on the right host — the defect is
+cosmetic, but it is not repairable in place.
+
 ## Deploying it
 
 There is no `domain:` for this app and there must never be one; it owns no Host
