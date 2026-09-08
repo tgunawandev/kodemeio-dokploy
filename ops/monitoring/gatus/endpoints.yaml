@@ -1,3 +1,24 @@
+# 🔴 THIS FILE IS NOT WHAT GATUS READS. Measured 2026-09-08.
+#
+# `deploys/instances/production/kod-infra-gatus.yaml` sets
+# `source_overrides: repo: kodemeio-gatus`, so the running Gatus takes its
+# config from the SEPARATE `kodemeio-gatus` repository (last updated
+# 2026-04-02). This file is a documentation copy that nothing applies.
+#
+# `ops/monitoring/scripts/apply-monitoring.sh` would apply it, but the CLI it
+# needs does not exist: `kctl-gatus` is absent from PyPI and from
+# kodemeio-skills/packages/. So the monitoring-as-code loop was never closed.
+#
+# That is why this file drifted to six Odoo hostnames with NO DNS AT ALL,
+# asserting a body of "pass" that a real /web/health never returns, while not
+# one live production instance was monitored. Nothing applied it and nothing
+# checked it. A tpp-odoo-erp production outage on 2026-09-08 was found by a
+# person looking at a browser tab.
+#
+# Fixing monitoring for real means editing `kodemeio-gatus`, or wiring this
+# file to something that applies it. The corrected endpoints below are right,
+# and until one of those happens they change nothing.
+
 # Gatus Endpoint Configuration
 # Kodemeio Platform — All monitored services
 #
