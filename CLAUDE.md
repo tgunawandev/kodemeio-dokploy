@@ -98,8 +98,14 @@ API cannot show:
 a `BackupConfig` with `destination=""`, so the phase runs, fails to resolve the
 empty destination, and records `failed: Destination '' not found` **on every
 deploy**. `BackupConfig` has no `enabled` field at all — pydantic drops the key
-silently. **Only `backup: null` works.** Five instances are currently wrong;
-`./dokploy.sh backup <platform>` names them.
+silently. **Only `backup: null` works — and only for a manifest WITHOUT `extends`.**
+`merge_manifests()` (`core/manifest.py:273`) takes the base's block whenever the
+instance's is None, so under `extends:` a `backup: null` still inherits the
+infra base's postgres dump and fails every deploy with
+`Destination 'kodemeio-s3-backups' not found` (seen on tpp-infra-nextcloud,
+2026-09-09). A compose with no database must drop `extends` and inline the
+three things the base gives it (type, healthcheck, TZ). Five instances are
+currently wrong; `./dokploy.sh backup <platform>` names them.
 
 A missing `backup:` key **inherits the base's block**, which is usually right and
 occasionally very wrong — the infra base targets postgres, so an instance with no

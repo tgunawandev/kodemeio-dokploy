@@ -1,5 +1,12 @@
 kind: instance
-extends: ../../bases/infra.yaml
+# Deliberately NOT `extends: ../../bases/infra.yaml`. merge_manifests() keeps
+# the base's backup block whenever the instance's is None, so `backup: null`
+# still inherits the postgres dump phase and fails on every deploy
+# ("Destination 'kodemeio-s3-backups' not found"). This compose has no
+# database: the `nextcloud` DB lives in tpp-infra-postgres, which carries its
+# own per-database backup entry (25 2 * * *). The three things the base
+# provided (type, healthcheck, TZ) are inlined below.
+type: infrastructure
 
 instance:
   name: tpp-infra-nextcloud
@@ -13,7 +20,7 @@ environment: production
 # DNS record nextcloud.idtpp.com -> 178.104.169.250 (tpp-prod-04 public).
 server: tpp-prod-04
 
-source_overrides:
+source:
   type: github
   owner: tgunawandev
   repo: kodemeio-nextcloud
@@ -31,7 +38,7 @@ domain:
   https: true
   cert: letsencrypt
 
-# First boot installs Nextcloud against S3 + Postgres; give it longer than the
+# First boot installs Nextcloud against S3 + Postgres; allow well over the
 # base's 60s before declaring the deploy dead.
 healthcheck:
   path: /status.php
@@ -42,15 +49,12 @@ healthcheck:
 
 env_file: ../../env/production/.env.tpp-infra-nextcloud
 
+env_defaults:
+  TZ: "Asia/Jakarta"
+
 env_overrides:
   COMPOSE_PROJECT_NAME: tpp-infra-nextcloud
   TZ: Asia/Jakarta
-
-# No database in this compose: the `nextcloud` DB lives in tpp-infra-postgres,
-# which carries its own dump + tpp-pg-backup-verify. Files are in S3 with bucket
-# versioning. `null` is the only value that disables the inherited postgres
-# backup phase (see CLAUDE.md — `{}` and `enabled: false` do NOT).
-backup: null
 
 # Post-deploy manual steps (not handled by pipeline) — see
 # kodemeio-nextcloud/docs/deploy.md:
@@ -58,4 +62,5 @@ backup: null
 #  2. kctl-hz -p idtpp s3 mb tpp-nextcloud (+ versioning, lifecycle 30d)
 #  3. kctl-mailcow -p idtpp mailboxes add nextcloud idtpp.com
 #  4. kodemeio-nextcloud/scripts/setup-authentik.sh → OIDC_CLIENT_ID/SECRET in env
-#  5. On tpp-prod-01: make post-install && make oidc && make health
+#  5. kctl-cf -p idtpp records create A nextcloud → tpp-prod-04 (preflight needs it)
+#  6. On tpp-prod-04: make post-install && make oidc && make health
