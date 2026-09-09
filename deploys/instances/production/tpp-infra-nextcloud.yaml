@@ -7,9 +7,11 @@ instance:
 
 project: tpp
 environment: production
-# tpp-infra-* stack host: shares the box with tpp-infra-postgres (10.0.0.2),
-# redis, authentik, mailcow, outline — same placement as outline.
-server: tpp-prod-01
+# tpp-prod-04 (cpx42, 15G): 1G used / 10 containers on 2026-09-09 versus
+# tpp-prod-01 at 17/22G with 62 containers. Private-network reach from
+# 10.0.0.6 to tpp-infra-postgres at 10.0.0.2:5432 verified before choosing.
+# DNS record nextcloud.idtpp.com -> 178.104.169.250 (tpp-prod-04 public).
+server: tpp-prod-04
 
 source_overrides:
   type: github
