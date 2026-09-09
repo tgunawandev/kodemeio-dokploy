@@ -1,0 +1,59 @@
+kind: instance
+extends: ../../bases/infra.yaml
+
+instance:
+  name: tpp-infra-nextcloud
+  description: "TPP Nextcloud — cloud storage on Hetzner S3 (tpp-nextcloud) with Authentik SSO"
+
+project: tpp
+environment: production
+# tpp-infra-* stack host: shares the box with tpp-infra-postgres (10.0.0.2),
+# redis, authentik, mailcow, outline — same placement as outline.
+server: tpp-prod-01
+
+source_overrides:
+  type: github
+  owner: tgunawandev
+  repo: kodemeio-nextcloud
+  branch: main
+  compose_path: ./docker-compose.prod.yml
+
+dns:
+  zone: idtpp.com
+  name: nextcloud
+
+domain:
+  host: nextcloud.idtpp.com
+  port: 80
+  service: nextcloud
+  https: true
+  cert: letsencrypt
+
+# First boot installs Nextcloud against S3 + Postgres; give it longer than the
+# base's 60s before declaring the deploy dead.
+healthcheck:
+  path: /status.php
+  port: 80
+  expected_status: 200
+  timeout: 300
+  interval: 10
+
+env_file: ../../env/production/.env.tpp-infra-nextcloud
+
+env_overrides:
+  COMPOSE_PROJECT_NAME: tpp-infra-nextcloud
+  TZ: Asia/Jakarta
+
+# No database in this compose: the `nextcloud` DB lives in tpp-infra-postgres,
+# which carries its own dump + tpp-pg-backup-verify. Files are in S3 with bucket
+# versioning. `null` is the only value that disables the inherited postgres
+# backup phase (see CLAUDE.md — `{}` and `enabled: false` do NOT).
+backup: null
+
+# Post-deploy manual steps (not handled by pipeline) — see
+# kodemeio-nextcloud/docs/deploy.md:
+#  1. kctl-pg -p idtpp: role + db `nextcloud` on tpp-infra-postgres
+#  2. kctl-hz -p idtpp s3 mb tpp-nextcloud (+ versioning, lifecycle 30d)
+#  3. kctl-mailcow -p idtpp mailboxes add nextcloud idtpp.com
+#  4. kodemeio-nextcloud/scripts/setup-authentik.sh → OIDC_CLIENT_ID/SECRET in env
+#  5. On tpp-prod-01: make post-install && make oidc && make health
