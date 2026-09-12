@@ -125,7 +125,7 @@ configs:
           location = /maintenance-state.json {
               access_log off;
               default_type application/json;
-              return 200 '{"mode":"unknown","expected_minutes":7}';
+              return 200 '{"mode":"unknown","expected_minutes":5}';
           }
 
           location = /maintenance.html {
@@ -328,7 +328,7 @@ configs:
           if (!since) { since = Date.now(); sessionStorage.setItem(KEY, String(since)); }
         } catch (e) { since = Date.now(); }
 
-        var expected = 7, planned = false, until = '';
+        var expected = 5, planned = false, until = '';
 
         function render() {
           var secs = Math.floor((Date.now() - since) / 1000);
