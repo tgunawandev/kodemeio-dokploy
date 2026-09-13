@@ -28,6 +28,9 @@ moves:
     from: [tpp-odoo-erp-stg.idtpp.com]
     authentik: {provider: 22, app: tpp-odoo-erp-stg}
     odoo_profile: idtpp-tpp-odoo-erp-stg
+    dependents:
+      # JARVIS's staging MCP server (hermes-init renders config.yaml mcp_servers from this env).
+      - {compose: tpp-infra-hermes-jarvis, key: HERMES_MCP_ODOO_STG_URL, value: "https://{to}/mcp"}
     stage: dual
   - instance: mac-odoo-erp-stg
     project: mac
@@ -57,6 +60,9 @@ moves:
     aliases: [tpp-desk.idtpp.com]
     authentik: {provider: 38, app: tpp-odoo-helpdesk}
     odoo_profile: idtpp-tpp-odoo-helpdesk
+    dependents:
+      # JARVIS (FRIDAY helpdesk persona) calls the helpdesk MCP server-side; found by the env scan.
+      - {compose: tpp-infra-hermes-jarvis, key: HERMES_MCP_ODOO_HELPDESK_URL, value: "https://{to}/mcp"}
     stage: dual
   - instance: tpp25-odoo-erp
     project: tpp25
@@ -65,7 +71,7 @@ moves:
     from: [tpp25-odoo-erp.idtpp.com]
     authentik: {provider: 33, app: tpp25-odoo-erp}
     odoo_profile: idtpp-tpp25-odoo-erp
-    stage: dual
+    stage: redirect
   - instance: mac-odoo-hrms
     project: mac
     server: tpp-prod-02
