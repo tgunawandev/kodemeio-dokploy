@@ -21,6 +21,8 @@ DEPLOY_DIR = Path(__file__).parent
 TENANTS_DIR = DEPLOY_DIR / "tenants"
 INSTANCES_DIR = DEPLOY_DIR / "instances"
 ENV_DIR = DEPLOY_DIR / "env"
+DOMAINS_DIR = DEPLOY_DIR / "domains"
+_MOVED_STAGES = frozenset({"dual", "redirect", "permanent", "cleaned"})
 
 HEADER = "# GENERATED FROM tenants/{code}.yaml — DO NOT EDIT\n"
 
@@ -127,6 +129,55 @@ def load_tenant(path: Path) -> dict:
         return yaml.safe_load(f)
 
 
+def load_domain_moves(directory: Path = DOMAINS_DIR) -> dict[tuple[str, str], dict]:
+    """(instance, environment) -> move, from the `kctl-dokploy domains move` files."""
+    moves: dict[tuple[str, str], dict] = {}
+    if not directory.is_dir():
+        return moves
+    for path in sorted(directory.glob("*.yaml")):
+        for move in (yaml.safe_load(path.read_text()) or {}).get("moves") or []:
+            moves[(move["instance"], move.get("environment", "production"))] = move
+    return moves
+
+
+DOMAIN_MOVES = load_domain_moves()
+
+
+def moved_hosts(instance: str, env_name: str, moves: dict | None = None) -> tuple[str | None, str | None]:
+    """(served host, legacy host) for an instance whose move is live, else (None, None).
+
+    A move becomes live at `dual`; the legacy host is kept as DOMAIN_LEGACY
+    until `cleaned`, and never for a `redirect: false` hand-over.
+    """
+    move = (DOMAIN_MOVES if moves is None else moves).get((instance, env_name))
+    if not move or move.get("stage", "planned") not in _MOVED_STAGES:
+        return None, None
+    legacy = None if move["stage"] == "cleaned" or move.get("redirect", True) is False else move["from"][0]
+    return move["to"], legacy
+
+
+def odoo_public_host(tenant: dict, odoo_entry: dict, env_name: str, dns_suffix: str) -> str:
+    """Hostname an Odoo entry is served on: a live move, else `host:` (production only), else the convention."""
+    code, short, domain = tenant["code"], odoo_entry["short"], tenant["domain"]
+    moved, _ = moved_hosts(f"{code}-odoo-{short}{dns_suffix}", env_name)
+    if moved:
+        return moved
+    # `host:` is production-only on purpose: a staging twin of a bare subdomain
+    # would render the SAME host and collide on the Traefik router.
+    if odoo_entry.get("host") and not dns_suffix:
+        return odoo_entry["host"]
+    return f"{code}-odoo-{short}{dns_suffix}.{domain}"
+
+
+def odoo_legacy_host(tenant: dict, odoo_entry: dict, env_name: str, dns_suffix: str) -> str | None:
+    return moved_hosts(f"{tenant['code']}-odoo-{odoo_entry['short']}{dns_suffix}", env_name)[1]
+
+
+def react_public_host(tenant: dict, app: str, env_name: str, dns_suffix: str) -> str:
+    moved, _ = moved_hosts(f"{tenant['code']}-react-{app}{dns_suffix}", env_name)
+    return moved or f"{tenant['code']}-{app}{dns_suffix}.{tenant['domain']}"
+
+
 # ---------------------------------------------------------------------------
 # Instance generators
 # ---------------------------------------------------------------------------
@@ -148,13 +199,13 @@ def gen_react_pwa(
     code = tenant["code"]
     display = tenant.get("short_name", tenant["name"])
     domain = tenant["domain"]
-    short = odoo_entry["short"]
     app_upper = app.upper().replace("-", "_")
 
     # The unified `erp` PWA (@kodemeio/erp) calls /api/v1/base/modules and
     # /api/v1/{module}/... directly at the Odoo root, so its base URL is the
     # host without a path prefix. Per-app legacy PWAs embed /{app}/api.
-    odoo_host = f"{code}-odoo-{short}{dns_suffix}.{domain}"
+    odoo_host = odoo_public_host(tenant, odoo_entry, env_name, dns_suffix)
+    host = react_public_host(tenant, app, env_name, dns_suffix)
     api_base_url = f"https://{odoo_host}" if app == "erp" else f"https://{odoo_host}/{app}/api"
 
     yaml_filename = f"{code}-react-{app}.yaml"
@@ -179,10 +230,10 @@ def gen_react_pwa(
             },
             "dns": {
                 "zone": domain,
-                "name": f"{code}-{app}{dns_suffix}",
+                "name": host.removesuffix(f".{domain}"),
             },
             "domain": {
-                "host": f"{code}-{app}{dns_suffix}.{domain}",
+                "host": host,
                 "port": 80,
                 "service": app,
                 "https": True,
@@ -195,7 +246,6 @@ def gen_react_pwa(
         }
     )
 
-    host = f"{code}-{app}{dns_suffix}.{domain}"
     slug = f"{code}-react-{app}"
     env_content = (
         f"VITE_{app_upper}_APP_NAME={display} {app_upper}\n"
@@ -234,22 +284,11 @@ def gen_odoo(
     workers = odoo_entry.get("workers", 4)
     db_name = f"{code}_odoo_{short}{db_suffix}"
 
-    # An odoo entry may claim a bare subdomain with `host:` (e.g.
-    # helpdesk.idtpp.com). Only the PUBLIC name moves — instance name,
-    # database, env filename, backup prefix and COMPOSE_PROJECT_NAME all keep
-    # the {code}-odoo-{short} convention, so every tool that resolves an
-    # instance by name keeps working.
-    #
-    # Deliberately ignored for suffixed environments: a staging twin of a bare
-    # subdomain would otherwise render the SAME host as production and quietly
-    # collide on the Traefik router.
-    host_override = odoo_entry.get("host")
-    if host_override and not dns_suffix:
-        host = host_override
-        dns_name = host_override.removesuffix(f".{domain}")
-    else:
-        dns_name = f"{code}-odoo-{short}{dns_suffix}"
-        host = f"{code}-odoo-{short}{dns_suffix}.{domain}"
+    # Public name per environment (see odoo_public_host); DOMAIN_LEGACY keeps the
+    # old name served beside it while a domain move is in progress.
+    host = odoo_public_host(tenant, odoo_entry, env_name, dns_suffix)
+    dns_name = host.removesuffix(f".{domain}")
+    legacy_host = odoo_legacy_host(tenant, odoo_entry, env_name, dns_suffix)
 
     yaml_filename = f"{code}-odoo-{short}.yaml"
     env_example_filename = f".env.{code}-odoo-{short}.example"
@@ -291,6 +330,7 @@ def gen_odoo(
                 "PGUSER": "odoo",
                 "ODOO_DB_FILTER": f"^{db_name}$",
                 "DOMAIN": host,
+                **({"DOMAIN_LEGACY": legacy_host} if legacy_host else {}),
                 "ODOO_WORKERS": str(workers),
                 # 🔴 Staging runs ZERO cron threads.
                 #
@@ -330,8 +370,7 @@ def gen_odoo(
         f"# PROJECT IDENTIFICATION\n"
         f"COMPOSE_PROJECT_NAME={code}-odoo-{short}\n"
         f"TENANT={code}\n"
-        f"DOMAIN={host}\n"
-        f"\n"
+        f"DOMAIN={host}\n" + (f"DOMAIN_LEGACY={legacy_host}\n" if legacy_host else "") + f"\n"
         f"# DATABASE\n"
         f"PGHOST=10.0.0.3\n"
         f"PGPORT=5432\n"
@@ -464,6 +503,7 @@ def gen_nextjs_careers(
     domain = tenant["domain"]
     dns_name = f"{code}-careers{dns_suffix}"
     host = f"{code}-careers{dns_suffix}.{domain}"
+    hrms_host = odoo_public_host(tenant, {"short": "hrms"}, env_name, dns_suffix)
 
     yaml_filename = f"{code}-nextjs-careers.yaml"
     env_filename = f".env.{code}-nextjs-careers"
@@ -502,9 +542,9 @@ def gen_nextjs_careers(
                 "NEXT_PUBLIC_SITE_URL": f"https://{host}",
                 "NEXT_PUBLIC_SITE_NAME": name,
                 "NEXT_PUBLIC_COMPANY_WEBSITE": f"https://{domain}",
-                "NEXT_PUBLIC_API_URL": f"https://{code}-odoo-hrms{dns_suffix}.{domain}",
-                "NEXT_PUBLIC_RECRUITMENT_API_URL": f"https://{code}-odoo-hrms{dns_suffix}.{domain}/recruitment/api",
-                "API_URL": f"https://{code}-odoo-hrms{dns_suffix}.{domain}",
+                "NEXT_PUBLIC_API_URL": f"https://{hrms_host}",
+                "NEXT_PUBLIC_RECRUITMENT_API_URL": f"https://{hrms_host}/recruitment/api",
+                "API_URL": f"https://{hrms_host}",
             },
         }
     )
@@ -514,9 +554,9 @@ def gen_nextjs_careers(
         f"NEXT_PUBLIC_SITE_URL=https://{host}\n"
         f"NEXT_PUBLIC_SITE_NAME={name}\n"
         f"NEXT_PUBLIC_COMPANY_WEBSITE=https://{domain}\n"
-        f"NEXT_PUBLIC_API_URL=https://{code}-odoo-hrms{dns_suffix}.{domain}\n"
-        f"NEXT_PUBLIC_RECRUITMENT_API_URL=https://{code}-odoo-hrms{dns_suffix}.{domain}/recruitment/api\n"
-        f"API_URL=https://{code}-odoo-hrms{dns_suffix}.{domain}\n"
+        f"NEXT_PUBLIC_API_URL=https://{hrms_host}\n"
+        f"NEXT_PUBLIC_RECRUITMENT_API_URL=https://{hrms_host}/recruitment/api\n"
+        f"API_URL=https://{hrms_host}\n"
         f"TZ=Asia/Jakarta\n"
     )
 
@@ -561,10 +601,9 @@ def gen_accurate_sync(
     """
     code = tenant["code"]
     display = tenant.get("short_name", tenant["name"])
-    domain = tenant["domain"]
     short = odoo_entry["short"]
     db_name = f"{code}_odoo_{short}{db_suffix}"
-    odoo_host = f"{code}-odoo-{short}{dns_suffix}.{domain}"
+    odoo_host = odoo_public_host(tenant, odoo_entry, env_name, dns_suffix)
     accurate_tenants = ",".join(accurate_cfg.get("tenants", [code]))
     image_tag = accurate_cfg.get("image_tag", "latest")
 
@@ -1145,10 +1184,7 @@ def gen_hermes(
             "# 26-character Mattermost user IDs, comma-separated. NOT @usernames:",
             "# a username here matches nobody and silently locks the bot out.",
             "# Read one off: System Console > Users, or `kctl-mm users get <name>`.",
-            (
-                "MATTERMOST_ALLOWED_USERS="
-                + (",".join(mm_block.get("allowed_users") or []) or "CHANGE_ME")
-            ),
+            ("MATTERMOST_ALLOWED_USERS=" + (",".join(mm_block.get("allowed_users") or []) or "CHANGE_ME")),
             "",
         ]
 
@@ -1234,6 +1270,8 @@ def generate_tenant(tenant_path: Path) -> list[tuple[Path, str]]:
 
         # --- React PWAs + Odoo instances ---
         for odoo_entry in raw.get("odoo", []):
+            if env_name not in odoo_entry.get("environments", [env_name]):
+                continue
             # Odoo instance
             y_name, y_content, e_name, e_content = gen_odoo(t, odoo_entry, env_name, server, dns_suffix, db_suffix)
             files.append((inst_dir / y_name, header + y_content))
