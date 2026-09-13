@@ -26,8 +26,9 @@ moves:
     project: tpp
     environment: staging
     server: tpp-prod-07
-    to: tpp-erp-stg.idtpp.com
+    to: erp-stg.idtpp.com
     from: [tpp-odoo-erp-stg.idtpp.com]
+    aliases: [tpp-erp-stg.idtpp.com]
     authentik: {provider: 22, app: tpp-odoo-erp-stg}
     odoo_profile: idtpp-tpp-odoo-erp-stg
     dependents:
