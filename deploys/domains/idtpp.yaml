@@ -63,7 +63,7 @@ moves:
     dependents:
       # JARVIS (FRIDAY helpdesk persona) calls the helpdesk MCP server-side; found by the env scan.
       - {compose: tpp-infra-hermes-jarvis, key: HERMES_MCP_ODOO_HELPDESK_URL, value: "https://{to}/mcp"}
-    stage: dual
+    stage: redirect
   - instance: tpp25-odoo-erp
     project: tpp25
     server: tpp-prod-07
