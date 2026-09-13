@@ -20,4 +20,4 @@ domain:
 env_file: ../../env/production/.env.mac-react-hrm
 env_overrides:
   VITE_HRM_APP_NAME: MAC HRM
-  VITE_HRM_API_BASE_URL: https://mac-odoo-hrms.idtpp.com/hrm/api
+  VITE_HRM_API_BASE_URL: https://mac-hrms.idtpp.com/hrm/api

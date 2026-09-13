@@ -172,7 +172,7 @@ ssh -i ~/.ssh/id_rsa_kodeme root@$PUBLIC_IP \
 curl -fsSI https://dokploy.idtpp.com | head -3
 
 # tpp-prod-03 — TPP Odoo ERP
-curl -fsS https://tpp-odoo-erp.idtpp.com/web/health
+curl -fsS https://erp.idtpp.com/web/health
 
 # tpp-prod-04 — Mattermost
 curl -fsS https://mm.idtpp.com/api/v4/system/ping

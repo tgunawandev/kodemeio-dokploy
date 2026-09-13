@@ -20,4 +20,4 @@ domain:
 env_file: ../../env/production/.env.tpp-react-wms
 env_overrides:
   VITE_WMS_APP_NAME: Pakerti WMS
-  VITE_WMS_API_BASE_URL: https://tpp-odoo-erp.idtpp.com/wms/api
+  VITE_WMS_API_BASE_URL: https://erp.idtpp.com/wms/api

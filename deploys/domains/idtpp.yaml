@@ -8,6 +8,8 @@
 # Stages: planned -> dual -> redirect -> permanent -> cleaned. Never delete a move:
 # its old hostnames keep redirecting from the rendered Traefik file.
 #
+# React apps are being archived (user 2026-09-13): no React moves; their env only follows the Odoo URLs.
+#
 # Skipped until a kctl-odoo profile exists (user decision 2026-09-13):
 #   tpp-odoo-hrms      tpp-odoo-hrms.idtpp.com      -> hrms.idtpp.com (+ tpp-hrms alias)
 #   tpp-odoo-hrms-stg  tpp-odoo-hrms-stg.idtpp.com  -> tpp-hrms-stg.idtpp.com
@@ -31,7 +33,7 @@ moves:
     dependents:
       # JARVIS's staging MCP server (hermes-init renders config.yaml mcp_servers from this env).
       - {compose: tpp-infra-hermes-jarvis, key: HERMES_MCP_ODOO_STG_URL, value: "https://{to}/mcp"}
-    stage: dual
+    stage: redirect
   - instance: mac-odoo-erp-stg
     project: mac
     environment: staging
@@ -81,19 +83,7 @@ moves:
     odoo_profile: idtpp-mac-odoo-hrms
     dependents:
       - {compose: mac-react-hrm, key: VITE_HRM_API_BASE_URL, value: "https://{to}/hrm/api"}
-    stage: planned
-  # The MAC React ERP app hands mac-erp.idtpp.com over to MAC Odoo (no redirect).
-  - instance: mac-react-erp
-    kind: app
-    project: mac
-    server: tpp-prod-02
-    to: mmac.idtpp.com
-    from: [mac-erp.idtpp.com]
-    redirect: false
-    authentik: {provider: 8}
-    env:
-      VITE_ERP_OIDC_REDIRECT_URI: "https://{to}/auth/callback"
-    stage: planned
+    stage: redirect
   - instance: mac-odoo-erp
     project: mac
     server: tpp-prod-02
@@ -104,9 +94,8 @@ moves:
     odoo_profile: idtpp-mac-odoo-erp
     dependents:
       - {compose: mac-react-erp, key: VITE_ERP_API_BASE_URL, value: "https://{to}"}
-    prechecks: [odoo-pos-closed]
-    requires: [mac-react-erp@cleaned]
-    stage: planned
+    # POS gate waived by the user 2026-09-13 (Sunday, no sales; 6 sessions left open).
+    stage: redirect
   - instance: tpp-odoo-erp
     project: tpp
     server: tpp-prod-03
@@ -117,4 +106,6 @@ moves:
     odoo_profile: idtpp-tpp-odoo-erp
     dependents:
       - {compose: tpp-accurate-sync, key: ODOO_URL, value: "https://{to}"}
-    stage: planned
+      - {compose: tpp-infra-hermes-jarvis, key: HERMES_MCP_ODOO_TPP_URL, value: "https://{to}/mcp"}
+      - {compose: tpp-infra-hermes-04, key: ODOO_URL, value: "https://{to}"}
+    stage: redirect

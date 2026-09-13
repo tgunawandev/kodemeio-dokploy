@@ -20,4 +20,4 @@ domain:
 env_file: ../../env/production/.env.mac-react-erp
 env_overrides:
   VITE_ERP_APP_NAME: MAC ERP
-  VITE_ERP_API_BASE_URL: https://mac-odoo-erp.idtpp.com
+  VITE_ERP_API_BASE_URL: https://mac-erp.idtpp.com

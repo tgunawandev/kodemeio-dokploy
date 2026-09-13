@@ -43,7 +43,7 @@ endpoints:
 
   - name: "Odoo TPP ERP (production)"
     group: "odoo"
-    url: "https://tpp-odoo-erp.idtpp.com/web/health"
+    url: "https://erp.idtpp.com/web/health"
     interval: 60s
     conditions:
       - "[STATUS] == 200"
@@ -99,7 +99,7 @@ endpoints:
 
   - name: "Odoo MAC ERP (production)"
     group: "odoo"
-    url: "https://mac-odoo-erp.idtpp.com/web/health"
+    url: "https://mac-erp.idtpp.com/web/health"
     interval: 60s
     conditions:
       - "[STATUS] == 200"
@@ -113,7 +113,7 @@ endpoints:
 
   - name: "Odoo MAC HRMS (production)"
     group: "odoo"
-    url: "https://mac-odoo-hrms.idtpp.com/web/health"
+    url: "https://mac-hrms.idtpp.com/web/health"
     interval: 60s
     conditions:
       - "[STATUS] == 200"

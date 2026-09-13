@@ -9,9 +9,9 @@ environment: production
 server: tpp-prod-02
 dns:
   zone: idtpp.com
-  name: mac-odoo-erp
+  name: mac-erp
 domain:
-  host: mac-odoo-erp.idtpp.com
+  host: mac-erp.idtpp.com
   port: 8069
   service: odoo-web
   https: true
@@ -26,7 +26,8 @@ env_overrides:
   PGDATABASE: mac_odoo_erp
   PGUSER: odoo
   ODOO_DB_FILTER: ^mac_odoo_erp$
-  DOMAIN: mac-odoo-erp.idtpp.com
+  DOMAIN: mac-erp.idtpp.com
+  DOMAIN_LEGACY: mac-odoo-erp.idtpp.com
   ODOO_WORKERS: '2'
 post_deploy:
   odoo_profile: profile-erp
