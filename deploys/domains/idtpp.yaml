@@ -1,0 +1,114 @@
+# Public-hostname moves on idtpp, executed by `kctl-dokploy domains move`.
+# Spec: kodemeio-docs/superpowers/specs/2026-09-13-idtpp-odoo-domain-rename-design.md
+#
+# Advance ONE move's `stage:` per commit, then:
+#   kctl-dokploy -p idtpp domains move plan  -f deploys/domains/idtpp.yaml -i <instance>
+#   kctl-dokploy -p idtpp domains move apply -f deploys/domains/idtpp.yaml -i <instance>
+#   kctl-dokploy -p idtpp domains move check -f deploys/domains/idtpp.yaml -i <instance>
+# Stages: planned -> dual -> redirect -> permanent -> cleaned. Never delete a move:
+# its old hostnames keep redirecting from the rendered Traefik file.
+#
+# Skipped until a kctl-odoo profile exists (user decision 2026-09-13):
+#   tpp-odoo-hrms      tpp-odoo-hrms.idtpp.com      -> hrms.idtpp.com (+ tpp-hrms alias)
+#   tpp-odoo-hrms-stg  tpp-odoo-hrms-stg.idtpp.com  -> tpp-hrms-stg.idtpp.com
+#   tpp25-odoo-erp-stg tpp25-odoo-erp-stg.idtpp.com -> tpp25-erp-stg.idtpp.com
+zone: idtpp.com
+profiles: {cloudflare: idtpp, authentik: idtpp}
+servers:
+  tpp-prod-02: {canaries: [mac-hrm.idtpp.com]}
+  tpp-prod-03: {canaries: [mtpp.idtpp.com]}
+  tpp-prod-07: {canaries: [mtpp-stg.idtpp.com]}
+moves:
+  # ---- staging (tpp-prod-07) -------------------------------------------------
+  - instance: tpp-odoo-erp-stg
+    project: tpp
+    environment: staging
+    server: tpp-prod-07
+    to: tpp-erp-stg.idtpp.com
+    from: [tpp-odoo-erp-stg.idtpp.com]
+    authentik: {provider: 22, app: tpp-odoo-erp-stg}
+    odoo_profile: idtpp-tpp-odoo-erp-stg
+    stage: planned
+  - instance: mac-odoo-erp-stg
+    project: mac
+    environment: staging
+    server: tpp-prod-07
+    to: mac-erp-stg.idtpp.com
+    from: [mac-odoo-erp-stg.idtpp.com]
+    authentik: {provider: 24, app: mac-odoo-erp-stg}
+    odoo_profile: idtpp-mac-odoo-erp-stg
+    stage: planned
+  - instance: mac-odoo-hrms-stg
+    project: mac
+    environment: staging
+    server: tpp-prod-07
+    to: mac-hrms-stg.idtpp.com
+    from: [mac-odoo-hrms-stg.idtpp.com]
+    authentik: {provider: 25, app: mac-odoo-hrms-stg}
+    odoo_profile: idtpp-mac-odoo-hrms-stg
+    stage: planned
+
+  # ---- production -------------------------------------------------------------
+  - instance: tpp-odoo-helpdesk
+    project: tpp
+    server: tpp-prod-03
+    to: desk.idtpp.com
+    from: [helpdesk.idtpp.com]
+    aliases: [tpp-desk.idtpp.com]
+    authentik: {provider: 38, app: tpp-odoo-helpdesk}
+    odoo_profile: idtpp-tpp-odoo-helpdesk
+    stage: planned
+  - instance: tpp25-odoo-erp
+    project: tpp25
+    server: tpp-prod-07
+    to: tpp25-erp.idtpp.com
+    from: [tpp25-odoo-erp.idtpp.com]
+    authentik: {provider: 33, app: tpp25-odoo-erp}
+    odoo_profile: idtpp-tpp25-odoo-erp
+    stage: planned
+  - instance: mac-odoo-hrms
+    project: mac
+    server: tpp-prod-02
+    to: mac-hrms.idtpp.com
+    from: [mac-odoo-hrms.idtpp.com]
+    authentik: {provider: 7, app: mac-odoo-hrms}
+    odoo_profile: idtpp-mac-odoo-hrms
+    dependents:
+      - {compose: mac-react-hrm, key: VITE_HRM_API_BASE_URL, value: "https://{to}/hrm/api"}
+    stage: planned
+  # The MAC React ERP app hands mac-erp.idtpp.com over to MAC Odoo (no redirect).
+  - instance: mac-react-erp
+    kind: app
+    project: mac
+    server: tpp-prod-02
+    to: mmac.idtpp.com
+    from: [mac-erp.idtpp.com]
+    redirect: false
+    authentik: {provider: 8}
+    env:
+      VITE_ERP_OIDC_REDIRECT_URI: "https://{to}/auth/callback"
+    stage: planned
+  - instance: mac-odoo-erp
+    project: mac
+    server: tpp-prod-02
+    to: mac-erp.idtpp.com
+    from: [mac-odoo-erp.idtpp.com]
+    proxied: true
+    authentik: {provider: 6, app: mac-odoo-erp}
+    odoo_profile: idtpp-mac-odoo-erp
+    dependents:
+      - {compose: mac-react-erp, key: VITE_ERP_API_BASE_URL, value: "https://{to}"}
+    prechecks: [odoo-pos-closed]
+    requires: [mac-react-erp@cleaned]
+    stage: planned
+  - instance: tpp-odoo-erp
+    project: tpp
+    server: tpp-prod-03
+    to: erp.idtpp.com
+    from: [tpp-odoo-erp.idtpp.com]
+    aliases: [tpp-erp.idtpp.com]
+    authentik: {provider: 11, app: tpp-odoo-erp}
+    odoo_profile: idtpp-tpp-odoo-erp
+    dependents:
+      - {compose: tpp-accurate-sync, key: ODOO_URL, value: "https://{to}"}
+    stage: planned

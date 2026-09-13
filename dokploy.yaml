@@ -66,6 +66,7 @@ guards:
     backups: [create, delete, restore, rollback, update]
     deployments: [cancel, delete, kill, redeploy]
     domains: [create, delete, update]
+    domains.move: [apply]
     env: [delete, push, set]
     mounts: [create, delete, update]
     patches: [create, delete, mark-delete, toggle, update]
@@ -96,6 +97,8 @@ guards:
     _: [update]
   template:
     _: [apply, delete]
+  traefik:
+    file: [put]
   users:
     _: [create, delete, update]
 
