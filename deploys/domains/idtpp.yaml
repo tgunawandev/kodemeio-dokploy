@@ -37,7 +37,7 @@ moves:
     from: [mac-odoo-erp-stg.idtpp.com]
     authentik: {provider: 24, app: mac-odoo-erp-stg}
     odoo_profile: idtpp-mac-odoo-erp-stg
-    stage: dual
+    stage: redirect
   - instance: mac-odoo-hrms-stg
     project: mac
     environment: staging
