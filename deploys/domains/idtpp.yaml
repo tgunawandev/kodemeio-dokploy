@@ -46,7 +46,7 @@ moves:
     from: [mac-odoo-hrms-stg.idtpp.com]
     authentik: {provider: 25, app: mac-odoo-hrms-stg}
     odoo_profile: idtpp-mac-odoo-hrms-stg
-    stage: dual
+    stage: redirect
 
   # ---- production -------------------------------------------------------------
   - instance: tpp-odoo-helpdesk
