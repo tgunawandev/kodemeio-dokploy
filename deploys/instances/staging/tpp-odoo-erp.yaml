@@ -10,9 +10,9 @@ environment: staging
 server: tpp-prod-07
 dns:
   zone: idtpp.com
-  name: tpp-odoo-erp-stg
+  name: tpp-erp-stg
 domain:
-  host: tpp-odoo-erp-stg.idtpp.com
+  host: tpp-erp-stg.idtpp.com
   port: 8069
   service: odoo-web
   https: true
@@ -27,7 +27,8 @@ env_overrides:
   PGDATABASE: tpp_odoo_erp_stg
   PGUSER: odoo
   ODOO_DB_FILTER: ^tpp_odoo_erp_stg$
-  DOMAIN: tpp-odoo-erp-stg.idtpp.com
+  DOMAIN: tpp-erp-stg.idtpp.com
+  DOMAIN_LEGACY: tpp-odoo-erp-stg.idtpp.com
   ODOO_WORKERS: '4'
   ODOO_MAX_CRON_THREADS: '0'
 post_deploy:

@@ -28,7 +28,7 @@ moves:
     from: [tpp-odoo-erp-stg.idtpp.com]
     authentik: {provider: 22, app: tpp-odoo-erp-stg}
     odoo_profile: idtpp-tpp-odoo-erp-stg
-    stage: planned
+    stage: dual
   - instance: mac-odoo-erp-stg
     project: mac
     environment: staging

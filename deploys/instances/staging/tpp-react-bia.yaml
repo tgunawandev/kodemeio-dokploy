@@ -20,4 +20,4 @@ domain:
 env_file: ../../env/staging/.env.tpp-react-bia
 env_overrides:
   VITE_BIA_APP_NAME: Pakerti BIA
-  VITE_BIA_API_BASE_URL: https://tpp-odoo-erp-stg.idtpp.com/bia/api
+  VITE_BIA_API_BASE_URL: https://tpp-erp-stg.idtpp.com/bia/api

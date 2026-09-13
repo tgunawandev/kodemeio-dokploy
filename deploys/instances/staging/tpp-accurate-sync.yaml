@@ -12,7 +12,7 @@ env_overrides:
   TENANT: tpp
   PGDATABASE: tpp_odoo_erp_stg
   PGUSER: odoo
-  ODOO_URL: https://tpp-odoo-erp-stg.idtpp.com
+  ODOO_URL: https://tpp-erp-stg.idtpp.com
   ODOO_DB_FILTER: ^tpp_odoo_erp_stg$
   ACCURATE_TENANTS: tpp
   IMAGE_TAG: latest
