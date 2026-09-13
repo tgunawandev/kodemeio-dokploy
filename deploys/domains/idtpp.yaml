@@ -57,7 +57,7 @@ moves:
     aliases: [tpp-desk.idtpp.com]
     authentik: {provider: 38, app: tpp-odoo-helpdesk}
     odoo_profile: idtpp-tpp-odoo-helpdesk
-    stage: planned
+    stage: dual
   - instance: tpp25-odoo-erp
     project: tpp25
     server: tpp-prod-07
@@ -65,7 +65,7 @@ moves:
     from: [tpp25-odoo-erp.idtpp.com]
     authentik: {provider: 33, app: tpp25-odoo-erp}
     odoo_profile: idtpp-tpp25-odoo-erp
-    stage: planned
+    stage: dual
   - instance: mac-odoo-hrms
     project: mac
     server: tpp-prod-02

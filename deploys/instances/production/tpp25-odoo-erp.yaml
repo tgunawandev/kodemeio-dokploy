@@ -10,9 +10,9 @@ environment: production
 server: tpp-prod-07
 dns:
   zone: idtpp.com
-  name: tpp25-odoo-erp
+  name: tpp25-erp
 domain:
-  host: tpp25-odoo-erp.idtpp.com
+  host: tpp25-erp.idtpp.com
   port: 8069
   service: odoo-web
   https: true
@@ -27,7 +27,8 @@ env_overrides:
   PGDATABASE: tpp25_odoo_erp
   PGUSER: odoo
   ODOO_DB_FILTER: ^tpp25_odoo_erp$
-  DOMAIN: tpp25-odoo-erp.idtpp.com
+  DOMAIN: tpp25-erp.idtpp.com
+  DOMAIN_LEGACY: tpp25-odoo-erp.idtpp.com
   ODOO_WORKERS: '4'
 post_deploy:
   odoo_profile: profile-erp

@@ -9,9 +9,9 @@ environment: production
 server: tpp-prod-03
 dns:
   zone: idtpp.com
-  name: helpdesk
+  name: desk
 domain:
-  host: helpdesk.idtpp.com
+  host: desk.idtpp.com
   port: 8069
   service: odoo-web
   https: true
@@ -26,7 +26,8 @@ env_overrides:
   PGDATABASE: tpp_odoo_helpdesk
   PGUSER: odoo
   ODOO_DB_FILTER: ^tpp_odoo_helpdesk$
-  DOMAIN: helpdesk.idtpp.com
+  DOMAIN: desk.idtpp.com
+  DOMAIN_LEGACY: helpdesk.idtpp.com
   ODOO_WORKERS: '2'
 post_deploy:
   odoo_profile: profile-helpdesk
