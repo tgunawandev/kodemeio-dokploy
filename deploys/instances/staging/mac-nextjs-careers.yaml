@@ -23,6 +23,6 @@ env_overrides:
   NEXT_PUBLIC_SITE_URL: https://mac-careers-stg.idtpp.com
   NEXT_PUBLIC_SITE_NAME: Mandiri Agro
   NEXT_PUBLIC_COMPANY_WEBSITE: https://idtpp.com
-  NEXT_PUBLIC_API_URL: https://mac-odoo-hrms-stg.idtpp.com
-  NEXT_PUBLIC_RECRUITMENT_API_URL: https://mac-odoo-hrms-stg.idtpp.com/recruitment/api
-  API_URL: https://mac-odoo-hrms-stg.idtpp.com
+  NEXT_PUBLIC_API_URL: https://mac-hrms-stg.idtpp.com
+  NEXT_PUBLIC_RECRUITMENT_API_URL: https://mac-hrms-stg.idtpp.com/recruitment/api
+  API_URL: https://mac-hrms-stg.idtpp.com

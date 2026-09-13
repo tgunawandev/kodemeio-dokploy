@@ -37,7 +37,7 @@ moves:
     from: [mac-odoo-erp-stg.idtpp.com]
     authentik: {provider: 24, app: mac-odoo-erp-stg}
     odoo_profile: idtpp-mac-odoo-erp-stg
-    stage: planned
+    stage: dual
   - instance: mac-odoo-hrms-stg
     project: mac
     environment: staging
@@ -46,7 +46,7 @@ moves:
     from: [mac-odoo-hrms-stg.idtpp.com]
     authentik: {provider: 25, app: mac-odoo-hrms-stg}
     odoo_profile: idtpp-mac-odoo-hrms-stg
-    stage: planned
+    stage: dual
 
   # ---- production -------------------------------------------------------------
   - instance: tpp-odoo-helpdesk

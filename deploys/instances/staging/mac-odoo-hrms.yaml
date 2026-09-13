@@ -9,9 +9,9 @@ environment: staging
 server: tpp-prod-07
 dns:
   zone: idtpp.com
-  name: mac-odoo-hrms-stg
+  name: mac-hrms-stg
 domain:
-  host: mac-odoo-hrms-stg.idtpp.com
+  host: mac-hrms-stg.idtpp.com
   port: 8069
   service: odoo-web
   https: true
@@ -26,7 +26,8 @@ env_overrides:
   PGDATABASE: mac_odoo_hrms_stg
   PGUSER: odoo
   ODOO_DB_FILTER: ^mac_odoo_hrms_stg$
-  DOMAIN: mac-odoo-hrms-stg.idtpp.com
+  DOMAIN: mac-hrms-stg.idtpp.com
+  DOMAIN_LEGACY: mac-odoo-hrms-stg.idtpp.com
   ODOO_WORKERS: '2'
   ODOO_MAX_CRON_THREADS: '0'
 post_deploy:
