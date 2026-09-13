@@ -6,7 +6,7 @@ instance:
   description: Pakerti — HRMS (employees, attendance, payroll, leaves, expenses)
 project: tpp
 environment: staging
-server: tpp-stg-01
+server: tpp-prod-07
 dns:
   zone: idtpp.com
   name: tpp-odoo-hrms-stg

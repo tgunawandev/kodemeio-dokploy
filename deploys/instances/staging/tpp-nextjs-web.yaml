@@ -8,7 +8,7 @@ source_overrides:
   compose_path: compose/docker-compose.idtpp.yml
 project: tpp
 environment: staging
-server: tpp-stg-01
+server: tpp-prod-07
 dns:
   zone: idtpp.com
   name: tpp-web-stg

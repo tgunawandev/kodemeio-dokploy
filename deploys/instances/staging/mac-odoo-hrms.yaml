@@ -6,7 +6,7 @@ instance:
   description: MAC — HRMS (employees, attendance, payroll, leaves, expenses)
 project: mac
 environment: staging
-server: tpp-stg-01
+server: tpp-prod-07
 dns:
   zone: idtpp.com
   name: mac-odoo-hrms-stg

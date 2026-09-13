@@ -11,7 +11,8 @@ environments:
     db_prefix: ""
     auto_deploy: false
   staging:
-    server: tpp-stg-01
+    # tpp-stg-01 was never a Dokploy server; every staging compose runs on tpp-prod-07.
+    server: tpp-prod-07
     dns_suffix: "-stg"
     db_suffix: "_stg"
     auto_deploy: true

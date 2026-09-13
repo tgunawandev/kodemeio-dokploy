@@ -8,7 +8,7 @@ source_overrides:
   compose_path: compose/docker-compose.prod.careers.yml
 project: tpp
 environment: staging
-server: tpp-stg-01
+server: tpp-prod-07
 healthcheck:
   port: 3000
 dns:

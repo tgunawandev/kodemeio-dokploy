@@ -6,7 +6,7 @@ instance:
   description: MAC — ERP PWA
 project: mac
 environment: staging
-server: tpp-stg-01
+server: tpp-prod-07
 source_overrides:
   compose_path: compose/docker-compose.erp.yml
 dns:

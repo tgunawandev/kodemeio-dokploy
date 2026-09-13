@@ -6,7 +6,7 @@ instance:
   description: Pakerti — Accurate Online sync worker
 project: tpp
 environment: staging
-server: tpp-stg-01
+server: tpp-prod-07
 env_file: ../../env/staging/.env.tpp-accurate-sync
 env_overrides:
   TENANT: tpp

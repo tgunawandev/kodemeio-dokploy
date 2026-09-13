@@ -6,7 +6,7 @@ instance:
   description: Pakerti — HRM PWA
 project: tpp
 environment: staging
-server: tpp-stg-01
+server: tpp-prod-07
 source_overrides:
   compose_path: compose/docker-compose.hrm.yml
 dns:

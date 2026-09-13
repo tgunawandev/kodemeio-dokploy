@@ -7,7 +7,7 @@ instance:
     CVs)
 project: tpp
 environment: staging
-server: tpp-stg-01
+server: tpp-prod-07
 dns:
   zone: idtpp.com
   name: tpp-odoo-erp-stg

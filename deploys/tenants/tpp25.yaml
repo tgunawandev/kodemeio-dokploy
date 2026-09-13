@@ -16,6 +16,12 @@ environments:
     dns_prefix: ""
     db_prefix: ""
     auto_deploy: false
+  staging:
+    # tpp25-odoo-erp-stg runs on tpp-prod-07 but had no manifest.
+    server: tpp-prod-07
+    dns_suffix: "-stg"
+    db_suffix: "_stg"
+    auto_deploy: true
 
 odoo:
   - recipe: import

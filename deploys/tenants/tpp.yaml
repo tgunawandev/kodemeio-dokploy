@@ -11,7 +11,8 @@ environments:
     db_prefix: ""
     auto_deploy: false
   staging:
-    server: tpp-stg-01
+    # tpp-stg-01 was never a Dokploy server; every staging compose runs on tpp-prod-07.
+    server: tpp-prod-07
     dns_suffix: "-stg"
     db_suffix: "_stg"
     auto_deploy: true
@@ -41,6 +42,9 @@ odoo:
   # enough that proven beats idle.
   - recipe: helpdesk
     short: helpdesk
+    # There is no helpdesk staging instance; without this the generator emits a
+    # staging manifest that `deploy apply` would turn into a brand-new stack.
+    environments: [production]
     host: helpdesk.idtpp.com
     description: "IT Service Desk (OCA helpdesk, no ERP)"
     workers: 2
