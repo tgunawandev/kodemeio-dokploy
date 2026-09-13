@@ -45,7 +45,7 @@ odoo:
     # There is no helpdesk staging instance; without this the generator emits a
     # staging manifest that `deploy apply` would turn into a brand-new stack.
     environments: [production]
-    host: helpdesk.idtpp.com
+    host: desk.idtpp.com
     description: "IT Service Desk (OCA helpdesk, no ERP)"
     workers: 2
     apps: []

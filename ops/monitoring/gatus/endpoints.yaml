@@ -71,7 +71,7 @@ endpoints:
 
   - name: "Odoo TPP Helpdesk (production)"
     group: "odoo"
-    url: "https://helpdesk.idtpp.com/web/health"
+    url: "https://desk.idtpp.com/web/health"
     interval: 60s
     conditions:
       - "[STATUS] == 200"
@@ -85,7 +85,7 @@ endpoints:
 
   - name: "Odoo TPP25 ERP (production)"
     group: "odoo"
-    url: "https://tpp25-odoo-erp.idtpp.com/web/health"
+    url: "https://tpp25-erp.idtpp.com/web/health"
     interval: 60s
     conditions:
       - "[STATUS] == 200"
