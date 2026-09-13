@@ -31,8 +31,8 @@ PROD_HRMS_DB="mac_odoo_hrms"
 STG_ERP_DB="stg_mac_odoo_erp"
 STG_HRMS_DB="stg_mac_odoo_hrms"
 
-STG_ERP_URL="https://stg-mac-odoo-erp.idtpp.com"
-STG_HRMS_URL="https://stg-mac-odoo-hrms.idtpp.com"
+STG_ERP_URL="https://mac-erp-stg.idtpp.com"
+STG_HRMS_URL="https://mac-hrms-stg.idtpp.com"
 
 DOKPLOY_ERP_APP="mac-odoo-erp-stg"
 DOKPLOY_HRMS_APP="mac-odoo-hrms-stg"
