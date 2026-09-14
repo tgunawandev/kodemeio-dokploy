@@ -1,0 +1,84 @@
+kind: instance
+# Deliberately NOT `extends: ../../bases/infra.yaml`. merge_manifests() keeps
+# the base's backup block whenever the instance's is None, so `backup: null`
+# still inherits the postgres dump phase and fails on every deploy
+# ("Destination 'kodemeio-s3-backups' not found"). This compose has no
+# database and no volume at all. The three things the base provided (type,
+# healthcheck, TZ) are inlined below — same shape as tpp-infra-nextcloud.
+type: infrastructure
+
+instance:
+  name: tpp-infra-drawio
+  description: "Self-hosted diagrams.net editor framed by Odoo diagram_base (stateless, no SSO by design)"
+
+project: tpp
+environment: production
+# tpp-prod-04 (cpx42, 15G): 2/15G used, load 0.02, 13 containers on
+# 2026-09-14 (`./dokploy.sh hosts idtpp`). The editor asks for 1 CPU / 768M at
+# most. It is stateless and needs no private-network reach to anything.
+# DNS record draw.idtpp.com -> 178.104.169.250 (tpp-prod-04 public), unproxied
+# like nextcloud.idtpp.com and xyops.idtpp.com on the same host, so Traefik's
+# Let's Encrypt HTTP challenge keeps working.
+server: tpp-prod-04
+
+# The compose lives in kodemeio-odoo beside the module that frames it, the
+# same way the filestore-backup stacks do. It is the single source of truth
+# for image tag, env, limits and healthcheck:
+#   kodemeio-odoo/compose/diagrams.drawio.yml
+#   kodemeio-odoo/docs/superpowers/specs/2026-09-13-diagrams-design.md §8.1
+source:
+  type: github
+  owner: tgunawandev
+  repo: kodemeio-odoo
+  branch: "18.0"
+  compose_path: ./compose/diagrams.drawio.yml
+
+# 🔴 autoDeploy MUST stay off. Dokploy defaults it ON for a GitHub source, and
+# this compose tracks kodemeio-odoo@18.0, which several sessions push to every
+# day — every push would redeploy the editor. The orchestrator disables it
+# from this flag on every apply; verify with `compose get` after a deploy.
+auto_deploy: false
+
+dns:
+  zone: idtpp.com
+  name: draw
+
+# 🔴 NO Authentik forward-auth on this router, on purpose — a documented
+#    exception to the "Authentik for every service" rule. The page holds no
+#    data (a diagram travels only between the Odoo tab and this iframe through
+#    postMessage), and an SSO redirect inside an iframe breaks under
+#    third-party-cookie blocking.
+# 🔴 Do NOT add X-Frame-Options or a frame-ancestors CSP to this host's Traefik
+#    router or any middleware on it: Odoo must be able to frame it.
+domain:
+  host: draw.idtpp.com
+  port: 8080
+  service: drawio
+  https: true
+  cert: letsencrypt
+
+# The first deploy pulls jgraph/drawio and starts Tomcat; allow well over the
+# base's 60s before declaring the deploy dead.
+healthcheck:
+  path: /
+  port: 8080
+  expected_status: 200
+  timeout: 300
+  interval: 10
+
+env_file: ../../env/production/.env.tpp-infra-drawio
+
+env_defaults:
+  TZ: "Asia/Jakarta"
+
+env_overrides:
+  DRAWIO_HOST: draw.idtpp.com
+  DRAWIO_IMAGE_TAG: "31.4.5"
+
+# Post-deploy (not handled by the pipeline):
+#  1. Zero-outbound check (spec §8.1): open the editor in embed mode with the
+#     browser's network panel and confirm no request leaves draw.idtpp.com
+#     (no *.diagrams.net, *.draw.io, pusher.com, Google/Microsoft/GitHub).
+#  2. Per Odoo, when it installs diagram_base: Settings -> Diagrams ->
+#     Editor URL = https://draw.idtpp.com/ (system parameter
+#     diagram_base.editor_url). Never point production at embed.diagrams.net.
