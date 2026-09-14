@@ -1,0 +1,51 @@
+kind: instance
+# Deliberately NOT `extends: ../../bases/infra.yaml` (no database, no volume, no backup) — same reasoning as
+# tpp-infra-drawio.yaml: merge_manifests() keeps the base's backup block whenever the instance's is None, so a
+# stateless compose still inherits the postgres dump phase and fails on every deploy. This renderer has no
+# database, no volume and no persistent state at all.
+type: infrastructure
+
+instance:
+  name: tpp-infra-diagram-render
+  description: "Internal diagrams.net renderer for Odoo diagram_base previews (stateless, no domain)"
+
+project: tpp
+environment: production
+# tpp-prod-03: the helpdesk Odoo (compose J0WbcW9MkaG5q0zjZw0m8) runs here, and Docker networks do not span
+# servers, so the renderer must sit beside the Odoo that calls it. Asks for 1 CPU / 1G at most.
+server: tpp-prod-03
+
+# The compose lives in kodemeio-odoo beside the module it serves, the single source of truth for image tag, env,
+# limits and healthcheck:
+#   kodemeio-odoo/compose/diagrams.render.yml
+#   kodemeio-odoo/docs/superpowers/specs/2026-09-14-diagrams-authoring-engine-design.md §3
+source:
+  type: github
+  owner: tgunawandev
+  repo: kodemeio-odoo
+  branch: "18.0"
+  compose_path: ./compose/diagrams.render.yml
+
+# 🔴 autoDeploy MUST stay off. Dokploy defaults it ON for a GitHub source, and this compose tracks
+# kodemeio-odoo@18.0, which several sessions push to every day — every push would redeploy the renderer.
+# The orchestrator disables it from this flag on every apply; verify with `compose get` after a deploy
+# (on 2026-09-14 it was left ON for tpp-infra-drawio despite this flag).
+auto_deploy: false
+
+# 🔴 No dns and no domain block: internal only. Odoo reaches it as http://diagram-render:8080 on
+# dokploy-network. Never publish a port or a domain — the renderer executes attacker-influenced XML.
+
+env_file: ../../env/production/.env.tpp-infra-diagram-render
+
+env_defaults:
+  TZ: "Asia/Jakarta"
+
+env_overrides:
+  RENDER_IMAGE_TAG: "31.4.5"
+
+# Post-deploy (not handled by the pipeline):
+#  1. On the helpdesk Odoo: diagram_base.render_url = http://diagram-render:8080 and
+#     diagram_base.render_secret = this env's RENDER_SECRET (never printed).
+#  2. Smoke: apply a sample diagram payload and fetch its image link (plan 2026-09-14 Task 10).
+#  🔴 A future renderer image change must bump RENDER_IMAGE_TAG to the new sha-<short> tag the build also
+#     pushes — Docker Swarm pins a floating tag to its digest at create time and ignores :latest changes.
