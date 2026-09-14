@@ -1,0 +1,78 @@
+kind: instance
+# Deliberately NOT `extends: ../../bases/infra.yaml`: the base's postgres backup
+# phase targets 'kodemeio-s3-backups', which does not exist on idtpp, and this
+# compose has no database (same shape as tpp-infra-drawio).
+type: infrastructure
+
+instance:
+  name: tpp-infra-waha
+  description: "WAHA (WhatsApp HTTP API) for the idtpp Odoo fleet — the whatsapp_waha transport; dashboard behind Authentik"
+
+project: tpp
+environment: production
+# tpp-prod-01, colocated with tpp-infra-authentik: the dashboard's forward-auth
+# middleware reaches http://authentik-server:9000 on dokploy-network, which
+# avoids the cross-host X-Forwarded-Host loss that made Stirling colocate too.
+# 17/22G used on 2026-09-15 (`./dokploy.sh hosts idtpp`); WAHA NOWEB is capped
+# at 1 CPU / 1G by its compose.
+server: tpp-prod-01
+
+# The compose lives in the WAHA deployment repo beside the kodemeio stack's:
+#   kodemeio-waha/docker-compose.idtpp.yml
+# No waha-bridge, no Redis, sessions on a named volume — see its header.
+source:
+  type: github
+  owner: tgunawandev
+  repo: kodemeio-waha
+  branch: main
+  compose_path: ./docker-compose.idtpp.yml
+
+# 🔴 autoDeploy MUST stay off: a push to kodemeio-waha must never restart the
+#    server that holds every WhatsApp session. Verify with `compose get` after
+#    each deploy — Dokploy has turned it back on before (tpp-infra-drawio).
+auto_deploy: false
+
+dns:
+  zone: idtpp.com
+  name: waha
+
+# Two Traefik routers are defined in the compose labels and outrank Dokploy's
+# own router for this domain:
+#   waha-api (priority 300): /api/ and /ping, no SSO — Odoo on tpp-prod-02/03/07
+#            calls the API over HTTPS with the WAHA API key.
+#   waha-sso (priority 200): everything else, Authentik forward-auth, app
+#            "waha" (Proxy Provider pk 41, forward_single, Embedded Outpost),
+#            policy waha-dashboard-development-only.
+domain:
+  host: waha.idtpp.com
+  port: 3000
+  service: waha
+  https: true
+  cert: letsencrypt
+
+# /ping is exempt from the API key (WAHA_API_KEY_EXCLUDE_PATH) and routed
+# around SSO, so the pipeline sees 200 once WAHA is up.
+healthcheck:
+  path: /ping
+  port: 3000
+  expected_status: 200
+  timeout: 300
+  interval: 10
+
+env_file: ../../env/production/.env.tpp-infra-waha
+
+env_defaults:
+  TZ: "Asia/Jakarta"
+
+env_overrides:
+  DOMAIN: waha.idtpp.com
+  TENANT: tpp
+  AUTHENTIK_HOST: http://authentik-server:9000
+  WAHA_TAG: "noweb-2026.8.2"
+
+# Post-deploy (not handled by the pipeline):
+#  1. kctl-waha config: a profile with url https://waha.idtpp.com and the
+#     WAHA_API_KEY from the env file (never commit it).
+#  2. Sessions are created per WhatsApp number when an Odoo whatsapp_waha
+#     account is set up; the QR code is scanned on the phone that owns the number.
+#  3. Session webhooks are written by Odoo's "Claim Number" action, not here.
