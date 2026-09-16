@@ -25,22 +25,34 @@ odoo:
 # Hermes — agent on kod-prod-04-claude. Telegram inbound. Honcho enabled
 # after Phase B of the 2026-05-23 Honcho rollout (currently false because
 # the deploy waits on the operator's OpenRouter key).
+# Hermes — VISION, the growth persona, on kod-prod-02. Mattermost inbound via
+# mm.kodeme.io. Odoo reach is the governed MCP gateway on erp/desk, never XML-RPC.
+#
+# Server identity re-checked 2026-09-17: Dokploy lists `kod-prod-02`
+# (3aceAeKfqzyFWTppqDAlI, 88.198.151.167). An earlier note said
+# `kod-prod-02-hermes` / E2W-w5AP1lcADlN21qy5h — that registration is gone.
 hermes:
-  # Pin the ref kod is ACTUALLY running. It was bumped by hand to v2026.5.29 on
-  # 2026-05-29 to fix the Codex event-stream crash ('NoneType object is not
-  # iterable') and had never been recorded here. Now that gen_hermes emits
-  # HERMES_UPSTREAM_REF into env_overrides — which beats hand-set Dokploy env —
-  # omitting this would roll kod back to the default v2026.5.16 and reintroduce
-  # that bug on the next `deploy apply`.
-  upstream_ref: v2026.5.29
   enabled: true
-  edition: superuser
-  server: kod-prod-04-claude
-  inbound:
-    telegram:
-      enabled: true
-    mattermost:
-      enabled: false
+  server: kod-prod-02
+  upstream_ref: v2026.8.31
   memory:
     honcho:
       enabled: false
+  agents:
+    - name: vision
+      persona: vision
+      edition: business
+      inbound:
+        telegram:
+          enabled: false
+        mattermost:
+          enabled: true
+          url: https://mm.kodeme.io
+          reply_mode: thread
+          require_mention: true
+          # kodemeio team, #vision channel (created 2026-09-17)
+          allowed_channels:
+            - hueg6tdw6jf6idbyr1mefdumew
+          # admin / tri.gunawan@kodeme.io
+          allowed_users:
+            - aistu3c4htyrm8tw8fg97okkpc

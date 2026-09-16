@@ -1,0 +1,17 @@
+# GENERATED FROM tenants/kod.yaml — DO NOT EDIT
+kind: instance
+extends: ../../bases/hermes.yaml
+instance:
+  name: kod-infra-hermes-vision
+  description: Hermes Agent (KOD) — Mattermost inbound (mm.kodeme.io), MCP outbound
+project: kod
+server: kod-prod-02
+env_file: ../../env/production/.env.kod-infra-hermes-vision
+env_overrides:
+  HERMES_EDITION: business
+  HERMES_UPSTREAM_REF: v2026.8.31
+  HERMES_CONTAINER_PREFIX: kod-infra-hermes-vision
+  HERMES_PERSONA: vision
+  HERMES_CPU_LIMIT: '2.0'
+  HERMES_MEM_LIMIT: 2G
+  HERMES_MEM_RESERVATION: 512M
