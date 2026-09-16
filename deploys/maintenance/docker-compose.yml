@@ -322,16 +322,56 @@ configs:
 
         // Elapsed is measured from the FIRST view and survives the reloads this page
         // performs, so the number never resets to zero and understates the wait.
-        var KEY = 'kodemeio-maint-since', since;
+        //
+        // 🔴 The stored stamp is NOT "when the outage started" -- it is "when this
+        //    tab first saw this page". It was cleared on exactly ONE of the ways the
+        //    page can be left: the HEAD probe below. Recovery by the 90s
+        //    <meta refresh>, by a manual reload, or in a background tab whose timers
+        //    Chrome throttled all skip that cleanup, so the stamp outlived its
+        //    outage -- and nothing bounded its age, so the next unrelated 5xx blip in
+        //    the same tab rendered the age of the PREVIOUS one. Measured on erp-stg
+        //    2026-09-16: `427 menit berjalan` while the app answered 303 from
+        //    Werkzeug and Dokploy reported the service `done`. Telling a user the
+        //    system has been down seven hours when it blipped for twenty seconds
+        //    discredits the one number on this page they can check for themselves.
+        //
+        //    So do not try to catch every recovery path -- infer the boundary from
+        //    the page's own ABSENCE. SEEN is rewritten every second while this page
+        //    is alive, so a gap in it can only mean the page stopped being served,
+        //    which is precisely what recovery is.
+        var KEY = 'kodemeio-maint-since', SEEN = 'kodemeio-maint-seen';
+        // This page reloads itself every 90s (the <meta refresh> in the head), so a
+        // still-running outage can never go quiet for longer than that plus one load.
+        // Three cycles of slack absorbs a throttled background tab while still
+        // cutting this morning's stamp off from this afternoon's outage.
+        var GAP = 270000;
+        var loaded = Date.now(), since;
+        // A stamp that is absent, unparseable, or in the FUTURE (an NTP step or a
+        // corrected system clock) reads as 0 here and restarts the count, instead of
+        // rendering a negative age like `-3600 detik berjalan`.
+        function stamp(k) {
+          var v = parseInt(sessionStorage.getItem(k), 10);
+          return v > 0 && v <= loaded ? v : 0;
+        }
         try {
-          since = parseInt(sessionStorage.getItem(KEY), 10);
-          if (!since) { since = Date.now(); sessionStorage.setItem(KEY, String(since)); }
-        } catch (e) { since = Date.now(); }
+          var seen = stamp(SEEN);
+          since = stamp(KEY);
+          if (!since || !seen || loaded - seen > GAP) { since = loaded; }
+          sessionStorage.setItem(KEY, String(since));
+          sessionStorage.setItem(SEEN, String(loaded));
+        } catch (e) { since = loaded; }
 
         var expected = 5, planned = false, until = '';
 
         function render() {
-          var secs = Math.floor((Date.now() - since) / 1000);
+          var t = Date.now();
+          // The heartbeat. While this page is alive it must keep saying so once a
+          // second, or the next load reads a gap and restarts a still-running
+          // outage at zero.
+          try { sessionStorage.setItem(SEEN, String(t)); } catch (e) {}
+          // Clamped at 0: a clock that steps backwards mid-outage must stall the
+          // count, never run it negative.
+          var secs = Math.max(0, Math.floor((t - since) / 1000));
           var mins = Math.floor(secs / 60);
           if (mins < 1) {
             el.count.textContent = secs;
@@ -392,7 +432,7 @@ configs:
           fetch(window.location.href, { method: 'HEAD', cache: 'no-store', redirect: 'manual' })
             .then(function (r) {
               if (r.status !== 503) {
-                try { sessionStorage.removeItem(KEY); } catch (e) {}
+                try { sessionStorage.removeItem(KEY); sessionStorage.removeItem(SEEN); } catch (e) {}
                 window.location.reload();
                 return;
               }
