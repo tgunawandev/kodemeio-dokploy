@@ -318,3 +318,85 @@ def test_gen_hermes_invalid_upstream_ref_raises(bad):
     hermes["upstream_ref"] = bad
     with pytest.raises(ValueError, match="upstream_ref must be a non-empty string"):
         gen_hermes(tenant, hermes, "production")
+
+
+KOD = {"code": "kod", "name": "Kodemeio", "short_name": "KOD", "domain": "kodeme.io"}
+
+
+def _vision_hermes(**over):
+    base = {
+        "enabled": True,
+        "server": "kod-prod-02-hermes",
+        "edition": "business",
+        "persona": "vision",
+        "upstream_ref": "v2026.8.31",
+        "inbound": {"telegram": {"enabled": True}, "mattermost": {"enabled": False}},
+        "memory": {"honcho": {"enabled": False}},
+    }
+    base.update(over)
+    return base
+
+
+def test_gen_hermes_emits_persona_into_env_overrides():
+    y_name, y, e_name, e = gen_hermes(KOD, _vision_hermes(), "production", agent_name="vision")
+    assert y_name == "kod-infra-hermes-vision.yaml"
+    assert e_name == ".env.kod-infra-hermes-vision.example"
+    # env_overrides is applied AFTER env_file, so this is what makes the
+    # persona survive a `deploy apply` that pushes the local .env wholesale.
+    assert "HERMES_PERSONA: vision" in y
+    assert "HERMES_PERSONA=vision" in e
+
+
+def test_gen_hermes_omits_tenant_when_persona_is_not_tenanted():
+    _, y, _, _ = gen_hermes(KOD, _vision_hermes(), "production", agent_name="vision")
+    assert "HERMES_TENANT" not in y
+
+
+def test_gen_hermes_emits_tenant_for_a_tenanted_persona():
+    h = _vision_hermes(persona="karen", tenant="kodemeio")
+    _, y, _, _ = gen_hermes(KOD, h, "production", agent_name="karen")
+    assert "HERMES_PERSONA: karen" in y
+    assert "HERMES_TENANT: kodemeio" in y
+
+
+def test_gen_hermes_rejects_unknown_persona():
+    with pytest.raises(ValueError, match="unknown persona"):
+        gen_hermes(KOD, _vision_hermes(persona="jarvis2"), "production", agent_name="x")
+
+
+def test_gen_hermes_rejects_persona_edition_mismatch():
+    # vision is a business persona. Catching this here costs a test run;
+    # catching it at container start costs a failed deploy.
+    with pytest.raises(ValueError, match="requires edition"):
+        gen_hermes(KOD, _vision_hermes(edition="superuser"), "production", agent_name="vision")
+
+
+def test_gen_hermes_requires_tenant_for_a_tenanted_persona():
+    with pytest.raises(ValueError, match="is tenanted"):
+        gen_hermes(KOD, _vision_hermes(persona="karen"), "production", agent_name="karen")
+
+
+def test_gen_hermes_rejects_tenant_on_an_untenanted_persona():
+    with pytest.raises(ValueError, match="not tenanted"):
+        gen_hermes(KOD, _vision_hermes(tenant="kodemeio"), "production", agent_name="vision")
+
+
+def test_gen_hermes_env_example_uses_the_mcp_names_init_actually_reads():
+    # hermes-init.sh's ensure_mcp_servers reads HERMES_MCP_<NAME>_URL /
+    # _TOKEN. The old MCP_ODOO_URL / MCP_ODOO_AUTH_TOKEN shape documented a
+    # contract init does not implement, so a filled-in env file produced an
+    # agent with zero MCP servers and no error.
+    _, _, _, e = gen_hermes(KOD, _vision_hermes(), "production", agent_name="vision")
+    assert "\nMCP_ODOO_URL=" not in e
+    assert "\nMCP_ODOO_AUTH_TOKEN=" not in e
+    assert "HERMES_MCP_ODOO_URL=" in e
+    assert "HERMES_MCP_ODOO_TOKEN=" in e
+
+
+def test_gen_hermes_without_persona_still_works():
+    """Every existing tenant omits `persona:`; none of them may break."""
+    h = _vision_hermes()
+    del h["persona"]
+    _, y, _, e = gen_hermes(KOD, h, "production")
+    assert "HERMES_PERSONA" not in y
+    assert "HERMES_PERSONA" not in e

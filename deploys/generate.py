@@ -91,6 +91,22 @@ HERMES_EDITION_RESOURCES: dict[str, dict[str, str]] = {
 # Pin per tenant in tenants/<code>.yaml instead (see gen_hermes).
 HERMES_DEFAULT_UPSTREAM_REF = "v2026.5.16"
 
+#: Persona name -> the HERMES_EDITION its persona.yaml declares, and whether it
+#: is tenanted. Mirrors kodemeio-hermes/config/personas/<name>/persona.yaml.
+#:
+#: DUPLICATED DELIBERATELY. This generator runs in CI without kodemeio-hermes
+#: checked out, so it cannot read the source of truth. persona-load.py remains
+#: the authority and fails closed at container start; this table exists to turn
+#: a typo or a wrong edition pairing into a generate-time error, when it is
+#: cheap. If a persona is added there, add it here.
+HERMES_PERSONAS: dict[str, dict[str, object]] = {
+    "jarvis": {"edition": "business", "tenanted": False},
+    "friday": {"edition": "superuser", "tenanted": False},
+    "edith": {"edition": "business", "tenanted": False},
+    "vision": {"edition": "business", "tenanted": False},
+    "karen": {"edition": "business", "tenanted": True},
+}
+
 
 def resolve_recipe(recipe_or_profile: str) -> tuple[str, str]:
     """Resolve a tenant `recipe:` (preferred) or legacy `profile:` value to
@@ -1019,6 +1035,26 @@ def gen_hermes(
     if edition not in ("superuser", "business"):
         raise ValueError(f"tenants/{code}.yaml: hermes.edition must be 'superuser' or 'business', got {edition!r}")
 
+    persona = hermes.get("persona")
+    tenant_name = hermes.get("tenant")
+    if persona is not None:
+        if persona not in HERMES_PERSONAS:
+            raise ValueError(f"tenants/{code}.yaml: unknown persona {persona!r}. Valid: {sorted(HERMES_PERSONAS)}")
+        spec = HERMES_PERSONAS[persona]
+        if spec["edition"] != edition:
+            raise ValueError(
+                f"tenants/{code}.yaml: persona {persona!r} requires edition "
+                f"{spec['edition']!r} but hermes.edition is {edition!r} — the image "
+                f"decides whether admin CLIs and coding agents exist, so this "
+                f"mismatch would fail at container start"
+            )
+        if spec["tenanted"] and not tenant_name:
+            raise ValueError(f"tenants/{code}.yaml: persona {persona!r} is tenanted; hermes.tenant is required")
+        if not spec["tenanted"] and tenant_name:
+            raise ValueError(f"tenants/{code}.yaml: persona {persona!r} is not tenanted; hermes.tenant must not be set")
+    elif tenant_name:
+        raise ValueError(f"tenants/{code}.yaml: hermes.tenant is set but hermes.persona is not")
+
     # Upstream image tag. Tenant-scoped ON PURPOSE: a tenant that does not pin
     # one keeps the fleet default, so bumping one agent never drags the others
     # onto an untested upstream release.
@@ -1104,6 +1140,8 @@ def gen_hermes(
             # or the apply silently rolls that instance back.
             "HERMES_UPSTREAM_REF": upstream_ref,
             "HERMES_CONTAINER_PREFIX": instance_name,
+            **({"HERMES_PERSONA": persona} if persona else {}),
+            **({"HERMES_TENANT": tenant_name} if tenant_name else {}),
             **HERMES_EDITION_RESOURCES[edition],
         },
     }
@@ -1116,6 +1154,12 @@ def gen_hermes(
         "# === Upstream image + identity ===",
         f"HERMES_EDITION={edition}",
         f"HERMES_UPSTREAM_REF={upstream_ref}",
+    ]
+    if persona:
+        lines.append(f"HERMES_PERSONA={persona}")
+    if tenant_name:
+        lines.append(f"HERMES_TENANT={tenant_name}")
+    lines += [
         "HERMES_LOG_LEVEL=info",
         "HERMES_UID=10000",
         "HERMES_GID=10000",
@@ -1201,23 +1245,28 @@ def gen_hermes(
     # MCP outbound block — always present
     lines += [
         "# === MCP outbound (always; per-service opt-in via real .env) ===",
-        "MCP_ODOO_URL=",
-        "MCP_ODOO_AUTH_TOKEN=",
+        "# hermes-init.sh's ensure_mcp_servers reads PAIRS:",
+        "#   HERMES_MCP_<NAME>_URL  +  HERMES_MCP_<NAME>_TOKEN",
+        "# <NAME> must appear in the persona's tools.yaml mcp_servers list, or",
+        "# the container refuses to start. Example:",
+        "#   HERMES_MCP_ODOO_ERP_URL=https://erp.kodeme.io/mcp",
+        "HERMES_MCP_ODOO_URL=",
+        "HERMES_MCP_ODOO_TOKEN=",
         "MATTERMOST_BASE_URL=",
         "MATTERMOST_BOT_TOKEN=",
         "MATTERMOST_TEAM_ID=",
-        "MCP_MATTERMOST_URL=",
-        "MCP_MATTERMOST_AUTH_TOKEN=",
+        "HERMES_MCP_MATTERMOST_URL=",
+        "HERMES_MCP_MATTERMOST_TOKEN=",
         "MAILCOW_BASE_URL=",
         "MAILCOW_API_KEY=",
         "MAILCOW_API_KEY_TYPE=",
-        "MCP_MAILCOW_URL=",
-        "MCP_MAILCOW_AUTH_TOKEN=",
+        "HERMES_MCP_MAILCOW_URL=",
+        "HERMES_MCP_MAILCOW_TOKEN=",
         "WAHA_BASE_URL=",
         "WAHA_API_KEY=",
         "WAHA_HMAC_KEY=",
-        "MCP_WAHA_URL=",
-        "MCP_WAHA_AUTH_TOKEN=",
+        "HERMES_MCP_WAHA_URL=",
+        "HERMES_MCP_WAHA_TOKEN=",
     ]
     env_example = "\n".join(lines) + "\n"
 
