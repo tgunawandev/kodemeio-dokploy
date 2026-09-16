@@ -4,7 +4,7 @@ extends: ../../bases/hermes.yaml
 instance:
   name: kod-infra-hermes-vision
   description: Hermes Agent (KOD) — Mattermost inbound (mm.kodeme.io), MCP outbound
-project: kod
+project: apps
 server: kod-prod-02
 env_file: ../../env/production/.env.kod-infra-hermes-vision
 env_overrides:

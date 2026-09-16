@@ -35,6 +35,9 @@ hermes:
   enabled: true
   server: kod-prod-02
   upstream_ref: v2026.8.31
+  # Dokploy projects are functional now (web/database/apps); VISION's
+  # dependencies — Mattermost and both Odoo instances — all live in `apps`.
+  project: apps
   memory:
     honcho:
       enabled: false

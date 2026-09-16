@@ -1126,7 +1126,11 @@ def gen_hermes(
             "name": instance_name,
             "description": description,
         },
-        "project": code,
+        # Dokploy's projects were reorganised by function (web/database/apps)
+        # on 2026-09-17, so the per-tenant project no longer exists there. A
+        # tenant may name the project its agent belongs to; without one the
+        # tenant code stays the default, so every other tenant is unchanged.
+        "project": hermes.get("project", code),
         "server": server,
         "env_file": f"../../env/{env_name}/.env.{instance_name}",
         "env_overrides": {
