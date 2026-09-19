@@ -1,0 +1,46 @@
+kind: instance
+extends: ../../bases/infra.yaml
+
+instance:
+  name: kod-infra-dsh
+  description: "DeepSeek Harness Web UI — isolated V4.1 Flash coding agent"
+
+project: apps
+environment: production
+server: kod-prod-02
+
+source_overrides:
+  owner: tgunawandev
+  repo: kodemeio-dsh
+  branch: main
+  compose_path: ./docker-compose.prod.yml
+
+dns:
+  zone: kodeme.io
+  name: dsh
+
+domain:
+  host: dsh.kodeme.io
+  port: 8080
+  service: gateway
+  https: true
+  cert: letsencrypt
+
+env_file: ../../env/production/.env.kod-infra-dsh
+env_overrides:
+  COMPOSE_PROJECT_NAME: kod-infra-dsh
+
+healthcheck:
+  path: /healthz
+  port: 8080
+  expected_status: 200
+  timeout: 60
+  interval: 30
+
+backup:
+  destination: kodemeio-s3-backups
+  type: volume
+  source: kod-infra-dsh_dsh-home
+  schedule: "0 3 * * *"
+  prefix_template: "{instance_name}-home"
+  keep_latest: 14
