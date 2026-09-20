@@ -817,6 +817,14 @@ def gen_filestore_backup(
     ``entry["volume"]`` must be the exact docker volume name on that host:
     Dokploy names compose volumes {appName}_{volume}, so decoy filestore
     volumes sit beside the live one.
+
+    ``entry["project"]`` overrides the Dokploy project, which otherwise defaults
+    to the tenant code. It is needed by a tenant whose Dokploy projects are not
+    named for the tenant at all — kod is the first, where every Odoo instance
+    lives under the project `apps` and a project named `kod` does not exist.
+    `deploy setup` REFUSES rather than creating a project (`ensure_project_and_env`
+    raises "Project 'kod' not found"), so without the override the backup cannot
+    be deployed at all.
     """
     code = tenant["code"]
     name = tenant["name"]
@@ -849,7 +857,7 @@ def gen_filestore_backup(
             "name": instance_name,
             "description": f"{name} — filestore backup ({short}) → {bucket}",
         },
-        "project": code,
+        "project": entry.get("project", code),
         "environment": env_name,
     }
     if server:

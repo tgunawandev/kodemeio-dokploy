@@ -1,0 +1,18 @@
+# GENERATED FROM tenants/kod.yaml — DO NOT EDIT
+kind: instance
+extends: ../../bases/odoo-filestore-backup.yaml
+instance:
+  name: kod-odoo-desk-filestore-backup
+  description: Kodemeio — filestore backup (desk) → kodemeio-odoo-filestore
+project: apps
+environment: production
+server: abc-prod-02
+env_file: ../../env/production/.env.kod-odoo-desk-filestore-backup
+env_overrides:
+  TENANT: kod
+  FILESTORE_VOLUME: compose-input-wireless-system-hvoyqp_odoo-filestore
+  FILESTORE_DB: kod_odoo_desk
+  FILESTORE_MIN_FILES: '440'
+  BACKUP_TAG: kod-odoo-desk
+  BACKUP_CRON_PINNED: 20 22 * * *
+  RESTIC_REPOSITORY: s3:https://fsn1.your-objectstorage.com/kodemeio-odoo-filestore/kod-odoo-desk

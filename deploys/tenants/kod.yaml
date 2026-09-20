@@ -22,6 +22,50 @@ odoo:
     workers: 6
     apps: [bia, dms, eam, hrm, lfa, mrp, saas, sfa, shop, tms, tms-parent, tpm, wms]
 
+# Filestore (attachment) backups — production only.
+#
+# The desk instance is the FIRST entry, and it is not the `odoo:` block above:
+# that block describes a single `kod-odoo-full` instance that was never deployed.
+# What is live on this Dokploy is three composes — kod-odoo-erp (erp.kodeme.io),
+# kod-odoo-desk (desk.kodeme.io) and kod-odoo-hrms (hris.kodeme.io) — created
+# outside this manifest tree. Only desk is backed up here; erp and hrms are a
+# known gap.
+#
+# project MUST be `apps`: this Dokploy has projects web/database/apps, and NO
+# project named `kod`. Without the override `deploy setup` refuses outright
+# ("Project 'kod' not found") — it never creates one.
+#
+# volume is the exact docker volume name on the host, read from the live compose
+# (Dokploy names compose volumes {appName}_{volume}; the desk compose's appName
+# is the generated `compose-input-wireless-system-hvoyqp`, verified against the
+# same rule on tpp-odoo-erp, whose appName is the prefix of its live volume).
+# bin/filestore-backup's guard refuses a volume whose filestore/<db> directory is
+# missing or whose file count collapses, so a wrong name fails loudly.
+#
+# server is `abc-prod-02`, NOT the `kod-prod-02` this file's environments block
+# names: that is the server Dokploy has the desk compose registered on.
+#
+# min_files MEASURED, not estimated: the guard's first run reported files=489, so
+# the floor is 440 (90% of N, per docs/admin/filestore-backup.md). The obvious
+# proxy was wrong by 44x — `ir.attachment` with a store_fname counted 11 — which
+# is the same lesson mac-hrms taught (852 blobs vs 241 files): only the guard's
+# own count is real. The relative check (90% of the previous snapshot) is the
+# ongoing alarm; this floor catches a volume that is not this instance's at all.
+#
+# pinned_cron is 17 min after this estate's 22:03 UTC pg_dump (kodemeio-postgres-backup
+# bucket, twice daily at 10:03 and 22:03), so a filestore snapshot is always NEWER
+# than the database dump it will be restored alongside.
+filestore_backups:
+  - short: desk
+    instance_short: desk
+    project: apps
+    volume: compose-input-wireless-system-hvoyqp_odoo-filestore
+    database: kod_odoo_desk
+    min_files: 440
+    pinned_cron: "20 22 * * *"
+    bucket: kodemeio-odoo-filestore
+    server: abc-prod-02
+
 # Hermes — agent on kod-prod-04-claude. Telegram inbound. Honcho enabled
 # after Phase B of the 2026-05-23 Honcho rollout (currently false because
 # the deploy waits on the operator's OpenRouter key).

@@ -167,3 +167,58 @@ def test_mac_entries_get_separate_repositories():
 
     assert "hz-mac-odoo-filestore/mac-odoo-erp" in erp_content
     assert "hz-mac-odoo-filestore/mac-odoo-hrms" in hrms_content
+
+
+KOD = {"code": "kod", "name": "Kodemeio", "domain": "kodeme.io"}
+KOD_DESK = {
+    "short": "desk",
+    "instance_short": "desk",
+    "project": "apps",
+    "volume": "compose-input-wireless-system-hvoyqp_odoo-filestore",
+    "database": "kod_odoo_desk",
+    "min_files": 440,
+    "pinned_cron": "20 22 * * *",
+    "bucket": "kodemeio-odoo-filestore",
+    "server": "abc-prod-02",
+}
+
+
+def test_project_override_is_the_difference_between_deployable_and_not():
+    """kod's Dokploy has projects web/database/apps and NO project named `kod`.
+
+    `deploy setup` resolves the project by name and REFUSES when it is missing
+    (ensure_project_and_env raises "Project 'kod' not found"); it never creates
+    one. So without this override the backup is not merely misnamed, it cannot
+    be deployed at all."""
+    from generate import gen_filestore_backup
+
+    _, content, _, _ = gen_filestore_backup(KOD, KOD_DESK, "production", "abc-prod-02")
+
+    assert "project: apps" in content
+    assert "project: kod" not in content
+
+
+def test_project_defaults_to_the_tenant_code_when_absent():
+    """Every existing entry must keep resolving to its own project: a silent
+    switch to a shared project would put tpp's backup in someone else's tree."""
+    from generate import gen_filestore_backup
+
+    _, content, _, _ = gen_filestore_backup(TENANT, ENTRY, "production", "tpp-prod-03")
+
+    assert "project: tpp" in content
+
+
+def test_kod_desk_is_named_for_the_instance_not_the_tenant():
+    """The kod estate has three live Odoo composes but ONE entry so far, so the
+    instance name must carry the instance (`desk`), never collapse to
+    kod-odoo-filestore-backup -- which would claim the whole estate."""
+    from generate import gen_filestore_backup
+
+    y_name, content, e_name, _ = gen_filestore_backup(KOD, KOD_DESK, "production", "abc-prod-02")
+
+    assert y_name == "kod-odoo-desk-filestore-backup.yaml"
+    assert e_name == ".env.kod-odoo-desk-filestore-backup.example"
+    assert "s3:https://fsn1.your-objectstorage.com/kodemeio-odoo-filestore/kod-odoo-desk" in content
+    assert "compose-input-wireless-system-hvoyqp_odoo-filestore" in content
+    assert "FILESTORE_DB: kod_odoo_desk" in content
+    assert "server: abc-prod-02" in content
