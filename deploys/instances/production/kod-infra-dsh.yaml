@@ -35,11 +35,12 @@ env_file: ../../env/production/.env.kod-infra-dsh
 env_overrides:
   COMPOSE_PROJECT_NAME: kod-infra-dsh
   # Not a secret. The gateway's Traefik forward-auth label interpolates this.
-  # Public URL, not the internal `authentik-server` alias: the embedded outpost
-  # builds its login redirect from the Host it is reached on, and over the
-  # internal alias it emits http://0.0.0.0:9000 (AUTHENTIK_HOST_BROWSER is
-  # unset on the Authentik server). auth.kodeme.io is DNS-only, same host.
-  AUTHENTIK_HOST: https://auth.kodeme.io
+  # Internal dokploy-network alias, used for the per-request auth subrequest.
+  # The browser-facing login redirect is the embedded outpost's own
+  # `authentik_host_browser` setting (must be https://auth.kodeme.io; empty
+  # makes it emit http://0.0.0.0:9000). Reaching the outpost over the public
+  # name does not work: auth.kodeme.io 404s on /outpost.goauthentik.io/.
+  AUTHENTIK_HOST: http://authentik-server:9000
 
 # SSO is enforced at the Traefik layer by a forward-auth middleware defined in
 # the repo's docker-compose.prod.yml (calls
