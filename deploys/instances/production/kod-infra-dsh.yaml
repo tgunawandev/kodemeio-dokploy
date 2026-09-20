@@ -70,7 +70,7 @@ healthcheck:
 backup:
   destination: kodemeio-s3-backups
   type: volume
-  source: kod-infra-dsh_dsh-home
+  source: compose-quantify-optical-application-ggw4zk_dsh-home
   schedule: "0 3 * * *"
   prefix_template: "{instance_name}-home"
   keep_latest: 14
