@@ -3,11 +3,16 @@ extends: ../../bases/infra.yaml
 
 instance:
   name: kod-infra-dsh
-  description: "DeepSeek Harness Web UI — isolated V4.1 Flash coding agent"
+  description: "DeepSeek Harness Web UI — isolated V4.1 Flash coding agent, gated by Authentik forward-auth"
 
 project: apps
 environment: production
-server: kod-prod-02
+# abc-prod-02 is the host auth.kodeme.io actually resolves to (138.199.213.219),
+# so the Traefik forward-auth middleware reaches the outpost via the internal
+# `authentik-server` alias on dokploy-network. Cross-host forward-auth loses
+# X-Forwarded-Host through Cloudflare/Traefik — the same reason Stirling and
+# WAHA were colocated with Authentik.
+server: abc-prod-02
 
 source_overrides:
   owner: tgunawandev
@@ -29,6 +34,26 @@ domain:
 env_file: ../../env/production/.env.kod-infra-dsh
 env_overrides:
   COMPOSE_PROJECT_NAME: kod-infra-dsh
+  # Not a secret. The gateway's Traefik forward-auth label interpolates this.
+  AUTHENTIK_HOST: http://authentik-server:9000
+
+# SSO is enforced at the Traefik layer by a forward-auth middleware defined in
+# the repo's docker-compose.prod.yml (calls
+# ${AUTHENTIK_HOST}/outpost.goauthentik.io/auth/traefik). Authentik-side wiring:
+# Proxy Provider 'dsh-harness' (forward_single) bound to the Embedded Outpost on
+# auth.kodeme.io.
+#
+# The gateway additionally fails closed: Caddy requires BOTH the outpost's
+# X-authentik-username header and an X-Gateway-Secret header injected by our own
+# `headers` middleware, which overwrites any client-supplied value. That matters
+# because a Traefik router naming a middleware that does not exist is dropped,
+# and Dokploy's priority-30 domain router then serves the app directly — without
+# the secret, an anonymous caller could simply send X-authentik-username itself
+# and be redirected to /?token=<bootstrap token>. GATEWAY_AUTH_SECRET is
+# required and lives in .env.kod-infra-dsh, never in Git.
+#
+# /healthz is deliberately excluded from the gated router so external monitoring
+# reaches it ungated; it proxies to Harness's own 401 and exposes nothing.
 
 healthcheck:
   path: /healthz
