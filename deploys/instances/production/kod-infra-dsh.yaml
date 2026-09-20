@@ -7,12 +7,14 @@ instance:
 
 project: apps
 environment: production
-# abc-prod-02 is the host auth.kodeme.io actually resolves to (138.199.213.219),
-# so the Traefik forward-auth middleware reaches the outpost via the internal
-# `authentik-server` alias on dokploy-network. Cross-host forward-auth loses
-# X-Forwarded-Host through Cloudflare/Traefik — the same reason Stirling and
-# WAHA were colocated with Authentik.
-server: abc-prod-02
+# kod-prod-02 runs its own remote Authentik proxy outpost (the `kod-dsh-outpost`
+# compose), so the Traefik forward-auth middleware here reaches it over
+# dokploy-network in ONE hop. That hop count is the whole point: routing
+# forward-auth through the public auth.kodeme.io inserts a second Traefik that
+# rewrites X-Forwarded-Host to auth.kodeme.io, and the outpost identifies the
+# application from that header — so it can never match the provider and 404s,
+# making the domain unreachable. See kodemeio-dsh/outpost/.
+server: kod-prod-02
 
 source_overrides:
   owner: tgunawandev
@@ -35,18 +37,25 @@ env_file: ../../env/production/.env.kod-infra-dsh
 env_overrides:
   COMPOSE_PROJECT_NAME: kod-infra-dsh
   # Not a secret. The gateway's Traefik forward-auth label interpolates this.
-  # Internal dokploy-network alias, used for the per-request auth subrequest.
-  # The browser-facing login redirect is the embedded outpost's own
-  # `authentik_host_browser` setting (must be https://auth.kodeme.io; empty
-  # makes it emit http://0.0.0.0:9000). Reaching the outpost over the public
-  # name does not work: auth.kodeme.io 404s on /outpost.goauthentik.io/.
-  AUTHENTIK_HOST: http://authentik-server:9000
+  # Internal dokploy-network alias of the remote outpost on kod-prod-02, used
+  # for the per-request auth subrequest. It must NOT be the public name:
+  # reaching the outpost over https://auth.kodeme.io adds a proxy hop that
+  # rewrites X-Forwarded-Host, so the outpost cannot match the provider and
+  # 404s. Matches the live Dokploy value.
+  #
+  # The browser-facing login redirect is a separate setting — the outpost's own
+  # `authentik_host_browser`, which must be https://auth.kodeme.io (empty makes
+  # it emit http://0.0.0.0:9000 and login becomes impossible).
+  AUTHENTIK_HOST: http://authentik-outpost:9000
 
 # SSO is enforced at the Traefik layer by a forward-auth middleware defined in
 # the repo's docker-compose.prod.yml (calls
 # ${AUTHENTIK_HOST}/outpost.goauthentik.io/auth/traefik). Authentik-side wiring:
-# Proxy Provider 'dsh-harness' (forward_single) bound to the Embedded Outpost on
-# auth.kodeme.io.
+# Proxy Provider 'dsh-harness' (forward_single) bound to the REMOTE outpost
+# `kod-prod-02-proxy` (pk 14afe6ba-be14-493a-944f-44f6329dadd9), which is the
+# same outpost that gates design.kodeme.io. Note that a newly bound provider
+# does not take effect until that outpost container is restarted — it reads its
+# configuration once at boot and then serves from cache.
 #
 # The gateway additionally fails closed: Caddy requires BOTH the outpost's
 # X-authentik-username header and an X-Gateway-Secret header injected by our own
