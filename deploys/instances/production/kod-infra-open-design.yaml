@@ -36,11 +36,20 @@ env_overrides:
   # Not secret. The compose's forward-auth label interpolates this.
   AUTHENTIK_HOST: http://authentik-outpost:9000
 
-# Ungated on purpose: the compose excludes /api/health from the gated router so
-# this probe reaches Dokploy's priority-30 Host router. Liveness only.
+# The compose gates EVERY path on this host, /api/health included, so an
+# unauthenticated probe now gets a 302 to auth.kodeme.io rather than 200.
+#
+# 302 is the correct expected status: it asserts the gate is actually working.
+# A dropped or mis-named forward-auth middleware would let the request reach the
+# daemon, which answers 401 without its bearer — so this probe fails loudly on
+# exactly the misconfiguration that would otherwise expose the service.
+#
+# This checks the edge, not the app. The app's own liveness is covered by the
+# container healthcheck, which probes 127.0.0.1:7456/api/health inside the
+# container and never traverses Traefik.
 healthcheck:
   path: /api/health
   port: 7456
-  expected_status: 200
+  expected_status: 302
   timeout: 60
   interval: 30
