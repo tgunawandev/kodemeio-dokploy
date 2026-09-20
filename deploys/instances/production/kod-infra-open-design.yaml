@@ -1,0 +1,46 @@
+kind: instance
+extends: ../../bases/infra.yaml
+
+instance:
+  name: kod-infra-open-design
+  description: "OpenDesign — design runtime for coding agents, gated by Authentik forward-auth"
+
+project: apps
+environment: production
+# kod-prod-02 hosts the Authentik outpost this service's forward-auth middleware
+# calls. An outpost is required because routing through the public
+# auth.kodeme.io adds a proxy hop whose Traefik rewrites X-Forwarded-Host, and
+# the outpost identifies the application from that header — it then 404s and the
+# service is unreachable. One hop keeps the header intact.
+server: kod-prod-02
+
+source_overrides:
+  owner: tgunawandev
+  repo: kodemeio-open-design
+  branch: main
+  compose_path: ./docker-compose.prod.yml
+
+dns:
+  zone: kodeme.io
+  name: design
+
+domain:
+  host: design.kodeme.io
+  port: 7456
+  service: open-design
+  https: true
+  cert: letsencrypt
+
+env_file: ../../env/production/.env.kod-infra-open-design
+env_overrides:
+  # Not secret. The compose's forward-auth label interpolates this.
+  AUTHENTIK_HOST: http://authentik-outpost:9000
+
+# Ungated on purpose: the compose excludes /api/health from the gated router so
+# this probe reaches Dokploy's priority-30 Host router. Liveness only.
+healthcheck:
+  path: /api/health
+  port: 7456
+  expected_status: 200
+  timeout: 60
+  interval: 30
