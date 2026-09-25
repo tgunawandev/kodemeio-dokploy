@@ -1,0 +1,12 @@
+version: 1
+always_human:        # never auto-approved, never promoted by "earned autonomy"
+  - production_deploy
+  - schema_migration
+  - dns_security_permission
+  - destructive_delete
+  - money_movement     # payments, refunds, payouts
+risk_mapping:        # mcp_base.policy.classify_operation
+  draft: auto-approvable when the profile sets auto_approve_draft
+  operational: human approver, distinct from requester when require_distinct_approver
+  financial: human approver; never auto
+  admin: human approver; never auto

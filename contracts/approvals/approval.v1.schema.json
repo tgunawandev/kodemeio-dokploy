@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kodeme.io/contracts/approvals/approval.v1.schema.json",
+  "title": "Approval v1 (Odoo mcp.operation view)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["operation_id", "state", "risk", "expires_at", "requires_odoo_approval"],
+  "properties": {
+    "operation_id": {"type": "string", "minLength": 32, "maxLength": 64},
+    "approval_token": {"type": "string", "pattern": "^mcpo_[0-9a-f]{64}$"},
+    "state": {"enum": ["pending", "approved", "executing", "succeeded", "failed", "cancelled", "expired"]},
+    "risk": {"enum": ["draft", "operational", "financial", "admin"]},
+    "expires_at": {"type": ["string", "null"]},
+    "preview": {"type": "object"},
+    "requires_odoo_approval": {"type": "boolean"},
+    "policy_version": {"type": "string"},
+    "environment": {"enum": ["local", "staging", "production"]}
+  }
+}

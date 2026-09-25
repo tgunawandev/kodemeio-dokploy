@@ -1,0 +1,9 @@
+version: 1
+events:
+  - type: order.requested
+    schema: events/order.requested.v1.schema.json
+    producer: kodemeio-hatchet/workers/order_intake (handle_inbound)
+    consumers: [kodemeio-hatchet/workers/order_intake (place_order)]
+    delivery: in-process (increment 1) / Hatchet task input (increment 2)
+    replay: safe — idempotent on idempotency_key and payload.work_order_id
+    retention_days: 30

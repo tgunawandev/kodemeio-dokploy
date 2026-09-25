@@ -1,0 +1,25 @@
+profile: kido
+version: 1
+principal: agent:kido
+brand: terakidz
+tools: [odoo_whoami, odoo_search, odoo_get, odoo_prepare_operation, odoo_execute_operation, odoo_operation_status]
+resources:
+  read: [products, sale-orders, partners]
+  write: [sale-orders]
+risk_ceiling: operational
+auto_approve_draft: true
+require_distinct_approver: true
+approval_ttl_minutes: 15
+data_scope:
+  max_classification: personal
+  forbidden: [financial, child]
+tenant_scope:
+  company: Terakidz TEST
+budget:
+  llm_usd_per_day: 0          # deterministic stand-in in Stage C; set before any live LLM use
+memory:
+  long_term: false
+escalation:
+  channel: mattermost
+  payload: ids_only
+model_route: none

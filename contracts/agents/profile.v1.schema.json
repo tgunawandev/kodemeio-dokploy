@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kodeme.io/contracts/agents/profile.v1.schema.json",
+  "title": "Agent profile v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["profile", "version", "principal", "brand", "tools", "resources", "risk_ceiling",
+               "auto_approve_draft", "require_distinct_approver", "approval_ttl_minutes",
+               "data_scope", "tenant_scope", "budget", "memory", "escalation", "model_route"],
+  "properties": {
+    "profile": {"type": "string", "pattern": "^[a-z][a-z0-9-]{1,31}$"},
+    "version": {"type": "integer", "minimum": 1},
+    "principal": {"type": "string", "pattern": "^agent:[a-z0-9-]+$"},
+    "brand": {"enum": ["terakidz", "terakon", "terafin", "terakod", "internal"]},
+    "tools": {"type": "array", "items": {"type": "string", "pattern": "^odoo_[a-z_]+$"}, "uniqueItems": true},
+    "resources": {
+      "type": "object", "additionalProperties": false, "required": ["read", "write"],
+      "properties": {
+        "read": {"type": "array", "items": {"type": "string"}},
+        "write": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "risk_ceiling": {"enum": ["read", "draft", "operational", "financial"]},
+    "auto_approve_draft": {"type": "boolean"},
+    "require_distinct_approver": {"const": true},
+    "approval_ttl_minutes": {"type": "integer", "minimum": 1, "maximum": 1440},
+    "data_scope": {
+      "type": "object", "additionalProperties": false, "required": ["max_classification", "forbidden"],
+      "properties": {
+        "max_classification": {"enum": ["public", "internal", "personal"]},
+        "forbidden": {"type": "array", "items": {"enum": ["financial", "child"]}, "minItems": 2}
+      }
+    },
+    "tenant_scope": {
+      "type": "object", "additionalProperties": false, "required": ["company"],
+      "properties": {"company": {"type": "string", "minLength": 1}}
+    },
+    "budget": {
+      "type": "object", "additionalProperties": false, "required": ["llm_usd_per_day"],
+      "properties": {"llm_usd_per_day": {"type": "number", "minimum": 0}}
+    },
+    "memory": {
+      "type": "object", "additionalProperties": false, "required": ["long_term"],
+      "properties": {"long_term": {"type": "boolean"}}
+    },
+    "escalation": {
+      "type": "object", "additionalProperties": false, "required": ["channel", "payload"],
+      "properties": {"channel": {"enum": ["mattermost"]}, "payload": {"const": "ids_only"}}
+    },
+    "model_route": {"type": "string"}
+  }
+}

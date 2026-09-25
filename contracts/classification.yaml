@@ -1,0 +1,10 @@
+version: 1
+levels:
+  - {name: public,    allowed_in_events: true,  allowed_in_logs: true,  allowed_in_chat: true,  allowed_to_third_party_llm: true}
+  - {name: internal,  allowed_in_events: true,  allowed_in_logs: true,  allowed_in_chat: true,  allowed_to_third_party_llm: true}
+  - {name: personal,  allowed_in_events: true,  allowed_in_logs: false, allowed_in_chat: false, allowed_to_third_party_llm: false}
+  - {name: financial, allowed_in_events: false, allowed_in_logs: false, allowed_in_chat: false, allowed_to_third_party_llm: false}
+  - {name: child,     allowed_in_events: false, allowed_in_logs: false, allowed_in_chat: false, allowed_to_third_party_llm: false}
+notes: >
+  "personal" events carry references only (e.g. odoo:res.partner/42); the referenced record
+  is read by the consumer under its own authorization.

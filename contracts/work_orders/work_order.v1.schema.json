@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kodeme.io/contracts/work_orders/work_order.v1.schema.json",
+  "title": "Work order v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["work_order_id", "brand", "kind", "correlation_id", "state", "refs"],
+  "properties": {
+    "work_order_id": {"type": "string", "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"},
+    "brand": {"enum": ["terakidz", "terakon", "terafin", "terakod"]},
+    "kind": {"enum": ["order"]},
+    "correlation_id": {"type": "string", "minLength": 8, "maxLength": 64},
+    "state": {"enum": ["received", "proposed", "awaiting_approval", "executing", "done", "failed", "manual_review"]},
+    "refs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "inbound_event_id": {"type": "string"},
+        "mcp_operation_ids": {"type": "array", "items": {"type": "string"}},
+        "odoo_sale_order": {"type": "string", "pattern": "^odoo:sale\\.order/[0-9]+$"},
+        "hatchet_run_id": {"type": "string"}
+      }
+    }
+  }
+}
