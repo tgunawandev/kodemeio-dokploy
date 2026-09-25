@@ -1,0 +1,19 @@
+{
+  "event_id": "01J8Z3K9Q4W6X2Y7T5R1N0M8PA",
+  "event_type": "order.requested",
+  "event_version": "1.0.0",
+  "occurred_at": "2026-09-25T10:00:00Z",
+  "source": "webhook:terakidz-shop",
+  "actor": {"kind": "service", "id": "terakidz-shop"},
+  "company_id": "terakidz-test",
+  "correlation_id": "corr-01J8Z3K9Q4",
+  "idempotency_key": "terakidz-shop:evt-0001",
+  "data_classification": "internal",
+  "payload": {
+    "work_order_id": "01J8Z3K9Q4W6X2Y7T5R1N0M8PB",
+    "brand": "terakidz",
+    "customer_ref": "odoo:res.partner/42",
+    "channel": "webhook",
+    "lines": [{"product_ref": "TKZ-KIT-001", "quantity": 2}]
+  }
+}
