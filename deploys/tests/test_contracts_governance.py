@@ -5,24 +5,22 @@ import subprocess
 
 import pytest
 import yaml
-from contracts_lib import CONTRACTS, iter_schemas, load, validator_for
+from contracts_lib import (
+    CONTRACTS,
+    iter_schemas,
+    load,
+    registry,
+    schema_property_names,
+    schema_property_paths,
+    validator_for,
+)
+from referencing import Registry, Resource
 
 PII_NAMES = {"email", "phone", "name", "full_name", "address", "dob", "birth_date", "nik", "ktp"}
 
 
 def _yaml(rel):
     return yaml.safe_load((CONTRACTS / rel).read_text())
-
-
-def _property_names(node):
-    if isinstance(node, dict):
-        for key, value in node.get("properties", {}).items():
-            yield key
-            yield from _property_names(value)
-        for key in ("items", "allOf", "anyOf", "oneOf"):
-            value = node.get(key)
-            for child in value if isinstance(value, list) else [value] if value else []:
-                yield from _property_names(child)
 
 
 def test_registry_covers_every_event_schema():
@@ -46,7 +44,7 @@ def test_event_classes_are_allowed_in_events():
 
 @pytest.mark.parametrize("path", sorted((CONTRACTS / "events").glob("*.schema.json")), ids=lambda p: p.name)
 def test_no_pii_property_names_in_events(path):
-    names = set(_property_names(load(path)))
+    names = schema_property_names(load(path), registry())
     assert not (names & PII_NAMES), names & PII_NAMES
 
 
@@ -72,7 +70,100 @@ def test_schema_is_backward_compatible_with_head(path):
     if shown.returncode != 0:
         pytest.skip("new schema, nothing to compare")
     old, new = json.loads(shown.stdout), load(path)
-    removed = set(old.get("properties", {})) - set(new.get("properties", {}))
-    newly_required = set(new.get("required", [])) - set(old.get("required", []))
+    # Resolved against the CURRENT registry: refs like envelope.v1's $id are
+    # stable across versions, and each schema is also checked against HEAD in
+    # its own right, so this doesn't hide a break in a ref'd schema.
+    reg = registry()
+    old_paths, old_required = schema_property_paths(old, reg)
+    new_paths, new_required = schema_property_paths(new, reg)
+    removed = old_paths - new_paths
+    newly_required = new_required - old_required
     assert not removed, f"removed properties need a new major version: {removed}"
     assert not newly_required, f"newly required properties need a new major version: {newly_required}"
+
+
+# --- unit tests for the schema_property_paths / schema_property_names helpers ---
+
+_NESTED_BASE = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "type": "object",
+    "properties": {
+        "payload": {
+            "type": "object",
+            "required": ["work_order_id", "lines"],
+            "properties": {
+                "work_order_id": {"type": "string"},
+                "lines": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": ["product_ref", "quantity"],
+                        "properties": {
+                            "product_ref": {"type": "string"},
+                            "quantity": {"type": "integer"},
+                        },
+                    },
+                },
+            },
+        }
+    },
+}
+
+_EMPTY_REGISTRY = Registry()
+
+
+def test_schema_property_paths_flags_removed_nested_field():
+    new_schema = json.loads(json.dumps(_NESTED_BASE))
+    del new_schema["properties"]["payload"]["properties"]["lines"]["items"]["properties"]["quantity"]
+    new_schema["properties"]["payload"]["properties"]["lines"]["items"]["required"] = ["product_ref"]
+
+    old_paths, _ = schema_property_paths(_NESTED_BASE, _EMPTY_REGISTRY)
+    new_paths, _ = schema_property_paths(new_schema, _EMPTY_REGISTRY)
+
+    removed = old_paths - new_paths
+    assert removed == {"payload.lines[].quantity"}
+
+
+def test_schema_property_paths_flags_newly_required_nested_field():
+    new_schema = json.loads(json.dumps(_NESTED_BASE))
+    items = new_schema["properties"]["payload"]["properties"]["lines"]["items"]
+    items["properties"]["sku"] = {"type": "string"}
+    items["required"].append("sku")
+
+    _, old_required = schema_property_paths(_NESTED_BASE, _EMPTY_REGISTRY)
+    _, new_required = schema_property_paths(new_schema, _EMPTY_REGISTRY)
+
+    newly_required = new_required - old_required
+    assert newly_required == {"payload.lines[].sku"}
+
+
+def test_schema_property_paths_allows_optional_nested_addition():
+    new_schema = json.loads(json.dumps(_NESTED_BASE))
+    new_schema["properties"]["payload"]["properties"]["lines"]["items"]["properties"]["note"] = {"type": "string"}
+    # deliberately NOT added to "required"
+
+    old_paths, old_required = schema_property_paths(_NESTED_BASE, _EMPTY_REGISTRY)
+    new_paths, new_required = schema_property_paths(new_schema, _EMPTY_REGISTRY)
+
+    assert old_paths - new_paths == set()
+    assert new_required - old_required == set()
+    assert "payload.lines[].note" in new_paths - old_paths
+
+
+def test_schema_property_names_resolves_ref():
+    target = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "urn:test:contact-target",
+        "type": "object",
+        "properties": {"email": {"type": "string"}},
+    }
+    reg = Registry().with_resource("urn:test:contact-target", Resource.from_contents(target))
+    schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "properties": {"contact": {"$ref": "urn:test:contact-target"}},
+    }
+
+    names = schema_property_names(schema, reg)
+
+    assert "email" in names
