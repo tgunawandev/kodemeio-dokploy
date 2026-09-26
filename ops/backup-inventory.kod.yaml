@@ -174,7 +174,7 @@ items:
       prefix: supabase/terakidz/
     fresh_h: 800
     drill: none
-    notes: "TeraKidz self-hosted Supabase (tenant tkz, service infra-postgres, kod-prod-02). Primary backup is the Supabase stack's own provider-side mechanism, not a kod-owned Hetzner prefix. Not covered by kod-offsite-mirror.sh / kod-offsite-fresh.sh / kod-hz-fresh.sh -- offsite copy is a manual runbook procedure until a dedicated job exists. Offsite bucket inferred; confirm in the supabase runbook."
+    notes: "TeraKidz production = Supabase Cloud, ref etxfaitkiscjusjfzpuo (kodemeio-supabase supabase.yaml target terakidz/cloud; no self-hosted production exists). Primary = Supabase's own provider backups (tier H5, recorded in ops/runbooks/supabase-export.md). Offsite = founder-run ops/scripts/supabase-export.sh into kod-prod-backup/supabase/terakidz/<stamp>/ (G10), monthly pre-launch; set fresh_h to 192 when it goes weekly. Not covered by the kod-* jobs."
 
   # --- Filestore/media, non-Odoo (Task 6) -------------------------------------
 
