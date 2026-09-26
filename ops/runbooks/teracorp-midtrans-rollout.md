@@ -181,7 +181,11 @@ on Terakidz. Confirm the seed provider (if any) now reads `state=disabled`.
 reconciles in the **Terakidz** company (company on the invoice, the payment
 and every move line) — the same P2 assertion Task 6's own HTTP e2e test
 makes locally against the fake server. Do this at least once per payment
-method you plan to accept (QRIS, and VA if used) before Stage 4.
+method you plan to accept (QRIS, and VA if used) before Stage 4, and **record
+the result before Stage 4** (final review, "Not run"): the charge-response and
+notification shapes were only ever exercised against the local fake, so this
+rehearsal is the only check of them against real Midtrans, and a sandbox
+pass recorded here is what Stage 4's go/no-go rests on.
 
 ## Stage 4 — production cutover
 
@@ -261,7 +265,7 @@ the other two come from `payment_midtrans` itself (upstream, unmodified):
 | `reversal` (settlement → deny) | Confirm in the Midtrans dashboard, then unwind in Odoo: unreconcile the payment from the invoice and cancel the payment; follow up with the customer. |
 | `settlement_after_reversal` / `notification_after_reversal:*` | Ask Midtrans which status is final. If the money really arrived, an Accounting Manager clears the reversal flag (below) and registers the payment manually. |
 | `settlement_after_deny` / `refund_before_settlement:*` / `inconsistent_settlement` / `terminal_state_conflict` | Raised only when the guard's own GET-status query to Midtrans could not be applied either. Check the real status in the Midtrans dashboard; if paid, invoice the order first if none exists, then Register Payment on the invoice (Midtrans journal). |
-| `status_query_failed` / `status_answer_apply_failed` | The guard could not ask Midtrans, or Midtrans's answer failed to apply and was rolled back — **nothing was posted**. **Do not re-press "Check status."** That only feeds a fresh GET into the same guard and changes nothing unless Midtrans's own answer has changed; follow the resolution above instead (dashboard check, manual registration if paid) and check the provider's server key / Midtrans's own status page. |
+| `status_query_failed` / `status_answer_apply_failed` | The guard could not ask Midtrans, or Midtrans's answer failed to apply and was rolled back — **nothing was posted**. **Do not re-press "Check status."** That only feeds a fresh GET into the same guard; if Midtrans's own answer has since changed (it now reports the settlement), pressing it **is** the recovery path and applies that answer exactly once — but pressing it again while the answer is unchanged posts and changes nothing. Follow the resolution above instead (dashboard check, manual registration if paid) and check the provider's server key / Midtrans's own status page. |
 | `amount_mismatch` / `settlement_after_amount_mismatch` | Compare the Midtrans amount with the order. Right amount: invoice first if needed, then register the payment. Wrong amount: refund the difference through the Midtrans dashboard (always human, see below) and record it. |
 | **`already_paid_manually`** (incl. **partial payment**) | Midtrans settled, but Odoo already shows a payment. Two of it: refund one through the Midtrans dashboard. Wrong manual entry: cancel it and register the Midtrans one. **Partial payment on the invoice: register the Midtrans payment, then refund the excess through the Midtrans dashboard.** (Edge case: a partial credit note can also make the invoice read `partial` — a human decides then too.) The guard never posts this on its own. |
 | `reopened_after_expiry` | Informational: an expired transaction was settled because Midtrans's authenticated status said so — the payment is posted. Confirm it in the dashboard; if the linked order was cancelled (the note says so), reinstate it or refund the customer. |
