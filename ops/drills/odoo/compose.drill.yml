@@ -1,0 +1,137 @@
+# compose.drill.yml — isolated, timed Odoo DB+filestore restore drill.
+#
+# Brought up by drill-odoo.sh with `docker compose -p <unique-project> -f
+# compose.drill.yml ...` — the project name is generated per run so this
+# never collides with any other compose stack (including the shared
+# kodemeio-odoo dev stack, which this must never stop, attach to or share a
+# network/volume with).
+#
+# Everything here is on the `drill` network, which is `internal: true` — no
+# default route out of the host, so the restored Odoo cannot send mail,
+# reach a webhook, call Authentik or leak data over the internet. The
+# validator's egress probe (validate_odoo.py) asserts this directly.
+#
+# No service publishes a port. The fetch/restore-filestore steps that DO
+# need real network access (to B2, or the local S3 stand-in in tests) run
+# as separate one-shot `docker run` containers on a *different*,
+# non-internal network created by drill-odoo.sh — never on `drill`.
+#
+# Required env (set by drill-odoo.sh before `compose up`):
+#   PROJECT_NAME        also passed as -p; used to name the network/volumes
+#   ODOO_IMAGE           image:tag to boot (verified shell invocation: see
+#                        drill-odoo.sh's neutralise_users())
+#   DRILL_DB_NAME        database name restored into `db`
+#   DRILL_PG_PASSWORD    random per run, never printed
+#   DRILL_ADMIN_PASSWD   random per run, never printed (Odoo master password)
+#   ODOO_INIT_DB         "false" for a real restore (db already exists)
+#   ODOO_INIT_MODULES    only meaningful when ODOO_INIT_DB=true (fixture use)
+#   VENV_SITE_PACKAGES   host path to this repo's `.venv/lib/python3.X/site-packages`
+#                        (mounted read-only so the validator gets httpx
+#                        without any pip install — the drill network has no
+#                        egress to reach PyPI)
+
+name: ${PROJECT_NAME}
+
+networks:
+  drill:
+    name: ${PROJECT_NAME}-net
+    internal: true
+
+volumes:
+  filestore:
+    name: ${PROJECT_NAME}-filestore
+  pgdata:
+    name: ${PROJECT_NAME}-pgdata
+
+services:
+  db:
+    image: postgres:16
+    networks: [drill]
+    environment:
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: ${DRILL_PG_PASSWORD}
+      POSTGRES_DB: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odoo"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+    restart: "no"
+
+  odoo-init:
+    image: ${ODOO_IMAGE}
+    networks: [drill]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment: &odoo-env
+      PGHOST: db
+      PGPORT: "5432"
+      PGUSER: odoo
+      PGPASSWORD: ${DRILL_PG_PASSWORD}
+      PGDATABASE: ${DRILL_DB_NAME}
+      ODOO_DATA_DIR: /var/lib/odoo
+      ODOO_DB_FILTER: "^${DRILL_DB_NAME}$$"
+      ODOO_LIST_DB: "False"
+      ODOO_DB_MAXCONN: "16"
+      ODOO_HTTP_PORT: "8069"
+      ODOO_GEVENT_PORT: "8072"
+      ODOO_PROXY_MODE: "False"
+      ODOO_WORKERS: "0"
+      ODOO_MAX_CRON_THREADS: "0"
+      ODOO_ADMIN_PASSWD: ${DRILL_ADMIN_PASSWD}
+      ODOO_LOG_LEVEL: warn
+      ODOO_LIMIT_TIME_CPU: "600"
+      ODOO_LIMIT_TIME_REAL: "1200"
+      ODOO_LIMIT_TIME_REAL_CRON: "1800"
+      ODOO_LIMIT_MEMORY_SOFT: "2147483648"
+      ODOO_LIMIT_MEMORY_HARD: "4294967296"
+      RUNNING_ENV: drill
+      WITHOUT_DEMO: "True"
+      ODOO_SERVER_WIDE_MODULES: base,web
+      # Never let boot install anything new onto a restored (or fixture)
+      # database — a drill validates what is already there.
+      ODOO_SKIP_MANDATORY_MODULES: "true"
+      ODOO_INIT_DB: ${ODOO_INIT_DB:-false}
+      ODOO_INIT_MODULES: ${ODOO_INIT_MODULES:-base}
+    volumes:
+      - filestore:/var/lib/odoo
+    command: ["init"]
+    restart: "no"
+
+  odoo:
+    image: ${ODOO_IMAGE}
+    networks: [drill]
+    depends_on:
+      odoo-init:
+        condition: service_completed_successfully
+    environment: *odoo-env
+    volumes:
+      - filestore:/var/lib/odoo
+    command: ["odoo"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8069/web/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 180
+      start_period: 10s
+    restart: "no"
+
+  # One-shot: `docker compose run --rm validator ...` (never `up`). Plain
+  # python:3.12-slim per the brief — httpx comes from the repo's own uv
+  # venv, bind-mounted read-only, because the drill network has no egress
+  # for `pip install`.
+  validator:
+    image: python:3.12-slim
+    networks: [drill]
+    environment:
+      PYTHONPATH: /venv-site-packages
+      ODOO_URL: http://odoo:8069
+    volumes:
+      - filestore:/var/lib/odoo:ro
+      - ${VENV_SITE_PACKAGES}:/venv-site-packages:ro
+      - ./validate_odoo.py:/work/validate_odoo.py:ro
+    working_dir: /work
+    entrypoint: ["python", "/work/validate_odoo.py"]
