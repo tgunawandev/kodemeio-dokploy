@@ -19,7 +19,7 @@ jobs:
       # kodemeio-hatchet's CI). Until then this job FAILS loudly on purpose:
       # test_friday_broker_repos refuses to skip when CI=true and
       # CI_GATES_REQUIRED_SIBLINGS names kodemeio-dsh.
-      CONTRACTS_READ_TOKEN: ${{ secrets.CONTRACTS_READ_TOKEN }}
+      HAS_CONTRACTS_READ_TOKEN: ${{ secrets.CONTRACTS_READ_TOKEN != '' }}
     defaults:
       run:
         # Sibling layout, as on a workstation: this repo and kodemeio-dsh sit
@@ -38,10 +38,11 @@ jobs:
       # ../kodemeio-dsh/.env.example to check friday.yaml repos against
       # DSH_BROKER_REPOS.
       - uses: actions/checkout@v4
-        if: env.CONTRACTS_READ_TOKEN != ''
+        if: env.HAS_CONTRACTS_READ_TOKEN == 'true'
         with:
           repository: tgunawandev/kodemeio-dsh
           token: ${{ secrets.CONTRACTS_READ_TOKEN }}
+          persist-credentials: false
           path: kodemeio-dsh
 
       - uses: astral-sh/setup-uv@v6
