@@ -5,7 +5,10 @@ principal: agent:friday
 # load). deploys/tests/test_friday_broker_repos.py asserts this subset relation.
 # kodemeio-hatchet and kodemeio-llmlite were added to both lists by ruling R3.
 repos: [kodemeio-dokploy, kodemeio-next, kodemeio-react, kodemeio-odoo, kodemeio-hatchet, kodemeio-llmlite]
-model_route: litellm:dsh
+# Own LiteLLM key (kodemeio-llmlite config/keys.yaml alias `friday`,
+# DeepSeek-only per design D5, max_budget = budget.llm_usd_per_day) -- never
+# the interactive dsh UI's key, so budgets and kill switches stay separate.
+model_route: litellm:friday
 budget:
   llm_usd_per_day: 10
   wall_clock_minutes: 45
