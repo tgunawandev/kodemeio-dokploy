@@ -24,4 +24,19 @@ Owners: this repo holds the schemas; each service repo implements them.
 - `agents/profile.v1.schema.json`'s `profile` field pattern was widened from
   `^[a-z][a-z0-9-]{1,31}$` to `^[a-z][a-z0-9_-]{1,31}$` (allows `_`) so `kido_chat` validates;
   by convention a profile's `profile:` value equals its file's stem.
+- `work_orders/work_order.v1.schema.json`'s `kind` gains `factory_job` (Teracorp factory
+  commons, additive-only widening — the compat test pins this). A factory job may also carry
+  `factory` (the production line: `website`, `template`, `ebook`, `course`, `video`, `social`,
+  `affiliate`, `software`) and `gate` (the stage reached: `auto`, `expert`, `founder`). `refs`
+  gains optional `odoo_factory_work_order` and `odoo_landing_page_version`, pointing at the
+  Odoo-side ledger record (`factory.work.order`) and the landing page version it materialises.
+  The pre-existing `order` shape is untouched.
+- `brands/brand_kit.v1.schema.json` is a brand's or niche channel's voice, audience, do/don't
+  rules, forbidden phrases, required disclaimers (incl. AI and affiliate disclosure), a subset
+  of the renderer's 13 colour/radius tokens, fonts (`asset:<key>` references — every referenced
+  font must also appear in `assets`), a WhatsApp contact number, and expert reviewer logins.
+  `brands/<code>.yaml` in this repo is the git source of truth (PR-reviewed); each consuming
+  service imports its own read-only snapshot (e.g. Odoo's `factory_base`, per the Teracorp
+  factory-commons plan) rather than editing the kit directly. `brands/terakidz.yaml` is
+  `active`; `brands/terakon.yaml` is a `draft` test fixture only (no real product yet).
 - Tests: `uv run pytest deploys/tests -k contracts`.

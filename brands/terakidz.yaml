@@ -42,13 +42,19 @@ audience: >
   okupasi, atau pendekatan ABA/PECS bersama tenaga profesional anak.
 
 rules:
+  # Claim-shaped multi-word phrases only. Bare "terapi"/"diagnosis" are
+  # deliberately NOT listed: this kit's own required disclaimer below uses
+  # both words legitimately, and so does the real terakidz-web copy (e.g.
+  # "tujuan terapi wicara", "terapis anak Anda") — a bare-word match would
+  # block that legitimate content, not just the claims this list targets.
   forbidden_phrases:
     - "menyembuhkan autisme"
-    - "terapi"
-    - "diagnosis"
     - "mendiagnosis"
     - "obat autisme"
     - "sembuh total"
+    - "menggantikan terapi"
+    - "pengganti terapi profesional"
+    - "diagnosis mandiri"
   required_disclaimers:
     - "Terakidz adalah layanan edukasi, bukan layanan diagnosis atau terapi."
   ai_disclosure: >

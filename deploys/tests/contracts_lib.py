@@ -5,13 +5,24 @@ from __future__ import annotations
 import json
 import os
 import subprocess
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from pathlib import Path
 
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
 
 CONTRACTS = Path(__file__).resolve().parents[2] / "contracts"
+
+# The canonical PII property-name denylist, shared by every schema/property-name
+# test across modules (events, factory contracts, ...) so it is declared once.
+PII_NAMES = {"email", "phone", "name", "full_name", "address", "dob", "birth_date", "nik", "ktp"}
+# Any property about a child (child_name, child_age, ...) is `child` class data,
+# which classification.yaml never allows in events.
+PII_PREFIXES = ("child_",)
+
+
+def pii_hits(names: Iterable[str]) -> set[str]:
+    return {n for n in names if n in PII_NAMES or n.startswith(PII_PREFIXES)}
 
 
 def contracts_base_ref(

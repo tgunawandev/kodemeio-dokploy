@@ -11,21 +11,13 @@ from contracts_lib import (
     contracts_base_ref,
     iter_schemas,
     load,
+    pii_hits,
     registry,
     schema_property_names,
     schema_property_paths,
     validator_for,
 )
 from referencing import Registry, Resource
-
-PII_NAMES = {"email", "phone", "name", "full_name", "address", "dob", "birth_date", "nik", "ktp"}
-# Any property about a child (child_name, child_age, ...) is `child` class data,
-# which classification.yaml never allows in events.
-PII_PREFIXES = ("child_",)
-
-
-def pii_hits(names):
-    return {n for n in names if n in PII_NAMES or n.startswith(PII_PREFIXES)}
 
 
 def _yaml(rel):

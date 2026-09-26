@@ -10,7 +10,7 @@ import re
 import jsonschema
 import pytest
 import yaml
-from contracts_lib import CONTRACTS, load, registry, schema_property_names, validator_for
+from contracts_lib import CONTRACTS, load, pii_hits, registry, schema_property_names, validator_for
 
 BRANDS = CONTRACTS.parent / "brands"
 WORK_ORDER_EXAMPLES = CONTRACTS / "examples" / "work_orders"
@@ -18,16 +18,6 @@ WORK_ORDER_SCHEMA = CONTRACTS / "work_orders" / "work_order.v1.schema.json"
 BRAND_KIT_SCHEMA = CONTRACTS / "brands" / "brand_kit.v1.schema.json"
 
 HEX_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
-
-# Same denylist shape as test_contracts_governance.py's PII_NAMES/PII_PREFIXES,
-# duplicated locally (not imported) so this module never depends on a file
-# another agent is concurrently editing.
-_PII_NAMES = {"email", "phone", "name", "full_name", "address", "dob", "birth_date", "nik", "ktp"}
-_PII_PREFIXES = ("child_",)
-
-
-def _pii_hits(names):
-    return {n for n in names if n in _PII_NAMES or n.startswith(_PII_PREFIXES)}
 
 
 def _kit(name: str) -> dict:
@@ -125,7 +115,7 @@ def test_new_refs_reject_malformed_values(bad_ref):
 @pytest.mark.parametrize("schema_path", [WORK_ORDER_SCHEMA, BRAND_KIT_SCHEMA], ids=lambda p: p.name)
 def test_no_pii_property_names(schema_path):
     names = schema_property_names(load(schema_path), registry())
-    assert not _pii_hits(names), _pii_hits(names)
+    assert not pii_hits(names), pii_hits(names)
 
 
 # --- brand_kit.v1 + the terakidz/terakon kits -------------------------------
@@ -147,11 +137,36 @@ def test_terakidz_has_no_expert_reviewers_yet_founder_fills():
 
 def test_terakidz_forbidden_phrases_and_required_disclaimer():
     kit = _kit("terakidz")
-    for phrase in ("menyembuhkan autisme", "terapi", "diagnosis"):
+    # Claim-shaped multi-word phrases only — bare "terapi"/"diagnosis" would
+    # also flag the kit's own required disclaimer and the real terakidz-web
+    # copy, which uses both words legitimately (e.g. "tujuan terapi wicara").
+    for phrase in (
+        "menyembuhkan autisme",
+        "mendiagnosis",
+        "obat autisme",
+        "sembuh total",
+        "menggantikan terapi",
+        "pengganti terapi profesional",
+        "diagnosis mandiri",
+    ):
         assert phrase in kit["rules"]["forbidden_phrases"]
+    assert "terapi" not in kit["rules"]["forbidden_phrases"]
+    assert "diagnosis" not in kit["rules"]["forbidden_phrases"]
     assert (
         "Terakidz adalah layanan edukasi, bukan layanan diagnosis atau terapi." in kit["rules"]["required_disclaimers"]
     )
+
+
+@pytest.mark.parametrize("name", ["terakidz", "terakon"])
+def test_required_disclaimers_do_not_contain_the_kits_own_forbidden_phrases(name):
+    # A brand_rules check (Task 6, factory_base) that matches forbidden phrases
+    # case-insensitively must never be tripped by the kit's own mandatory copy.
+    kit = _kit(name)
+    forbidden = [p.lower() for p in kit["rules"]["forbidden_phrases"]]
+    for disclaimer in kit["rules"]["required_disclaimers"]:
+        lowered = disclaimer.lower()
+        hits = [p for p in forbidden if p in lowered]
+        assert not hits, f"{name} required_disclaimer contains forbidden phrase(s) {hits}: {disclaimer!r}"
 
 
 @pytest.mark.parametrize("name", ["terakidz", "terakon"])
