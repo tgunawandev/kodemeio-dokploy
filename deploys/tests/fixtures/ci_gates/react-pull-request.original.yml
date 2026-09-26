@@ -1,0 +1,138 @@
+name: CI
+
+# Automatic again as of 2026-09-02, after ~2 weeks manual-only.
+#
+# History, so the next person does not repeat it: this ran per-push, the
+# suite went red on an unrelated package, nobody read the ~50 runs a day it
+# produced, and the fix applied at the time was to switch the whole thing to
+# workflow_dispatch. That removed the noise by removing the signal. The
+# actual defect was a gate that had been red for weeks, not the trigger.
+#
+# So it comes back NON-BLOCKING first. Every job below carries
+# `continue-on-error: true`, which makes a failing gate show up in the
+# Actions tab and on the PR without failing the run. Two weeks of that tells
+# us what is genuinely broken; only then does it become a gate.
+#
+# NOTE ON THE FLAG'S PLACEMENT: GitHub Actions has no workflow-level
+# `continue-on-error` — the only top-level keys are name / run-name / on /
+# permissions / env / defaults / concurrency / jobs, and `defaults` accepts
+# `run` settings only. Job-level is therefore the whole-workflow mechanism,
+# and it has to be repeated on every job that runs automatically. If you add
+# a job here before the removal date below, give it the flag too, or the
+# workflow silently becomes blocking again for that job alone.
+#
+# >>> REMOVE THE `continue-on-error: true` ON EVERY JOB IN THIS FILE ON
+# >>> 2026-09-16 (two weeks from 2026-09-02).
+#
+# Before removing it: read the last two weeks of runs and fix, or explicitly
+# delete, whatever is red. Promoting this to a required check while it is
+# still failing is exactly how it ended up disabled the first time — a gate
+# that is red on arrival teaches everyone to ignore it on day one.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      docker:
+        description: "Also build the Docker images (slow)"
+        required: false
+        default: false
+        type: boolean
+
+# Keyed on the PR (or the ref) rather than the sha, matching
+# terakidz-deploy.yml, so a re-push supersedes the run it made obsolete.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  quality:
+    name: Quality Checks
+    runs-on: ubuntu-latest
+    # Non-blocking until 2026-09-16 — see the header. This is the job that
+    # actually runs on every push and PR, so this is the flag that keeps the
+    # reintroduced CI from blocking anyone during the observation window.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm turbo lint
+
+      - name: Type check
+        run: pnpm turbo type-check
+
+      - name: Test
+        run: pnpm turbo test:ci
+
+      - name: Build
+        run: pnpm turbo build
+
+      - name: Bundle size
+        run: |
+          echo "## Bundle Sizes" >> $GITHUB_STEP_SUMMARY
+          for dir in apps/*-spa; do
+            if [ -d "$dir/dist" ]; then
+              size=$(du -sh "$dir/dist" | cut -f1)
+              echo "- **$(basename "$dir")**: $size" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+  # No `continue-on-error` here, deliberately. `inputs.docker` is null on
+  # push and pull_request, so this job only ever runs when a human ticks the
+  # box on a manual dispatch — i.e. when someone is specifically asking
+  # whether the images build. Swallowing the answer to a question somebody
+  # just asked out loud is worse than useless: it had been masking failures
+  # here for as long as the flag was set. It reports honestly, inside a
+  # workflow whose automatic runs are non-blocking anyway.
+  docker:
+    name: Docker Build (${{ matrix.app }})
+    needs: quality
+    if: ${{ inputs.docker }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        app: [dms-spa, eam-spa, erp-spa, hrm-spa, saas-spa, shop-spa, terakidz-spa, tpm-spa]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          build-args: APP_NAME=${{ matrix.app }}
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: |
+            ghcr.io/${{ github.repository }}/${{ matrix.app }}:latest
+            ghcr.io/${{ github.repository }}/${{ matrix.app }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
