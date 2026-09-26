@@ -30,12 +30,13 @@ environment: production
 #      COMPOSE_PROFILES=colocated + LITELLM_DB_PASSWORD, DATABASE_URL
 #      ...@litellm-db:5432/litellm, AUTHENTIK_HOST=http://authentik-outpost:9000.
 #      dsh reaches LiteLLM over kod-llm-upstream with no CDN hop.
-#   B. shared kod postgres: `server: abc-prod-02` (design D2, as below),
+#   B. shared kod postgres: `server: abc-prod-02` (design D2),
 #      DATABASE_URL ...@kod-infra-postgres:5432/litellm -- that alias only
 #      resolves on abc-prod-02. dsh then goes through Cloudflare-proxied
 #      llm.kodeme.io (permanent CDN-SNI residual risk).
-# Left at B until the founder decides; the runbook's Step 1 edits this line.
-server: abc-prod-02
+# Defaults to A, consistent with env_overrides COMPOSE_PROFILES=colocated below.
+# Choosing B means changing BOTH this line and that override (runbook Step 1).
+server: kod-prod-02
 
 # A plain `source:` block, not `source_overrides:` -- source_overrides is only
 # applied by merge_manifests() during an `extends` resolve, and this manifest
