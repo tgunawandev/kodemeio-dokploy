@@ -1,0 +1,212 @@
+# kod estate — stateful backup inventory (Teracorp Wave 0, Task 3).
+#
+# Desired-state description of what backs up what: every stateful service on
+# the kod estate (kod-prod-01, kod-prod-02, abc-prod-01, abc-prod-02), where
+# its PRIMARY backup lands (Hetzner Object Storage, "kodemeio" project), and
+# where the OFFSITE copy lands (Backblaze B2, bucket kod-prod-backup).
+#
+# This file is the desired state; kodemeio-skills' docker/jobs/kod-*.sh are
+# the code that actually runs. deploys/tests/test_backup_inventory.py reads
+# both and fails on drift: a prefix or threshold changed in a job but not
+# here (or vice versa) stops silently, before a restore ever needs it.
+#
+# Facts below are from Task 0 (verify-first, read-only, profile kodemeio,
+# 2026-09-26) and the job scripts Task 2 shipped in kodemeio-skills
+# (docker/jobs/kod-offsite-mirror.sh, kod-offsite-fresh.sh, kod-hz-fresh.sh).
+# The flat prefix layout (e.g. `kodemeio-postgres-backup/kod_odoo_erp/`, no
+# extra directory segment) is what Task 0 actually found for kod — other
+# estates in this workspace nest an extra compose-path directory; kod does
+# not.
+#
+# Schema:
+#   id        unique
+#   kind      odoo-db | odoo-filestore | pg-db | bucket | app-dump | gap
+#   pair      required for odoo-db/odoo-filestore; must point back
+#   primary   {bucket, prefix, cadence_h} — where the primary backup lands,
+#             or the literal string "provider" when a third party runs it
+#   offsite   {bucket, prefix} — where the B2 offsite copy lands
+#   fresh_h   max age (hours) before the freshness alarm fires; must equal
+#             the job scripts exactly
+#   drill     odoo | authentik | none — which restore drill covers it
+#   planned   true when the jobs deliberately do not cover this item yet;
+#             excluded from the drift/equality tests; requires `notes`
+#             naming the task or event that adds it
+#   notes     free text; required when planned is true
+
+version: 1
+estate: kod
+
+items:
+  # --- Odoo: erp / hrms / desk, each a DB + filestore pair --------------------
+
+  - id: odoo-erp-db
+    kind: odoo-db
+    pair: odoo-erp-filestore
+    primary:
+      bucket: kodemeio-postgres-backup
+      prefix: kod_odoo_erp/
+      cadence_h: 12
+    offsite:
+      bucket: kod-prod-backup
+      prefix: kodemeio-postgres-backup/kod_odoo_erp/
+    fresh_h: 30
+    drill: odoo
+    notes: "Teracorp companies live here (erp.kodeme.io, abc-prod-02)"
+
+  - id: odoo-erp-filestore
+    kind: odoo-filestore
+    pair: odoo-erp-db
+    primary:
+      bucket: kodemeio-odoo-filestore
+      prefix: kod-odoo-erp/snapshots/
+      cadence_h: 2
+    offsite:
+      bucket: kod-prod-backup
+      prefix: kodemeio-odoo-filestore/kod-odoo-erp/snapshots/
+    fresh_h: 8
+    drill: odoo
+
+  - id: odoo-hrms-db
+    kind: odoo-db
+    pair: odoo-hrms-filestore
+    primary:
+      bucket: kodemeio-postgres-backup
+      prefix: kod_odoo_hrms/
+      cadence_h: 12
+    offsite:
+      bucket: kod-prod-backup
+      prefix: kodemeio-postgres-backup/kod_odoo_hrms/
+    fresh_h: 30
+    drill: odoo
+    notes: "Task 0 (2026-09-26): dump cron stale ~223h, only one dump ever taken -- a live production gap, flagged to the founder, tracked outside Wave 0. The job/threshold still alarm on it correctly; not marked planned."
+
+  - id: odoo-hrms-filestore
+    kind: odoo-filestore
+    pair: odoo-hrms-db
+    primary:
+      bucket: kodemeio-odoo-filestore
+      prefix: kod-odoo-hrms/snapshots/
+      cadence_h: 2
+    offsite:
+      bucket: kod-prod-backup
+      prefix: kodemeio-odoo-filestore/kod-odoo-hrms/snapshots/
+    fresh_h: 8
+    drill: odoo
+
+  - id: odoo-desk-db
+    kind: odoo-db
+    pair: odoo-desk-filestore
+    primary:
+      bucket: kodemeio-postgres-backup
+      prefix: kod_odoo_desk/
+      cadence_h: 12
+    offsite:
+      bucket: kod-prod-backup
+      prefix: kodemeio-postgres-backup/kod_odoo_desk/
+    fresh_h: 30
+    drill: odoo
+
+  - id: odoo-desk-filestore
+    kind: odoo-filestore
+    pair: odoo-desk-db
+    primary:
+      bucket: kodemeio-odoo-filestore
+      prefix: kod-odoo-desk/snapshots/
+      cadence_h: 2
+    offsite:
+      bucket: kod-prod-backup
+      prefix: kodemeio-odoo-filestore/kod-odoo-desk/snapshots/
+    fresh_h: 8
+    drill: odoo
+
+  # --- Other live databases ---------------------------------------------------
+
+  - id: authentik-db
+    kind: pg-db
+    primary:
+      bucket: kodemeio-postgres-backup
+      prefix: authentik/
+      cadence_h: 12
+    offsite:
+      bucket: kod-prod-backup
+      prefix: kodemeio-postgres-backup/authentik/
+    fresh_h: 30
+    drill: authentik
+    notes: "Task 0 (H2): Authentik's live DB is kod-postgres (external/shared), not the compose file's embedded default -- already covered by this kod postgres dump prefix. Not a gap; Authentik MEDIA is (see authentik-media below)."
+
+  - id: mattermost-db
+    kind: pg-db
+    primary:
+      bucket: kodemeio-mattermost-backup
+      prefix: mattermost/daily/
+      cadence_h: 24
+    offsite:
+      bucket: kod-prod-backup
+      prefix: kodemeio-mattermost-backup/mattermost/daily/
+    fresh_h: 30
+    drill: none
+
+  - id: hatchet-db
+    kind: pg-db
+    primary:
+      bucket: kodemeio-hatchet-backup
+      prefix: db/
+      cadence_h: 24
+    offsite:
+      bucket: kod-prod-backup
+      prefix: kodemeio-hatchet-backup/db/
+    fresh_h: 30
+    drill: none
+
+  # --- App-managed backup, not covered by the kod jobs ------------------------
+
+  - id: supabase-terakidz
+    kind: app-dump
+    primary: provider
+    offsite:
+      bucket: kod-prod-backup
+      prefix: supabase/terakidz/
+    fresh_h: 800
+    drill: none
+    notes: "TeraKidz self-hosted Supabase (tenant tkz, service infra-postgres, kod-prod-02). Primary backup is the Supabase stack's own provider-side mechanism, not a kod-owned Hetzner prefix. Not covered by kod-offsite-mirror.sh / kod-offsite-fresh.sh / kod-hz-fresh.sh -- offsite copy is a manual runbook procedure until a dedicated job exists."
+
+  # --- Planned: the jobs deliberately do not cover these yet ------------------
+  # (excluded from the drift/equality tests; each names the task/event that
+  # adds it)
+
+  - id: litellm-db
+    kind: gap
+    planned: true
+    notes: "LiteLLM is not deployed on kod (Task 0: kodemeio-postgres-backup/litellm/ has had zero objects, ever; no kod-infra-litellm compose; no llm.kodeme.io DNS record). Re-add as a pg-db item (and to both freshness jobs) when LiteLLM ships."
+
+  - id: authentik-media
+    kind: gap
+    planned: true
+    notes: "Authentik media (the authentik-data Docker volume, docker-compose.prod.yml, abc-prod-02): no dedicated backup or bucket exists yet. Wave 0 Task 6 adds the backup sidecar and bucket. Authentik's DATABASE is not planned -- see authentik-db above, already covered."
+
+  - id: mattermost-files
+    kind: gap
+    planned: true
+    notes: "Mattermost files on the mm-data Docker volume (abc-prod-02): Task 0 confirmed no S3 bucket is configured in production (live env carries no AmazonS3 credential names). Wave 0 Task 6 adds the backup path."
+
+  # --- Gaps: no backup, no task assigned yet ----------------------------------
+
+  - id: mattermost-config
+    kind: gap
+    notes: "Mattermost config.json plus plugins live in the mm-config / mm-plugins / mm-client-plugins Docker volumes (abc-prod-02), regenerated from env vars only in part -- Task 0 judged MM_CONFIG_REBUILDABLE=no. No backup path exists yet; out of scope for Wave 0."
+
+  - id: dokploy-control-plane
+    kind: gap
+    notes: "No dedicated backup job for Dokploy's own Postgres/control-plane DB. Task 0 (bonus finding): the kodemeio-backups bucket already holds a daily 'webserver-backup' zip (Dokploy's own file/webserver backup feature), but it is unconfirmed whether that includes the Dokploy DB itself -- treat as a lead, not a closed gap. Out of scope for Wave 0 (spec section 8)."
+
+  - id: hermes-state
+    kind: gap
+    notes: "Hermes's local/agent state has no backup job or S3 bucket anywhere in this estate. Out of scope for Wave 0."
+
+  - id: dsh-home
+    kind: gap
+    notes: "dsh's home/data directory on kod-prod-02 has no backup job or S3 bucket anywhere in this estate. Out of scope for Wave 0."
+
+  - id: mailcow
+    kind: gap
+    notes: "Mailcow (abc-prod-01) has no backup job or S3 bucket in this estate; Task 0 shows abc-prod-01 at totalSum: 0 compose/apps in Dokploy, i.e. not even tracked there. Out of scope for Wave 0."
