@@ -364,6 +364,21 @@ def gen_odoo(
                 # THREADS does: the odoo-cron container starts and stays idle, so
                 # an active ir_cron row is inert. Production is untouched.
                 **({"ODOO_MAX_CRON_THREADS": "0"} if env_name == "staging" else {}),
+                # With zero cron threads the cron-based queue runner (ir.cron
+                # "Queue Job Runner") never fires, so no queue job runs on
+                # staging. `staging_queue_runner: true` on the odoo[] entry
+                # loads queue_job server-wide, which starts OCA's NOTIFY runner
+                # in odoo-web (odoo-cron/odoo-gevent pin root:0). Opt-in per
+                # instance: a clone holding prod integrations must have them
+                # disarmed first (see kodemeio-odoo docs/admin/backup-restore.md).
+                **(
+                    {
+                        "ODOO_SERVER_WIDE_MODULES": "base,web,bus,bus_alt_connection,"
+                        "session_db,dbfilter_from_header,queue_job"
+                    }
+                    if env_name == "staging" and odoo_entry.get("staging_queue_runner")
+                    else {}
+                ),
             },
             "post_deploy": {
                 "odoo_profile": f"profile-{deploy_profile}",

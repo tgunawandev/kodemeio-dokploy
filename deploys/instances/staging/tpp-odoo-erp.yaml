@@ -31,6 +31,7 @@ env_overrides:
   DOMAIN_LEGACY: tpp-odoo-erp-stg.idtpp.com
   ODOO_WORKERS: '4'
   ODOO_MAX_CRON_THREADS: '0'
+  ODOO_SERVER_WIDE_MODULES: base,web,bus,bus_alt_connection,session_db,dbfilter_from_header,queue_job
 post_deploy:
   odoo_profile: profile-erp
   odoo_install_bundle: ''

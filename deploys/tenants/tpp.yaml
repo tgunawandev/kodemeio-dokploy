@@ -23,6 +23,9 @@ odoo:
     description: "ERP — Import + Trading + Distribution (multi-company, 43 CVs)"
     workers: 4
     apps: [bia, wms]
+    # Staging runs queue jobs via the NOTIFY runner (intercompany steps need
+    # it). Its Mattermost/WhatsApp are disarmed on every clone.
+    staging_queue_runner: true
   - recipe: hrms
     short: hrms
     description: "HRMS (employees, attendance, payroll, leaves, expenses)"
