@@ -1,0 +1,107 @@
+# compose.drill.yml — isolated Authentik restore drill (Teracorp Wave 0 Task 8).
+#
+# Brought up by drill-authentik.sh (and make-fixture.sh) with
+# `docker compose -p <unique-project> -f compose.drill.yml ...`.
+#
+# Isolation (spec D12): every service sits on the `drill` network, which is
+# `internal: true` — no route out of the host, so the restored Authentik
+# cannot send mail, call an OAuth/SAML/LDAP source, reach an outpost or leak
+# data. The worker runs WITHOUT /var/run/docker.sock (no outpost management,
+# no host control). No port is published: the validator is a one-shot
+# container on the same network. Fetching backups happens in separate
+# one-shot containers on a different, non-internal network (drill-authentik.sh).
+#
+# AUTHENTIK_SECRET_KEY: Authentik uses it only for cookie signing (docs,
+# configuration.mdx for 2026.2 — "Changing this will invalidate active
+# sessions"; unique user IDs stopped depending on it in 2023.6). A restore
+# therefore works with a FRESH random key — the drill proves it; see
+# ops/wave0/facts.md.
+#
+# Required env (set by the calling script):
+#   PROJECT_NAME          also passed as -p; names the network and volumes
+#   DRILL_PG_PASSWORD     random per run, never printed
+#   AUTHENTIK_SECRET_KEY  random per run (or the production key, optional)
+#   AUTHENTIK_IMAGE       default ghcr.io/goauthentik/server:2026.2.3 (= production)
+
+name: ${PROJECT_NAME}
+
+networks:
+  drill:
+    name: ${PROJECT_NAME}-net
+    internal: true
+
+volumes:
+  pgdata:
+    name: ${PROJECT_NAME}-pgdata
+  # `server` and `worker` both mount this, and Compose creates them
+  # concurrently — so both would populate this empty volume from the image at
+  # once, and one creation fails with
+  #   failed to create symlink: …/_data/media: file exists
+  # (the image's /data carries a `media -> /media` symlink). The callers
+  # (drill-authentik.sh, make-fixture.sh) therefore populate it once, serially,
+  # before Compose runs. See ops/wave0/facts.md.
+  media:
+    name: ${PROJECT_NAME}-media
+
+x-authentik-env: &ak-env
+  AUTHENTIK_POSTGRESQL__HOST: postgresql
+  AUTHENTIK_POSTGRESQL__USER: authentik
+  AUTHENTIK_POSTGRESQL__NAME: authentik
+  AUTHENTIK_POSTGRESQL__PASSWORD: ${DRILL_PG_PASSWORD:?}
+  AUTHENTIK_SECRET_KEY: ${AUTHENTIK_SECRET_KEY:?}
+  # Media on the local volume (the restored tar), never S3 from a drill.
+  AUTHENTIK_STORAGE__MEDIA__BACKEND: file
+  # Nothing may try to phone home (the network would refuse anyway).
+  AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
+  AUTHENTIK_DISABLE_UPDATE_CHECK: "true"
+  AUTHENTIK_DISABLE_STARTUP_ANALYTICS: "true"
+  AUTHENTIK_AVATARS: none
+  AUTHENTIK_LOG_LEVEL: warning
+
+services:
+  postgresql:
+    image: postgres:16-alpine
+    networks: [drill]
+    environment:
+      POSTGRES_USER: authentik
+      POSTGRES_PASSWORD: ${DRILL_PG_PASSWORD:?}
+      POSTGRES_DB: authentik
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U authentik -d authentik"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+    restart: "no"
+
+  server:
+    image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server:2026.2.3}
+    command: server
+    networks: [drill]
+    environment: *ak-env
+    volumes:
+      - media:/data
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "ak", "healthcheck"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+      start_period: 30s
+    restart: "no"
+
+  worker:
+    image: ${AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server:2026.2.3}
+    command: worker
+    networks: [drill]
+    environment: *ak-env
+    # deliberately NO /var/run/docker.sock
+    volumes:
+      - media:/data
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    restart: "no"
