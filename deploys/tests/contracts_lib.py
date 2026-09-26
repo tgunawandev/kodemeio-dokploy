@@ -3,12 +3,52 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
+from collections.abc import Callable, Mapping
 from pathlib import Path
 
 from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
 
 CONTRACTS = Path(__file__).resolve().parents[2] / "contracts"
+
+
+def contracts_base_ref(
+    run: Callable[..., subprocess.CompletedProcess] = subprocess.run,
+    env: Mapping[str, str] = os.environ,
+) -> str | None:
+    """The git ref the schema backward-compatibility check compares against.
+
+    Comparing against ``HEAD`` is vacuous in CI, where the checked-out tree IS
+    ``HEAD``. In order: ``CONTRACTS_BASE_REF`` when set and non-empty; else
+    ``git merge-base HEAD origin/main`` unless that is ``HEAD`` itself (a push
+    to main); else ``HEAD~1``.
+
+    Returns ``None`` when git or the repository is unavailable locally (the
+    caller skips). In CI (``CI=true``) that raises instead: a compat check that
+    silently skips there is the failure mode this helper exists to prevent.
+    """
+    explicit = env.get("CONTRACTS_BASE_REF", "").strip()
+    if explicit:
+        return explicit
+
+    def git(*args: str) -> str | None:
+        try:
+            done = run(["git", *args], cwd=CONTRACTS.parent, capture_output=True, text=True)
+        except OSError:
+            return None
+        return done.stdout.strip() if done.returncode == 0 else None
+
+    head = git("rev-parse", "HEAD")
+    if head is None:
+        if env.get("CI", "").lower() == "true":
+            raise RuntimeError("git (or the repository history) is unavailable in CI; compat check cannot run")
+        return None
+    merge_base = git("merge-base", "HEAD", "origin/main")
+    if merge_base and merge_base != head:
+        return merge_base
+    return "HEAD~1"
 
 
 def iter_schemas() -> list[Path]:

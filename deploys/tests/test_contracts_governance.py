@@ -7,6 +7,7 @@ import pytest
 import yaml
 from contracts_lib import (
     CONTRACTS,
+    contracts_base_ref,
     iter_schemas,
     load,
     registry,
@@ -17,6 +18,13 @@ from contracts_lib import (
 from referencing import Registry, Resource
 
 PII_NAMES = {"email", "phone", "name", "full_name", "address", "dob", "birth_date", "nik", "ktp"}
+# Any property about a child (child_name, child_age, ...) is `child` class data,
+# which classification.yaml never allows in events.
+PII_PREFIXES = ("child_",)
+
+
+def pii_hits(names):
+    return {n for n in names if n in PII_NAMES or n.startswith(PII_PREFIXES)}
 
 
 def _yaml(rel):
@@ -45,7 +53,11 @@ def test_event_classes_are_allowed_in_events():
 @pytest.mark.parametrize("path", sorted((CONTRACTS / "events").glob("*.schema.json")), ids=lambda p: p.name)
 def test_no_pii_property_names_in_events(path):
     names = schema_property_names(load(path), registry())
-    assert not (names & PII_NAMES), names & PII_NAMES
+    assert not pii_hits(names), pii_hits(names)
+
+
+def test_pii_denylist_catches_child_prefix():
+    assert pii_hits({"child_age", "child_school", "work_order_id", "children_count"}) == {"child_age", "child_school"}
 
 
 def test_kido_profile_validates():
@@ -64,14 +76,17 @@ def test_policy_lists_always_human_classes():
 
 
 @pytest.mark.parametrize("path", iter_schemas(), ids=lambda p: p.name)
-def test_schema_is_backward_compatible_with_head(path):
+def test_schema_is_backward_compatible_with_base(path):
+    base = contracts_base_ref()
+    if base is None:
+        pytest.skip("not a git checkout; nothing to compare against")
     rel = path.relative_to(CONTRACTS.parent).as_posix()
-    shown = subprocess.run(["git", "show", f"HEAD:{rel}"], cwd=CONTRACTS.parent, capture_output=True, text=True)
+    shown = subprocess.run(["git", "show", f"{base}:{rel}"], cwd=CONTRACTS.parent, capture_output=True, text=True)
     if shown.returncode != 0:
-        pytest.skip("new schema, nothing to compare")
+        pytest.skip(f"new schema since {base}, nothing to compare")
     old, new = json.loads(shown.stdout), load(path)
     # Resolved against the CURRENT registry: refs like envelope.v1's $id are
-    # stable across versions, and each schema is also checked against HEAD in
+    # stable across versions, and each schema is also checked against the base in
     # its own right, so this doesn't hide a break in a ref'd schema.
     reg = registry()
     old_paths, old_required = schema_property_paths(old, reg)
@@ -167,3 +182,57 @@ def test_schema_property_names_resolves_ref():
     names = schema_property_names(schema, reg)
 
     assert "email" in names
+
+
+# --- unit tests for contracts_base_ref (the compat check's comparison ref) ---
+
+
+class _FakeGit:
+    """Stands in for subprocess.run: maps a git argv tail to (returncode, stdout)."""
+
+    def __init__(self, answers, missing=False):
+        self.answers = answers
+        self.missing = missing
+
+    def __call__(self, argv, **_kwargs):
+        if self.missing:
+            raise FileNotFoundError("git")
+        code, out = self.answers.get(tuple(argv[1:]), (128, ""))
+        return subprocess.CompletedProcess(argv, code, stdout=out, stderr="")
+
+
+_HEAD = ("rev-parse", "HEAD")
+_MERGE_BASE = ("merge-base", "HEAD", "origin/main")
+
+
+def test_base_ref_prefers_explicit_env():
+    git = _FakeGit({_HEAD: (0, "aaa\n"), _MERGE_BASE: (0, "bbb\n")})
+    assert contracts_base_ref(run=git, env={"CONTRACTS_BASE_REF": "v1.2.3"}) == "v1.2.3"
+
+
+def test_base_ref_uses_merge_base_with_origin_main():
+    git = _FakeGit({_HEAD: (0, "aaa\n"), _MERGE_BASE: (0, "bbb\n")})
+    assert contracts_base_ref(run=git, env={"CONTRACTS_BASE_REF": ""}) == "bbb"
+
+
+def test_base_ref_falls_back_to_parent_when_merge_base_is_head():
+    # A push to main: HEAD *is* origin/main, so the merge-base compares HEAD with itself.
+    git = _FakeGit({_HEAD: (0, "aaa\n"), _MERGE_BASE: (0, "aaa\n")})
+    assert contracts_base_ref(run=git, env={}) == "HEAD~1"
+
+
+def test_base_ref_falls_back_to_parent_without_origin_main():
+    git = _FakeGit({_HEAD: (0, "aaa\n")})
+    assert contracts_base_ref(run=git, env={}) == "HEAD~1"
+
+
+def test_base_ref_is_none_without_git_locally():
+    assert contracts_base_ref(run=_FakeGit({}, missing=True), env={}) is None
+    assert contracts_base_ref(run=_FakeGit({}), env={}) is None  # not a git checkout
+
+
+def test_base_ref_fails_without_git_in_ci():
+    with pytest.raises(RuntimeError, match="git"):
+        contracts_base_ref(run=_FakeGit({}, missing=True), env={"CI": "true"})
+    with pytest.raises(RuntimeError, match="git"):
+        contracts_base_ref(run=_FakeGit({}), env={"CI": "true"})

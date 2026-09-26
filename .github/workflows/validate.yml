@@ -14,6 +14,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history: the contracts backward-compatibility check compares
+          # against the merge-base with origin/main (or HEAD~1), never HEAD.
+          fetch-depth: 0
 
       - uses: astral-sh/setup-uv@v6
         with:
@@ -23,6 +27,10 @@ jobs:
         run: uv sync --locked
 
       - name: Unit tests
+        env:
+          # PRs compare contracts against the PR base; pushes fall back to
+          # contracts_base_ref()'s merge-base / HEAD~1 logic.
+          CONTRACTS_BASE_REF: ${{ github.event.pull_request.base.sha }}
         run: uv run pytest deploys/tests -q
 
       - name: Python lint
