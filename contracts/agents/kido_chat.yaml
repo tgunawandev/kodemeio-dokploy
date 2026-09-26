@@ -13,6 +13,11 @@ approval_ttl_minutes: 15
 data_scope:
   max_classification: personal
   forbidden: [financial, child]
+  # FOUNDER DECISION PENDING (2026-09-26): approve vetted-LLM routing for personal data.
+  # If declined, classification.yaml's personal.allowed_to_vetted_llm goes back to false and
+  # this service must run KIDO_ENABLED=0 (handoff-only, spec D12) until an alternative is
+  # approved (spec §8 M4). Runtime must enforce this route: kido_chat holds only the `kido`
+  # LiteLLM key, scoped to grp-personal — never a third-party/general-purpose key.
   llm: vetted
 tenant_scope:
   company: Terakidz TEST

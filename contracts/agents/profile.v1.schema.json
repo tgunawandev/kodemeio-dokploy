@@ -28,9 +28,11 @@
       "type": "object", "additionalProperties": false, "required": ["max_classification", "forbidden"],
       "properties": {
         "max_classification": {"enum": ["public", "internal", "personal"]},
-        "forbidden": {"type": "array", "items": {"enum": ["financial", "child"]}, "minItems": 2},
+        "forbidden": {"type": "array", "items": {"enum": ["financial", "child"]}, "minItems": 2, "uniqueItems": true},
         "llm": {"enum": ["vetted", "third_party"]}
-      }
+      },
+      "if": {"properties": {"max_classification": {"const": "personal"}}, "required": ["max_classification"]},
+      "then": {"properties": {"llm": {"not": {"const": "third_party"}}}}
     },
     "tenant_scope": {
       "type": "object", "additionalProperties": false, "required": ["company"],

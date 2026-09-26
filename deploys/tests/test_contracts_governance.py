@@ -74,8 +74,11 @@ def test_kido_chat_profile_validates():
 
 
 def test_kido_profile_still_validates_unchanged():
-    # kido.yaml itself is untouched by the kido_chat amendment; pin it explicitly.
-    validator_for(CONTRACTS / "agents/profile.v1.schema.json").validate(_yaml("agents/kido.yaml"))
+    # kido.yaml predates data_scope.llm; absent llm means "no personal data to any LLM"
+    # (README / classification.yaml notes) -- pin that it is genuinely absent, not just valid.
+    kido = _yaml("agents/kido.yaml")
+    assert "llm" not in kido["data_scope"]
+    validator_for(CONTRACTS / "agents/profile.v1.schema.json").validate(kido)
 
 
 @pytest.mark.parametrize("bad_tool", ["confirm_order", "refund"])
@@ -101,9 +104,87 @@ def test_max_tool_calls_per_turn_rejects_outside_1_to_8(n):
         validator_for(CONTRACTS / "agents/profile.v1.schema.json").validate(profile)
 
 
+def test_data_scope_forbidden_rejects_duplicate_entries():
+    profile = _yaml("agents/kido_chat.yaml")
+    profile["data_scope"]["forbidden"] = ["financial", "financial"]
+    with pytest.raises(jsonschema.ValidationError):
+        validator_for(CONTRACTS / "agents/profile.v1.schema.json").validate(profile)
+
+
+def test_personal_max_classification_rejects_third_party_llm():
+    profile = _yaml("agents/kido_chat.yaml")
+    profile["data_scope"]["llm"] = "third_party"
+    with pytest.raises(jsonschema.ValidationError):
+        validator_for(CONTRACTS / "agents/profile.v1.schema.json").validate(profile)
+
+
+def test_personal_max_classification_still_allows_vetted_llm():
+    # The if/then only blocks third_party; vetted stays valid for personal (kido_chat's own case).
+    profile = _yaml("agents/kido_chat.yaml")
+    assert profile["data_scope"]["max_classification"] == "personal"
+    assert profile["data_scope"]["llm"] == "vetted"
+    validator_for(CONTRACTS / "agents/profile.v1.schema.json").validate(profile)
+
+
+def _llm_route_allowed(levels, max_classification, llm):
+    """True iff classification.yaml's flag for this (max_classification, llm) pair is set."""
+    return levels[max_classification][f"allowed_to_{llm}_llm"]
+
+
+def test_llm_route_allowed_helper_flags_a_mismatch():
+    levels = {"personal": {"allowed_to_vetted_llm": True, "allowed_to_third_party_llm": False}}
+    assert _llm_route_allowed(levels, "personal", "vetted") is True
+    assert _llm_route_allowed(levels, "personal", "third_party") is False
+
+
+def test_agent_profiles_llm_route_matches_classification_flags():
+    # Cross-file: any contracts/agents/*.yaml declaring data_scope.llm must name a route the
+    # classification.yaml flag for its max_classification actually allows.
+    levels = {c["name"]: c for c in _yaml("classification.yaml")["levels"]}
+    checked = 0
+    for path in sorted((CONTRACTS / "agents").glob("*.yaml")):
+        profile = _yaml(f"agents/{path.name}")
+        data_scope = profile.get("data_scope") or {}
+        llm = data_scope.get("llm")
+        if llm is None:
+            continue
+        checked += 1
+        assert _llm_route_allowed(levels, data_scope["max_classification"], llm), (
+            f"{path.name}: max_classification={data_scope['max_classification']!r} llm={llm!r} "
+            "not allowed by classification.yaml"
+        )
+    assert checked >= 1, "expected at least one agents/*.yaml with data_scope.llm (kido_chat.yaml)"
+
+
 def test_registry_lists_kido_chat_as_an_order_requested_producer():
     entry = next(e for e in _yaml("events/registry.yaml")["events"] if e["type"] == "order.requested")
-    assert "kido_chat" in entry["producer"]
+    assert isinstance(entry["producer"], list)
+    assert any("kido_chat" in p for p in entry["producer"])
+    assert any("order_intake" in p for p in entry["producer"])
+
+
+def test_data_scope_max_classification_enum_is_exactly_public_internal_personal():
+    schema = load(CONTRACTS / "agents/profile.v1.schema.json")
+    enum = schema["properties"]["data_scope"]["properties"]["max_classification"]["enum"]
+    assert set(enum) == {"public", "internal", "personal"}
+
+
+def test_data_scope_forbidden_enum_is_exactly_financial_child():
+    schema = load(CONTRACTS / "agents/profile.v1.schema.json")
+    enum = schema["properties"]["data_scope"]["properties"]["forbidden"]["items"]["enum"]
+    assert set(enum) == {"financial", "child"}
+
+
+def test_data_scope_llm_enum_is_exactly_vetted_third_party():
+    schema = load(CONTRACTS / "agents/profile.v1.schema.json")
+    enum = schema["properties"]["data_scope"]["properties"]["llm"]["enum"]
+    assert set(enum) == {"vetted", "third_party"}
+
+
+def test_agent_profile_name_matches_its_file_stem():
+    for path in sorted((CONTRACTS / "agents").glob("*.yaml")):
+        profile = _yaml(f"agents/{path.name}")
+        assert profile["profile"] == path.stem, f"{path.name}: profile field is {profile['profile']!r}"
 
 
 def test_personal_class_allowed_to_vetted_llm_but_not_third_party():

@@ -12,4 +12,9 @@ notes: >
   gate than "allowed_to_third_party_llm": a "vetted" route is a specific LiteLLM group (e.g.
   grp-personal) whose provider terms the founder has approved (no training, bounded retention)
   — see contracts/agents/kido_chat.yaml's data_scope.llm. financial and child data are never
-  allowed to any LLM route, vetted or not.
+  allowed to any LLM route, vetted or not. An agent profile's data_scope.llm is optional: when
+  ABSENT, the profile may send NO personal data to any LLM (vetted or third-party) — silence is
+  the safe default, not an implicit grant. Decline path: if the founder declines the pending
+  vetted-LLM approval below, set personal.allowed_to_vetted_llm back to false here; kido_chat
+  then runs with KIDO_ENABLED=0 (handoff-only, spec D12) until an alternative route is approved
+  (spec §8 M4) — do not leave kido_chat pointed at a route this file no longer allows.
