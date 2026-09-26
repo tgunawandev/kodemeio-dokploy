@@ -49,34 +49,63 @@ done on the live dsh host.
 
 ## What "done" looks like today (2026-09-26, read before you start)
 
-- kodemeio-dsh local `main` is 12 commits ahead of `origin/main`; **none have been pushed**. The
-  broker's `work_order_id`/PR-tagging commits (`d802dce`, `312f467`) and the containment commits
-  (`aa7b282` … `bdc234b`) are inert or containment-only until the LiteLLM runbook pushes them
-  (its Step 14). The **FRIDAY container** commits are the five newest: `5f52c25`, `ee1b4ee`,
-  `750b6c2`, `b313a48`, `2fe3cb2` (newest last). Re-run
-  `git -C kodemeio-dsh log --oneline bdc234b..main` before Step 5 — if it shows commits beyond
-  `2fe3cb2`, a later fix round landed after this runbook was written; read its report before
-  pushing.
-- kodemeio-hatchet's `workers/friday_dispatch/` exists **locally, untracked** (`git status`
-  shows `?? workers/friday_dispatch/`) as of this writing — Task 4 is building it in parallel
-  with this document. It already carries `deploy/Dockerfile`, `deploy/docker-compose.yml` and
-  `deploy/.env.example`, which this runbook's Step 6 reads for exact variable names. **PENDING:**
-  confirm Task 4's own commit and `deploy-notes.md` before running Step 6 — the compose file's
-  shape (service names, networks, image tag) is what this runbook is built against, and Task 4
-  can still change it.
+- kodemeio-dsh local `main` is **nine** commits ahead of `bdc234b`; **none have been pushed**.
+  The broker's `work_order_id`/PR-tagging commits (`d802dce`, `312f467`) and the containment
+  commits (`aa7b282` … `bdc234b`) are inert or containment-only until the LiteLLM runbook pushes
+  them (its Step 14). The FRIDAY **push range** Step 5 publishes is *everything in
+  `bdc234b..main`* (final review C2) — not "the five FRIDAY commits" this document used to list.
+  As of this revision that range is, newest first:
+
+  ```
+  9a46e73 docs(dsh): SW1 final review I5 — broker token scope: Issues: write      <- final fix wave
+  c2e9c88 fix(dsh): SW1 final review I7 — FRIDAY secrets render non-fatally         <- final fix wave
+  db6590a test(egress): F6 checks for production credentials in FRIDAY sessions
+  6d816ab feat(broker): broker-only dsh-dispatch network for the friday_dispatch worker
+  2fe3cb2 fix(friday): wipe as the session uid, fail closed on Landlock and scratch (fix round 3)
+  b313a48 fix(friday): sweep loop, fd-3 summary, state wipe, Landlock, own proxy (fix round 2)
+  750b6c2 refactor: rename DSH_MODEL_UPSTREAM_NETWORK to DSH_LLM_UPSTREAM_NETWORK   <- LiteLLM track, rides along
+  ee1b4ee fix(friday): own container, uid and network; hard deadline (fix round 1)
+  5f52c25 feat(runtime): headless FRIDAY session runner (dsh-headless)
+  ```
+
+  `6d816ab` is **not** optional: it creates the `kod-infra-dsh-dispatch` network and attaches the
+  broker to it, which is what Step 6's pre-check and the worker depend on; `750b6c2` is not a
+  FRIDAY commit at all (it is the LiteLLM gateway track's rename). Always re-derive at run time
+  with `git -C kodemeio-dsh log --oneline bdc234b..main` — this list is a snapshot, not a
+  contract: anything beyond it is a later fix round, and you should read that round's report
+  before pushing (a missing commit is worse than an extra one here).
+- kodemeio-hatchet's `workers/friday_dispatch/` is **committed but not pushed**: `d9fa292` is the
+  whole worker and it is **not an ancestor of `origin/main`** (tip `cd359af`; local `main` was 31
+  commits ahead when this document was written and other tracks keep committing, so count it at
+  run time with `git rev-list --count origin/main..main`, never from this page). The older "local
+  and untracked" note in this document is stale. Step 6 clones its source from GitHub, so Step 6
+  has **no source to build** until the push in its pre-step happens (final review C3). Local
+  `main` also carries other tracks' committed work (`kido_chat`, `order_intake`, CI) — publishing
+  `main` publishes all of it, which is why Step 6's pre-step makes you read `origin/main..main`
+  first.
 - **PENDING:** no `deploys/instances/production/kod-infra-friday-dispatch.yaml` manifest exists,
   and none exists for any other Hatchet worker either (`order_intake`, `kido_chat`) — worker
   compose services are not on the declarative `deploy apply -f <manifest>` path yet. Step 6 below
   uses the imperative `compose create`/`compose update` path instead; adopt the declarative
   manifest later if one gets added for this class of service.
-- **PENDING:** `deploys/env/production/.env.kod-infra-dsh.example` (committed, sanitized) only
-  lists `COMPOSE_PROJECT_NAME`/`DEEPSEEK_API_KEY`/`GATEWAY_AUTH_SECRET` — it has not been updated
-  for the broker/FRIDAY variables that kodemeio-dsh's own `.env.example` already carries
-  (`GITHUB_OWNER`, `DSH_BROKER_REPOS`, `GITHUB_TOKEN`, `BROKER_CLIENT_TOKEN`,
-  `FRIDAY_RUNNER_TOKEN`, `FRIDAY_LLM_API_KEY`). This runbook does not fix that file (out of this
-  task's commit scope — it would touch a path outside this file), but the founder should update
-  it by hand once the real `deploys/env/production/.env.kod-infra-dsh` carries these values, per
-  the repo's own rule that every `.env` has a sanitized `.example`.
+- `deploys/env/production/.env.kod-infra-dsh.example` (committed, sanitized) now lists
+  `FRIDAY_RUNNER_TOKEN` and `FRIDAY_LLM_API_KEY` alongside
+  `COMPOSE_PROJECT_NAME`/`DEEPSEEK_API_KEY`/`GATEWAY_AUTH_SECRET`. It is still behind
+  kodemeio-dsh's own `.env.example` on the broker variables (`GITHUB_OWNER`, `DSH_BROKER_REPOS`,
+  `GITHUB_TOKEN`, `BROKER_CLIENT_TOKEN`) — the founder should add those to the real
+  `deploys/env/production/.env.kod-infra-dsh` and its `.example` when convenient, per the repo's
+  rule that every `.env` has a sanitized `.example`.
+- **FRIDAY's two secrets no longer block the declarative path** (final review I7): kodemeio-dsh's
+  `docker-compose.prod.yml` renders `friday` with `${FRIDAY_RUNNER_TOKEN:-}` /
+  `${FRIDAY_LLM_API_KEY:-}`, so `kctl-dokploy -p kodemeio deploy apply -f
+  deploys/instances/production/kod-infra-dsh.yaml` can never fail on a FRIDAY-only value and take
+  the web Harness down with it. The fail-closed part lives in `friday-server.mjs`, which exits 1
+  before it listens when either value is empty. **If you want FRIDAY to run from the declarative
+  path, the two values must also be in `deploys/env/production/.env.kod-infra-dsh`** — Dokploy's
+  own env store (Steps 3/5) and that file are separate sources, and only Dokploy's carries them
+  today. A declarative apply without them leaves `friday` restarting with
+  `friday-server: FRIDAY_RUNNER_TOKEN must be set (32+ characters)` in its log: FRIDAY down, the
+  web Harness unaffected.
 
 ---
 
@@ -88,15 +117,31 @@ or comment-only token cannot write code or merge anything.
 
 | Token | Env var | Scope | Repos | Status |
 |---|---|---|---|---|
-| Broker's own token | `GITHUB_TOKEN` (kodemeio-dsh) | Contents: write, Pull requests: write (covers PR labels) | `DSH_BROKER_REPOS` (13 repos, already live) | **exists** — only needs `kodemeio-hatchet` and `kodemeio-llmlite` added to its repository access list |
+| Broker's own token | `GITHUB_TOKEN` (kodemeio-dsh) | Contents: write, Pull requests: write, **Issues: write** (the PR label call is an issues-API call — see the scope note below) | `DSH_BROKER_REPOS` (13 repos, already live) | **exists** — needs `kodemeio-hatchet` and `kodemeio-llmlite` added to its repository access list, and its permission list checked against the note below |
 | Read-only checks token | `FRIDAY_CHECKS_TOKEN` (worker) | Checks: read, Pull requests: read, Metadata: read | the 6 friday.yaml repos only | new |
 | Optional comment token | `FRIDAY_COMMENT_TOKEN` (worker) | Issues: write only | the 6 friday.yaml repos only | new, optional (empty = no issue comments, Mattermost notify only) |
 | CI sibling-checkout token | `CONTRACTS_READ_TOKEN` (GitHub Actions secret, kodemeio-dokploy) | Contents: read | `kodemeio-dsh` only | new |
 
+**Scope note for the broker token (final review I5 — verify at rollout):** the broker's label
+call is `POST /repos/{owner}/{repo}/issues/{n}/labels` (`kodemeio-dsh/broker/server.py`,
+`publish`). GitHub's REST reference for *Add labels to an issue* lists **Issues: write** for
+fine-grained tokens — **not** `Pull requests: write`, even though the issue is a pull request —
+and this runbook and kodemeio-dsh's own docs used to claim the opposite. Nobody has made that
+call against the live token yet, so treat it as a claim to check, not a proven defect: the label
+step runs *after* the draft PR is persisted, so an under-scoped token produces the worst shape of
+failure (PR created, `friday` label never applied, broker returns 502, worker classifies
+`broker_502` as retryable, retries 3×, then reports the run failed — with an unlabelled draft PR
+sitting on GitHub). **Step 9, step 4 is the check:** the first live PR must carry the `friday`
+label. If it does not, grant the broker token **Issues: write** (permissions can be edited on a
+fine-grained token without changing its value) and re-run — do not mint a new token, or the
+broker needs redeploying.
+
 **Do (broker token):** GitHub → Settings → Developer settings → Fine-grained tokens → find the
 token that is `kodemeio-dsh`'s live `GITHUB_TOKEN` → Repository access → add `kodemeio-hatchet`
-and `kodemeio-llmlite`. Editing repository access on an existing fine-grained token does not
-change its value, so nothing needs redeploying for this half.
+and `kodemeio-llmlite`; then check Permissions → Repository permissions has `Issues: write` as
+well as `Contents: write` and `Pull requests: write`. Editing repository access or permissions on
+an existing fine-grained token does not change its value, so nothing needs redeploying for this
+half.
 
 **Do (the three new tokens):** create each at
 `https://github.com/settings/personal-access-tokens/new` with exactly the scopes and repos in
@@ -177,19 +222,32 @@ kctl-dokploy -p kodemeio compose env set "$D_ID" FRIDAY_LLM_API_KEY \
   "$(grep '^LITELLM_KEY_FRIDAY=' ~/.config/kodemeio/llmlite-keys.env | cut -d= -f2)"
 ```
 This only stages the value in Dokploy — it takes effect at Step 5's redeploy, which also renders
-the `friday` service for the first time (`FRIDAY_LLM_API_KEY:?required` in
-`docker-compose.prod.yml` refuses to render without it, so setting this before Step 5 is
-required, not optional).
+the `friday` service for the first time. Setting it before Step 5 is required, not optional: the
+compose renders without it (see the I7 note below), but `friday-server` refuses to start with an
+empty one, so Step 5 would deploy a `friday` container that exits 1 on start.
+
+**Also add both FRIDAY names to the declarative env file (final review I7).** Dokploy's own env
+store (the command above, and `FRIDAY_RUNNER_TOKEN` in Step 5) is the live source of truth, but
+the repo's declarative path renders the same compose from a *file*:
+`deploys/env/production/.env.kod-infra-dsh`, which does not carry these two. The compose no longer
+refuses to render without them (`${FRIDAY_RUNNER_TOKEN:-}`/`${FRIDAY_LLM_API_KEY:-}`), so a
+`deploy apply` cannot take the web Harness down — but it would leave `friday` crash-looping with
+`friday-server: FRIDAY_LLM_API_KEY must be set`. Append both lines to the real (gitignored)
+`deploys/env/production/.env.kod-infra-dsh` with the same values Dokploy holds, and keep the
+sanitized `.env.kod-infra-dsh.example` (already carrying both names, values empty) in sync.
 
 **Verify (never print the key):**
 ```bash
 kctl-dokploy --json -p kodemeio compose env list "$D_ID" | jq 'has("FRIDAY_LLM_API_KEY")'   # true
+grep -c '^FRIDAY_LLM_API_KEY=' deploys/env/production/.env.kod-infra-dsh                      # 1
+grep -c '^FRIDAY_LLM_API_KEY=' deploys/env/production/.env.kod-infra-dsh.example              # 1 (empty value)
 ```
 
 **Rollback:** `kctl-dokploy -p kodemeio compose env delete "$D_ID" FRIDAY_LLM_API_KEY` — safe
 before Step 5 has deployed the `friday` service; after that, removing it makes the next redeploy
-refuse to render (compose's `:?required`), which is itself a valid kill switch (see "Kill
-switch" below).
+start `friday` with an empty key, and `friday-server` exits 1 before it listens — FRIDAY stops,
+the rest of the stack (web Harness included) is unaffected. That is a valid kill switch (see
+"Kill switch" below).
 
 ---
 
@@ -237,19 +295,25 @@ SERVER_ID=$(kctl-dokploy --json -p kodemeio compose get "$D_ID" | jq -r '.server
 kctl-dokploy --json -p kodemeio servers get "$SERVER_ID" | jq '{name, ipAddress}'
 DSH_SSH="<your-ssh-user>@<ipAddress above>"   # identify the host by IP, not by name (per LiteLLM runbook, names have diverged before)
 
-# both new secrets must exist before the push renders the compose (:?required)
+# both secrets must exist before the redeploy, or `friday` starts and exits 1
+# (empty FRIDAY_* -> friday-server refuses to run). The compose itself renders
+# without them -- that is deliberate (I7): the declarative apply path carries
+# neither, and it must never be FRIDAY that makes the web Harness un-renderable.
 kctl-dokploy -p kodemeio compose env set "$D_ID" FRIDAY_RUNNER_TOKEN "$(openssl rand -hex 32)"
 # FRIDAY_LLM_API_KEY was set in Step 3 -- confirm it is still there
 kctl-dokploy --json -p kodemeio compose env list "$D_ID" | jq '{FRIDAY_RUNNER_TOKEN: has("FRIDAY_RUNNER_TOKEN"), FRIDAY_LLM_API_KEY: has("FRIDAY_LLM_API_KEY")}'
 ```
 
-**Command (push exactly the FRIDAY range, never `main` wholesale — re-verify the exact SHAs
-first, per "What 'done' looks like today" above):**
+**Command (push the whole FRIDAY range — re-derive it, never trust a list written days ago;
+final review C2):**
 ```bash
 git -C kodemeio-dsh fetch origin
 git -C kodemeio-dsh log --oneline bdc234b..main
-# expect exactly, newest first (re-check against a newer fix round if one has landed):
-#   2fe3cb2 b313a48 750b6c2 ee1b4ee 5f52c25
+# expect these nine, newest first (see "What 'done' looks like today"; re-check against a newer
+# fix round if one has landed -- the list is a snapshot, the command is the contract):
+#   9a46e73 c2e9c88 db6590a 6d816ab 2fe3cb2 b313a48 750b6c2 ee1b4ee 5f52c25
+# 6d816ab is REQUIRED: it creates the kod-infra-dsh-dispatch network the worker uses (Step 6
+# pre-checks it). 750b6c2 belongs to the LiteLLM track and rides along.
 git -C kodemeio-dsh merge-base --is-ancestor origin/main bdc234b && echo "LiteLLM runbook Step 14 already pushed: OK"
 git -C kodemeio-dsh merge-base --is-ancestor bdc234b main && echo "fast-forward from bdc234b: OK"
 git -C kodemeio-dsh push origin main:refs/heads/main
@@ -271,41 +335,80 @@ ssh "$DSH_SSH" 'F=$(docker ps -q --filter label=com.docker.compose.service=frida
   docker port $F'
 # expect: exactly one network (…_dsh-friday), no port lines
 
-# re-run the FRIDAY section of the containment probe on the live host (same probe task-3-report's
-# fix round 2 stack test used; brings its own throwaway checkout, no state left behind)
-ssh "$DSH_SSH" "docker exec -i \$(docker ps -q --filter label=com.docker.compose.service=dsh --filter label=com.docker.compose.project=kod-infra-dsh) bash -s" \
-  < kodemeio-dsh/tests/egress/friday-probe.sh
-# expect every FRIDAY line PASS -- session runs as uid 10002, no dsh-token/dsh-home visible, no
-# route to harness:3081/broker:8081/dsh:3080 except through the model's own egress proxy, and the
-# session's proxy is friday-egress-proxy, not the web Harness's egress-proxy. The probe's
-# "friday edit session exit 0" line is also Step 4's verification -- that session runs `git`
-# inside the checkout, so a pass there proves the GIT_CONFIG_PARAMETERS fix took effect.
+# Re-run the containment suite the F6/F7 evidence comes from, from a kodemeio-dsh checkout ON the
+# host, at the commit Step 5 just pushed. It builds its OWN throwaway copy of the stack (own
+# project name, own stand-in networks, generated test-only secrets -- the real .env is never
+# read), runs the session probe and the peer checks, and tears it all down: nothing live is
+# touched and no state is left behind. (final review C1)
+ssh "$DSH_SSH" 'cd /path/to/kodemeio-dsh && git fetch origin && git checkout main && git pull --ff-only && bash tests/egress/run.sh'
+# expect: "== total: 0 failure(s)", and in the FRIDAY section the 67 session checks PASS --
+# session runs as uid 10002, no dsh-token/dsh-home visible, no route to harness:3081/broker:8081/
+# dsh:3080 except the model through the session's own egress proxy, and that proxy is
+# friday-egress-proxy, not the web Harness's egress-proxy.
+#
+# DO NOT run tests/egress/friday-probe.sh by hand in the web Harness's `dsh` container (final
+# review C1). That probe is written to run INSIDE a FRIDAY session: it asserts `id -u` is 10002,
+# that /run/dsh and /home/dsh/.dsh are empty, that 127.0.0.1:3080 does not answer, that the
+# session's proxy is friday-egress-proxy, and it reads the other-task.txt fixture from a session
+# checkout. In the dsh container every one of those is false (uid 10000, the launch token in
+# /run/dsh, the live session store in /home/dsh/.dsh, the Harness itself on 127.0.0.1:3080, the
+# web egress-proxy), so it prints a wall of FAILs and proves nothing about FRIDAY. A verifier that
+# always fails gets ignored; a probe that never really ran means F6 is "green" only because
+# nothing checked.
 ```
+Step 4's own verification is separate and is *not* covered by this suite: run one manual `git
+status` in the web Harness UI (Step 4). Do not read it out of the FRIDAY probe's output.
 
-**Rollback:** revert only the FRIDAY commits, newest first, on top of what is actually deployed —
-never force-push:
+**Rollback:** revert **the whole pushed range**, newest first, on top of what is actually deployed
+— never force-push, and never revert a hand-copied list of "the FRIDAY commits" (final review C2:
+the old five-SHA list here omitted `6d816ab`, which creates the `dsh-dispatch` network, and
+`db6590a` the probe commit, and wrongly included `750b6c2`, which belongs to the LiteLLM track):
 ```bash
 git -C kodemeio-dsh fetch origin
 git -C kodemeio-dsh switch -c rollback/friday-container origin/main
-git -C kodemeio-dsh revert --no-edit 2fe3cb2 b313a48 750b6c2 ee1b4ee 5f52c25
+git -C kodemeio-dsh revert --no-edit $(git -C kodemeio-dsh rev-list --no-merges bdc234b..main)
 git -C kodemeio-dsh push origin HEAD:refs/heads/main
 kctl-dokploy -p kodemeio compose redeploy "$D_ID"
 ```
-The `friday` and `friday-egress-proxy` services and the `dsh-friday`/`dsh-dispatch` networks
-disappear; the broker and the web Harness are unaffected (they predate this range). If the
-`friday_dispatch` worker (Step 6) is still running when you do this, its calls to
-`http://friday:8090` start failing closed (503/connection refused) — stop the worker first
-(kill switch, below) unless you want it to fail loudly instead of silently.
+`rev-list --no-merges bdc234b..main` re-derives the set at run time (today: `9a46e73 c2e9c88
+db6590a 6d816ab 2fe3cb2 b313a48 750b6c2 ee1b4ee 5f52c25`, i.e. the same nine Step 5 pushed); if a
+later fix round landed after this runbook, it is included automatically, which is the point. The
+`friday` and `friday-egress-proxy` services and the `dsh-friday`/`dsh-dispatch` networks
+disappear; the broker and the web Harness are unaffected
+(they predate this range). If the `friday_dispatch` worker (Step 6) is still running when you do
+this, its calls to `http://friday:8090` start failing closed (503/connection refused) — stop the
+worker first (kill switch, below) unless you want it to fail loudly instead of silently.
 
 ---
 
 ## Step 6 — Deploy the `friday_dispatch` worker
 
+**Pre-step — push the worker's source first (final review C3).** `compose update --source-type
+github` below makes Dokploy clone `kodemeio-hatchet@main` and build
+`workers/friday_dispatch/deploy/Dockerfile` from it, so Step 6 has **no source to deploy** until
+that branch actually carries the worker. Today it does not: `workers/friday_dispatch/` is
+committed locally (`d9fa292`) but `d9fa292` is **not an ancestor of `origin/main`** (tip
+`cd359af`), which is why this step used to say "local and untracked" — it is committed, just
+unpublished. Count the gap at run time; other tracks are still committing to that branch.
+
+```bash
+git -C kodemeio-hatchet fetch origin
+git -C kodemeio-hatchet log --oneline origin/main..main
+# READ every commit above before publishing: local main also carries other tracks' finished work
+# (kido_chat, order_intake, CI changes). Pushing main publishes all of it, not just the worker.
+git -C kodemeio-hatchet push origin main:refs/heads/main
+git -C kodemeio-hatchet merge-base --is-ancestor d9fa292 origin/main && echo "worker commit is on origin/main: OK"
+git -C kodemeio-hatchet ls-tree --name-only origin/main -- workers/friday_dispatch/deploy/
+# expect at least: Dockerfile, docker-compose.yml, .env.example
+```
+Without this, Step 6 fails with a missing compose path (or, worse, builds a stale tree if a subset
+ever gets pushed). Nothing in this slice pushes it for you — it is a founder step.
+
 **PENDING — confirm before running:** this step assumes Task 4's
 `kodemeio-hatchet/workers/friday_dispatch/deploy/{Dockerfile,docker-compose.yml,.env.example}`
-are committed as described in `deploy-notes.md`. As of this writing they are local and untracked.
-Re-read `deploy-notes.md` and diff it against the actual files before running these commands —
-service names, networks and required env vars all come from that compose file.
+are committed as described in `deploy-notes.md` (they are: `d9fa292`). Re-read `deploy-notes.md`
+and diff it against the actual files before running these commands — service names, networks and
+required env vars all come from that compose file.
 
 Two containers, one image, split by what each may reach: `friday-ingress` (public webhook
 receiver, `dokploy-network` only) and `friday-worker` (the Hatchet task; **listens on nothing** —
@@ -341,7 +444,9 @@ kctl-dokploy -p kodemeio compose update "$W_ID" \
   --source-type github --owner tgunawandev --repo kodemeio-hatchet --branch main \
   --compose-path workers/friday_dispatch/deploy/docker-compose.yml
 
-# secrets first (compose has :?required on most of these -- it refuses to render without them).
+# secrets first: THIS worker compose (workers/friday_dispatch/deploy/docker-compose.yml, its own
+# imperative stack) really does use :?required and refuses to render without them. Do not confuse
+# it with kod-infra-dsh's shared compose, which is deliberately non-fatal for FRIDAY's values (I7).
 # FRIDAY_WEBHOOK_SECRET is generated ONCE, here -- Step 8 reads it back rather than
 # re-generating it, so the worker and every repo's GitHub webhook always agree on the value.
 kctl-dokploy -p kodemeio compose env set "$W_ID" FRIDAY_WEBHOOK_SECRET "$(openssl rand -hex 32)"
@@ -364,11 +469,26 @@ kctl-dokploy -p kodemeio compose start "$W_ID"
 ```
 Immediately after, push `FRIDAY_WEBHOOK_SECRET` to 1Password too (Dokploy stays the live source
 of truth; 1Password is the durable backup, per this workspace's "never store secrets only in one
-place" habit):
+place" habit). `kctl-op push` uploads **.env files** — it does not read stdin and has no verb that
+takes a value (final review M1), so the readback has to be materialized into a file first:
 ```bash
-kctl-dokploy --json -p kodemeio compose env list "$W_ID" | jq -r '.FRIDAY_WEBHOOK_SECRET' \
-  | kctl-op -p kodemeio push --project kodemeio-hatchet --env kod-infra-friday-dispatch
+# The file is gitignored (workers/friday_dispatch/deploy/.gitignore, asserted by
+# tests/test_deploy.py); umask keeps it 0600. Delete it once the push below is verified if you do
+# not want the value on disk.
+(umask 077; kctl-dokploy --json -p kodemeio compose env list "$W_ID" \
+  | jq -r '"FRIDAY_WEBHOOK_SECRET=" + .FRIDAY_WEBHOOK_SECRET' \
+  > kodemeio-hatchet/workers/friday_dispatch/deploy/.env.kod-infra-friday-dispatch)
+
+kctl-op -p kodemeio push --project kodemeio-hatchet --env kod-infra-friday-dispatch --dry-run
+# the dry-run prints the vault/item it would write -- and errors with "No .env file found for
+# kodemeio-hatchet/kod-infra-friday-dispatch" if discovery does not see the file, so read it
+# before trusting the real push
+kctl-op -p kodemeio push --project kodemeio-hatchet --env kod-infra-friday-dispatch
+kctl-op -p kodemeio vault items --vault <the vault the dry-run named>   # item exists, names only
+unset FRIDAY_WEBHOOK_SECRET
 ```
+**Rollback:** the 1Password item is a backup copy, not an input to anything — delete or rotate it
+in 1Password if the value is being retired; Dokploy remains the live source either way.
 
 **Verify:**
 ```bash
@@ -500,7 +620,12 @@ Pick the lowest-stakes repo of the six (e.g. `kodemeio-llmlite`) for the first l
 3. Watch: `kctl-dokploy -p kodemeio compose service-logs "$W_ID" --tail 80 -f` — expect
    `received -> task_created -> session_running -> published`.
 4. `kctl-github prs` / `gh pr list -R tgunawandev/kodemeio-llmlite` — a **draft** PR titled
-   `[WO-…] …`, labelled `friday`, body linking the issue and the work order id.
+   `[WO-…] …`, labelled `friday`, body linking the issue and the work order id. **Check the label
+   explicitly** — this is the live verification of the broker token's permission scope (finding
+   I5): `gh pr view <n> -R tgunawandev/kodemeio-llmlite --json labels --jq '.labels[].name'`. If
+   the label is missing, the PR is still good (title and body carry the WO) but the label call
+   was refused: grant the broker token **Issues: write** (Step 1's scope note) and re-run, do not
+   mint a new token.
 5. Confirm the CI check named in Step 10's table below runs and reports on that PR.
 6. Confirm no auto-merge, no ready-for-review flip, no deploy happened — the PR stays draft until
    a human acts on it.
@@ -518,22 +643,64 @@ the issue if `FRIDAY_COMMENT_TOKEN` is set) and Mattermost if `FRIDAY_NOTIFY_URL
 1. Each repo's CI workflow (Task 5) is pushed and has produced **at least one green run on
    GitHub** under the exact check name in the table below (a required check that has never
    reported success permanently blocks every PR merge on that repo).
-2. For kodemeio-dokploy specifically: `CONTRACTS_READ_TOKEN` (Step 1) exists and the
-   `repository` job has gone green with it.
+2. For kodemeio-dokploy specifically: `CONTRACTS_READ_TOKEN` (Step 1) exists, the pre-existing
+   ruff-format failure named in "Two checks that cannot go green today" below is fixed, and the
+   `repository` job has gone green with both.
 3. Step 9's smoke test has produced one real FRIDAY PR and its check ran.
+4. You have read "Two checks that cannot go green today" below — the table is not the same list
+   it was before that section existed.
 
 | Repo | Branch | Required check(s) (exact GitHub context) |
 |---|---|---|
 | kodemeio-odoo | `18.0` | `PR Gate` |
 | kodemeio-next | `main` | `ci` |
-| kodemeio-react | `main` | `Quality Checks` |
 | kodemeio-llmlite | `main` | `Unit tests + compose syntax` |
-| kodemeio-dokploy | `main` | `repository`, `manifests`, `terraform` |
+| kodemeio-dokploy | `main` | `manifests`, `terraform`, and `repository` **only after** the blocker in "Two checks that cannot go green today" below is cleared |
 | kodemeio-hatchet | `main` | `validate`, `worker-tests` |
+| kodemeio-react | `main` | **none yet** — `Quality Checks` is honest and red; see below |
 
 Context names are each workflow's job `name:` field when set, otherwise the job id verbatim —
 read from the workflow files directly (`grep -n 'name:\|^  [a-z-]*:$' .github/workflows/*.yml`
 under `jobs:`) rather than assumed, since a rename in either place breaks this silently.
+
+### Two checks that cannot go green today (read before requiring them)
+
+Both of these would satisfy Step 10's precondition 1 on paper and then permanently block PR
+merges on their repo — including FRIDAY's — because `enforce_admins: true` applies to you too.
+
+**kodemeio-react's `Quality Checks` is deliberately NOT required (final review I2).** The
+workflow is honest (its `continue-on-error` was removed on 2026-09-26 and the header documents
+why), but it is red on arrival for two reasons that live in other in-flight work, so it cannot
+produce the one green run a required check needs:
+
+- `@kodemeio/kctl-api#test:ci` — `src/__tests__/info.test.ts` times out at vitest's 5 s default
+  (first-run tsx/esbuild compile cost, not a logic bug). Remediation: raise `testTimeout` for
+  that suite (per-test or in the package's vitest config), then re-run.
+- `@kodemeio/erp-spa#build` — its `prebuild`/`fetch:schema` step calls a live Odoo instance and
+  refuses with "set ODOO_API_KEY, or ODOO_USER and ODOO_PASSWORD, before running codegen", and
+  this workflow sets none of those. Remediation: add an `ODOO_API_KEY` repository secret (a
+  read-only Odoo account) for the codegen step, or give the build a `--no-codegen` path.
+
+Add `Quality Checks` to kodemeio-react's required checks only after both are fixed **and** a run
+on GitHub is green. FRIDAY can still open PRs against kodemeio-react in the meantime; they are
+simply not gate-protected there yet.
+
+**kodemeio-dokploy's `repository` is red for a second, pre-existing reason (final review I3).**
+Reason one is by design and documented: the sibling checkout needs `CONTRACTS_READ_TOKEN` (Step 1)
+and fails loudly until it exists. Reason two is outside this slice and has nothing to do with
+FRIDAY: `uv run ruff format --check deploys ops/scripts` fails on
+`deploys/tests/test_gen_hermes_agents.py` (committed by the Hermes/Factory track, `06b2bd3`); this
+is the PROGRAM NOTE carried in the SDD ledger and it is reproduced by
+`uv run ruff format --check deploys ops/scripts` → "Would reformat:
+deploys/tests/test_gen_hermes_agents.py". One command in that track clears it:
+
+```bash
+uv run ruff format deploys/tests/test_gen_hermes_agents.py   # then commit it in that track
+```
+
+Sequence it that way: format commit → a green `repository` run on GitHub → then add `repository`
+to kodemeio-dokploy's required checks. Adding it before that makes every PR to dokploy
+unmergeable, which is the failure this table exists to avoid.
 
 `enforce_admins: true` so that even the founder's own account cannot use the **merge button**
 without the check passing — this is what makes "branch protection requires the CI gate" (spec
@@ -554,8 +721,10 @@ gh api repos/tgunawandev/kodemeio-odoo/branches/18.0/protection -X PUT --input -
 }
 JSON
 ```
-For kodemeio-dokploy, list all three contexts in one `checks` array; same for kodemeio-hatchet's
-two.
+For kodemeio-hatchet, list both contexts (`validate`, `worker-tests`) in one `checks` array. For
+kodemeio-dokploy, list `manifests` and `terraform` only — add `repository` to that array after
+the blocker above is cleared and it has one green run (the same `PUT` re-sends the whole array,
+so re-run it with all three when that day comes).
 
 **Verify:**
 ```bash
