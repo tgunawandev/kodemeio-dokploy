@@ -189,7 +189,7 @@ items:
       prefix: kodemeio-authentik-backup/media/
     fresh_h: 30
     drill: authentik
-    notes: "Teracorp Wave 0 Task 6 (2026-09-26): tar of the authentik-data Docker volume (docker-compose.prod.yml, abc-prod-02), via backup/backup.sh's `media` path in kodemeio-authentik. Authentik's DATABASE is on kod-postgres, already covered by authentik-db above -- this item is the media-only gap R2 called for. The same script's DB-dump path stays behind BACKUP_DB=0 in prod (dormant, for the future embedded/self-contained variant); not represented here since it does not run."
+    notes: "Teracorp Wave 0 Task 6 (2026-09-26): tar of the authentik-data Docker volume (docker-compose.prod.yml, abc-prod-02), via backup/backup.sh's `media` path in kodemeio-authentik. Authentik's DATABASE is on kod-postgres, already covered by authentik-db above -- this item is the media-only gap R2 called for. The same script's DB-dump path stays behind BACKUP_DB=0 in prod (dormant, for the future embedded/self-contained variant); not represented here since it does not run. FOUNDER ACTION (fix round 1, 2026-09-26): (1) the `kodemeio-authentik-backup` bucket does not exist yet in Hetzner -- must be provisioned (with S3_BACKUP_* credentials wired into Dokploy env) before this sidecar's uploads can land anywhere; (2) confirm the LIVE value of AUTHENTIK_STORAGE_BACKEND on auth.kodeme.io -- the compose file's own default is `s3` (not `file`), and the sidecar now refuses with reason=media_in_s3 when it sees that value, since the real media then lives in Authentik's own S3 bucket (AUTHENTIK_STORAGE__MEDIA__S3__BUCKET_NAME, default kodemeio-authentik-data) instead of this volume. If the live value is `s3`, this item should track THAT bucket in the kod offsite mirror, not the authentik-data volume -- gap re-opens until confirmed."
 
   - id: mattermost-files
     kind: filestore
@@ -202,7 +202,7 @@ items:
       prefix: kodemeio-mattermost-backup/mattermost/files/
     fresh_h: 30
     drill: none
-    notes: "Teracorp Wave 0 Task 6 (2026-09-26): tar of the mm-data Docker volume (docker-compose.prod.yml, abc-prod-02) via the new mm-files-backup sidecar, reusing kodemeio-mattermost/backup/backup.sh's existing image and pattern (files/files-once modes added alongside the existing DB backup/loop modes). Same bucket as mattermost-db, already covered by kod-offsite-mirror.sh's existing kodemeio-mattermost-backup/mattermost b2_sync (whole prefix tree) -- no new mirror source needed."
+    notes: "Teracorp Wave 0 Task 6 (2026-09-26): tar of the mm-data Docker volume (docker-compose.prod.yml, abc-prod-02) via the new mm-files-backup sidecar, reusing kodemeio-mattermost/backup/backup.sh's existing image and pattern (files/files-once modes added alongside the existing DB backup/loop modes). Same bucket as mattermost-db, already covered by kod-offsite-mirror.sh's existing kodemeio-mattermost-backup/mattermost b2_sync (whole prefix tree) -- no new mirror source needed. FOUNDER ACTION (fix round 1, 2026-09-26): unlike authentik-media, this does NOT need a new bucket -- it reuses the already-provisioned `kodemeio-mattermost-backup` bucket and the same S3_BACKUP_* credentials the existing mm-backup (DB) sidecar already has in Dokploy env. The founder does need to redeploy this compose so the new mm-files-backup service actually starts -- committing the file alone does not run it."
 
   # --- Planned: the jobs deliberately do not cover these yet ------------------
   # (excluded from the drift/equality tests; each names the task/event that
