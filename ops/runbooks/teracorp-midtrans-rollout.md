@@ -6,16 +6,20 @@ Rolls out Midtrans QRIS/VA payments for Terakidz orders on `erp.kodeme.io`
 (spec D1).
 
 - Design: `kodemeio-docs/superpowers/specs/2026-09-26-teracorp-pay1-midtrans-design.md`
-- Plan + ledger (rulings R1–R10): `kodemeio-docs/.superpowers/sdd/2026-09-26-teracorp-pay1-midtrans/progress.md`
 - Results (P1–P10 evidence): `kodemeio-docs/superpowers/specs/2026-09-26-teracorp-pay1-results.md`
+  (the plan ledger and the Task 6 slice rig notes live under
+  `kodemeio-docs/.superpowers/sdd/`, which is **gitignored** — nothing here
+  depends on them; they are pointers for whoever has that checkout, not
+  tracked evidence)
 - Code and full behaviour reference: kodemeio-odoo
   `src/private/integrations/payment_midtrans_guard/CLAUDE.md` — read it before
   touching the guard's models; this runbook only summarizes the parts an
   operator needs.
 - Local setup facts (from the Task 6 slice rig, `bin/teracorp_slice_setup.py`):
-  `kodemeio-docs/.superpowers/sdd/2026-09-26-teracorp-pay1-midtrans/deploy-notes.md`
-  — that rig runs against a disposable local DB with a **fake** Midtrans
-  server; nothing there is a production credential or host.
+  the rig's own notes live under `kodemeio-docs/.superpowers/sdd/` (**gitignored**,
+  see above) — the operatively relevant facts are: the rig runs against a
+  disposable local DB with a **fake** Midtrans server, and nothing there is a
+  production credential or host.
 
 Commands below run from the `kodemeio-odoo` checkout through `./odoo.sh`
 (never raw SQL — `ir.config_parameter` is cached per worker and only
@@ -241,6 +245,15 @@ Odoo's own Activities view (Discuss → Activities, or the bell icon on an
 human actually **works** an alert — the queries above are for building a
 dashboard or a scheduled digest, not a replacement for that view.
 
+**Three crons matter on this instance.** The guard adds only the middle one;
+the other two come from `payment_midtrans` itself (upstream, unmodified):
+
+| Cron | Cadence | What it does to a Terakidz payment |
+|---|---|---|
+| "Midtrans: Check Pending Transactions" | every 5 min | Polls every `pending` Midtrans transaction by GET status — the guard's payment requests included. Its answers go through the guard, so a settlement found this way is posted (with a `reopened_after_expiry` alert when the transaction had expired). Transactions held as `already_paid_manually` are deliberately skipped (`midtrans_guard_paid_elsewhere`); the manual **Check status** button still queries them. |
+| "Midtrans: Create Payment Requests" (guard) | every 2 min | Claims `queued`/`retry` orders and creates the charge; see the alerts above. |
+| "Midtrans: Expire Old Transactions" | hourly | Cancels expired transactions **in Odoo**. After it runs the order stays `requested` with a dead QR/VA and **nothing re-requests or alerts by itself** — press **Request payment** on the order, or let the customer pay another way. |
+
 ### Resolving each alert (full text lives on the activity itself)
 
 | Alert | Resolution |
@@ -253,11 +266,23 @@ dashboard or a scheduled digest, not a replacement for that view.
 | **`already_paid_manually`** (incl. **partial payment**) | Midtrans settled, but Odoo already shows a payment. Two of it: refund one through the Midtrans dashboard. Wrong manual entry: cancel it and register the Midtrans one. **Partial payment on the invoice: register the Midtrans payment, then refund the excess through the Midtrans dashboard.** (Edge case: a partial credit note can also make the invoice read `partial` — a human decides then too.) The guard never posts this on its own. |
 | `reopened_after_expiry` | Informational: an expired transaction was settled because Midtrans's authenticated status said so — the payment is posted. Confirm it in the dashboard; if the linked order was cancelled (the note says so), reinstate it or refund the customer. |
 | `payment_request_failed` (on the sale order) | Read `payment_request_error`: fix the server key (401) or the order/customer data (4xx), then press **Request payment** (`sale.order.action_midtrans_request_payment()`), or take the payment another way. |
+| `charge_amount_rounded` (on the sale order) | Informational, and **not a defect**: the order total has sub-rupiah cents and Midtrans cannot process decimals in IDR, so the payment request is for the whole-rupiah amount actually charged (e.g. 150000 of 150000.50) — the payment that posts matches the money received, and the remainder stays on the order. When the customer has paid, settle the remainder by hand (write it off or issue a credit note), or round the order's total and press **Request payment** again. |
 | `refund_chargeback:*` | Record it in Odoo: a credit note for the refunded amount plus the outgoing refund payment (chargeback: only after reviewing it with Midtrans/the issuer). |
 
 Re-sending ("resend notification") the same Midtrans notification from the
 dashboard is **never the fix** for any of the above — an identical body is
 just answered `duplicate` and changes nothing.
+
+**One case raises no alert at all** (guard limitation, final review M3):
+if an accountant posts the invoice by hand **before** the customer pays, and
+the Midtrans settlement then arrives, the guard applies it and core posts the
+payment — but `sale` has no invoice left to create, so the posted payment can
+be left **unreconciled** against that already-posted invoice, which therefore
+still shows as unpaid. The guard's `already_paid_manually` hold only
+recognises invoices already in `paid`/`in_payment`/`partial`. So: after a
+Midtrans settlement on an order whose invoice was posted by hand beforehand,
+**check the invoice is reconciled** (Register Payment / manual reconciliation
+on the invoice) and that dunning will not chase a customer who has paid.
 
 **Clearing a sticky reversal** — Odoo UI **only**, by design: the "Clear
 Midtrans Reversal Flag" server action on the `payment.transaction` form
@@ -268,6 +293,16 @@ mandatory reason, re-checks the group, locks the row, clears
 that bypasses the group gate the server action enforces at the click, which
 is the entire point of routing this through a wizard rather than a plain
 field write.
+
+**A repeated `deny` right after a clear is silent — by design** (Task 3
+N-m2, parked). Clearing the flag does not move the stored lifecycle anchor,
+which still reads `deny`; a deny is only treated as a reversal when the anchor
+is at settlement precedence or later, so a deny arriving after the clear
+without a new settlement in between is neither re-flagged nor alerted. Only
+a settlement that is then denied again raises a new `reversal` alert. If you
+believe the money really was reversed after a clear, clear the flag **only
+once you have confirmed it in the Midtrans dashboard**, and record the
+unwind by hand.
 
 ### Stale QR/VA after a re-confirm
 
@@ -281,6 +316,24 @@ Midtrans and re-opens it with a `reopened_after_expiry`-style alert — but it
 is confusing and creates exactly the kind of ambiguity a human then has to
 resolve. **Support must tell a customer whose order was re-confirmed to use
 the current QR/VA shown on the order, never a previously saved one.**
+
+**Cancelling a confirmed order is the same shape, without the guard's help.**
+Nothing in Odoo calls Midtrans when an order is cancelled, so its QR/VA stays
+payable at Midtrans until it expires. If the customer pays it anyway, the
+guard posts an `account.payment` for the money, but `sale` does not invoice a
+cancelled order — so nothing is reconciled and no alert is raised. **Cancel
+the payment request in the Midtrans dashboard as part of any order
+cancellation**, and if a payment does arrive for a cancelled order, register
+it by hand (reinstate the order, or refund through the Midtrans dashboard and
+record it).
+
+**Never edit a confirmed order's lines while a payment request is live.** The
+transaction amount is frozen when the charge is created (that is what makes
+the amount check exact), so a later line change leaves the live QR/VA for the
+old amount and the settlement will simply be for less than the new total —
+with no alert, because the guard compares against what Midtrans is actually
+asked for. Change the order first, then re-confirm/re-request so a new charge
+matches the new total.
 
 ### Refunds are always human
 
@@ -323,12 +376,31 @@ Two moves, both required (either alone is a partial kill):
   Any Midtrans payment that settles **while the provider is disabled** will
   not be recorded automatically — check the Midtrans dashboard and register
   it manually for any order left mid-flight at the moment of rollback.
-- This is safe to reverse later: Midtrans's own retry schedule
-  (2/10/30/90/210 min) redelivers a notification the webhook refused, so
-  once the provider is re-enabled, anything genuinely missed during the
-  outage window is redelivered and reprocessed — and the
-  `already_paid_manually` hold protects against double-posting if a human
-  already registered that same payment by hand in the meantime.
+- **Midtrans does NOT redeliver anything the webhook already answered.** This
+  endpoint is a `type="json"` route and always answers HTTP 200, and
+  Midtrans's retry schedule (2/10/30/90/210 min) is driven by non-2xx replies
+  and timeouts only — so a notification that arrives while the provider is
+  disabled is refused, logged, answered 200 and **never comes back** (spec
+  deviation D-5; guard CLAUDE.md, "N5"). Re-enabling the provider does **not**
+  replay it. Do not rely on Midtrans's redelivery for any part of this
+  rollback.
+- **Recovery after a disabled window** — the same rule as the held-ambiguity
+  path (R10(b)): ask Midtrans, never wait for Midtrans to send it again.
+  1. **Anything still `pending` in Odoo:** let the upstream cron "Midtrans:
+     Check Pending Transactions" run, or press **Check status** on the
+     transaction. Both query Midtrans by GET and feed the authenticated answer
+     through the guard, which applies it exactly once (a settlement found this
+     way is posted, with an alert). Find the candidates with:
+     ```bash
+     ./odoo.sh kod prod shell call payment.transaction search_count \
+       '[[["provider_id","=",<terakidz_provider_id>],["state","=","pending"]]]'
+     ```
+  2. **Everything else** — anything already `done`/`cancel`/`error`, or not in
+     Odoo at all: sweep the Midtrans dashboard for transactions settled inside
+     the window, compare them against Odoo, and register any missing payment
+     by hand (`already_paid_manually` is what protects this sweep: if a human
+     already registered the payment, a later notification for it is held and
+     alerted instead of posted a second time).
 
 **Verify:**
 ```bash
