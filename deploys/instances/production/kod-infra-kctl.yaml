@@ -1,0 +1,115 @@
+kind: instance
+# Deliberately NOT `extends: ../../bases/infra.yaml`.
+#
+# Same reasoning as kod-infra-litellm.yaml's own note, which quotes
+# CLAUDE.md ("backup: {} and backup: {enabled: false} DO NOT DISABLE
+# ANYTHING"): merge_manifests() takes the BASE's backup block whenever the
+# instance's own `backup` is None -- so under `extends`, not even
+# `backup: null` disables the infra base's postgres-dump phase, which would
+# fail every deploy with "Destination '' not found" (this compose has no
+# database of its own to dump -- its entire content is a pinned image plus
+# env, both reproducible from git, same as tpp-infra-kctl.yaml's own "this
+# app genuinely needs no backup" note). The documented fix for "a compose
+# with no database" is to drop `extends` and inline the three things the
+# base otherwise supplies (type, healthcheck, TZ) -- done below. With no
+# `extends`, `backup` is simply never set, defaults to None, and
+# orchestrator.py's phase_backup() skips it correctly.
+#
+# tpp-infra-kctl.yaml (the idtpp/tpp+mac twin of this toolbox) still
+# `extends`s and ships `backup: {}`, accepting that phase failing every
+# deploy as a documented, tracked gap (its own comment explains why). This
+# manifest does not need to accept that -- dropping `extends` avoids it
+# entirely, the same way kod-infra-litellm.yaml already does.
+type: infrastructure
+
+instance:
+  name: kod-infra-kctl
+  description: "kctl toolbox -- execution host for the kod (Teracorp, kodeme.io) estate's scheduled backup-freshness and offsite-mirror jobs"
+
+project: kod
+environment: production
+# founder: set to the chosen toolbox host (spec §7 G1) — must NOT be the Teracorp production server
+server: kod-prod-01
+
+# A plain `source:` block, not `source_overrides:` -- source_overrides is
+# only applied by merge_manifests() during an `extends` resolve, and this
+# manifest deliberately carries none (see the note above `type:
+# infrastructure`). A standalone manifest is loaded and used as-is
+# (load_and_resolve()), so source_overrides here would be silently ignored.
+source:
+  type: github
+  owner: tgunawandev
+  repo: kodemeio-skills
+  branch: main
+  compose_path: ./compose/toolbox-kod.yml
+
+env_file: ../../env/production/.env.kod-infra-kctl
+
+env_defaults:
+  TZ: "UTC"
+
+env_overrides:
+  COMPOSE_PROJECT_NAME: kod-infra-kctl
+
+# No dns/domain block on purpose, same reasoning as tpp-infra-kctl.yaml (the
+# idtpp/tpp+mac twin of this toolbox): it has no HTTP surface, publishes no
+# ports, and takes no Traefik route. Dokploy schedules reach it by `docker
+# exec`, not over the network.
+#
+# ONE PHASE STILL FAILS ON EVERY DEPLOY OF THIS APP, BY DESIGN -- a
+# kctl-dokploy gap, not misconfiguration here (same root cause as
+# tpp-infra-kctl.yaml's identical note, tracked there as a Task 8 fix in the
+# xyops-to-dokploy migration plan):
+#
+#   verify  "Healthcheck timed out: unexpected status 404" (or a connection
+#           error) -- phase_verify unconditionally polls {scheme}://{host}
+#           {path}. With no domain block, host falls back to localhost, and
+#           this app serves no HTTP at all. There is no port-0 or skip
+#           escape in the phase.
+#
+# Unlike tpp-infra-kctl.yaml, this manifest does NOT also need a `backup: {}`
+# workaround or accept a second failing phase: dropping `extends` (see the
+# top-of-file note) means `backup` is never set at all, so phase_backup()
+# correctly skips with "No backup configured" instead of failing.
+#
+# Every command is a bare `jobrun <name>`. Dokploy passes a schedule's command
+# to a shell WITHOUT escaping, so ' ( ) < > | & ; and $ kill the run before it
+# produces any output -- and no alert, because Dokploy has no failure
+# notification for scheduled jobs. Arguments, quoting and secret guards all
+# live in /opt/kctl/jobs/kod-*.sh inside the pinned image (kodemeio-skills:
+# docker/jobs/kod-offsite-mirror.sh, kod-offsite-fresh.sh, kod-hz-fresh.sh).
+#
+# Cadence (all UTC -- kodemeio-dokploy's odoo-filestore-backup.yaml base:
+# "All cron expressions are UTC; production hosts run Etc/UTC"), kept at the
+# spec brief's own defaults: Task 0 found the kod postgres dump job is an
+# interval loop inside the postgres container (BACKUP_SCHEDULE_HOURS, not a
+# fixed crontab entry) and gave no fixed clock time that would contradict
+# these, and the one fixed cron this repo DOES carry for the kod estate --
+# kod-odoo-desk-filestore-backup.yaml's BACKUP_CRON_PINNED "20 22 * * *" (=
+# 22:20 UTC) -- sits comfortably before all three below:
+#   kod-offsite-mirror  :45 every 2h (last run before the freshness checks:
+#                       22:45 UTC) -- picks up the ~22:20 filestore snapshot
+#                       and whatever postgres dump landed by then.
+#   kod-hz-fresh        23:40 UTC -- checks the PRIMARY (Hetzner) copy.
+#   kod-offsite-fresh   23:50 UTC -- checks the B2 MIRROR, after 22:45's run
+#                       has had over an hour to land.
+#
+# ALL THREE SHIP DISABLED (`enabled: false`). Per this task's rulings, the
+# founder must NOT flip them to `enabled: true` / deploy until:
+#   - G2: a B2 key without deleteFiles, a lifecycle rule, and a hard-delete
+#     test that returns 401 -- measured on the idtpp/tpp+mac keys 2026-09-25
+#     (ops/runbooks/b2-offsite-backup.md), NOT yet measured on the kod
+#     B2_KOD_*/B2_KOD_RO_* keys this manifest's env file expects.
+#   - The kod_odoo_hrms dump is fresh again (Task 0: 223h stale, only one
+#     dump ever -- kod-hz-fresh/kod-offsite-fresh will otherwise alarm
+#     immediately and correctly the moment they run).
+#   - The erp/hrms restic repos are confirmed (Task 0 only directly
+#     confirmed kod-odoo-desk/ in a bucket listing; kod-odoo-erp/ and
+#     kod-odoo-hrms/ are the brief's asserted shape, unconfirmed by a direct
+#     listing).
+# See this task's report (task-4-report.md, same dir as the Wave-0 brief)
+# for the full gate list and reasoning.
+schedules:
+  - {name: kod-offsite-mirror, cron: "45 */2 * * *", command: "jobrun kod-offsite-mirror", service: kctl, shell: sh, timezone: UTC, enabled: false}
+  - {name: kod-hz-fresh,       cron: "40 23 * * *",  command: "jobrun kod-hz-fresh",       service: kctl, shell: sh, timezone: UTC, enabled: false}
+  - {name: kod-offsite-fresh,  cron: "50 23 * * *",  command: "jobrun kod-offsite-fresh",  service: kctl, shell: sh, timezone: UTC, enabled: false}
