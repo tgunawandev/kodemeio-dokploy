@@ -36,7 +36,12 @@ ODOO_PAIR_KINDS = {"odoo-db": "odoo-filestore", "odoo-filestore": "odoo-db"}
 # Kinds the two freshness jobs actually check per-prefix (excludes gap,
 # app-dump, and bucket, none of which the b2-fresh/hz-fresh loops cover).
 FRESH_ELIGIBLE_KINDS = {"odoo-db", "odoo-filestore", "pg-db"}
-FORBIDDEN_TOKENS = ("tpp", "mac", "idtpp")
+FORBIDDEN_TOKENS = {"tpp", "mac", "idtpp"}
+# Bucket/prefix/id values are split on their natural word boundaries before
+# matching a forbidden token, so a token must appear as a WHOLE segment, not
+# merely as a raw substring -- "machine" must never match "mac", but
+# "tpp-prod-backup" must still match "tpp".
+_SEGMENT_SPLIT_RE = re.compile(r"[-/_.]")
 
 
 # --- loading ------------------------------------------------------------------
@@ -187,9 +192,42 @@ def fresh_equality_violations(
     return violations
 
 
-def idtpp_violations(raw_text: str) -> list[str]:
-    low = raw_text.lower()
-    return [token for token in FORBIDDEN_TOKENS if token in low]
+def _segments(value: str) -> list[str]:
+    return [seg for seg in _SEGMENT_SPLIT_RE.split(value.lower()) if seg]
+
+
+def forbidden_tokens_in(value: str) -> list[str]:
+    """Forbidden tokens present as a WHOLE segment of `value`, split on
+    -, /, _, . -- not a raw substring match."""
+    segments = set(_segments(value))
+    return sorted(token for token in FORBIDDEN_TOKENS if token in segments)
+
+
+def planned_kind_violations(items: list[dict]) -> list[str]:
+    """Every `planned: true` item must be `kind: gap`. A real db/filestore
+    item marked planned would otherwise silently drop out of BOTH drift
+    checks (offsite_coverage_violations and fresh_equality_violations both
+    skip anything with `planned`), which is exactly the drift this file
+    exists to catch."""
+    return [item["id"] for item in items if item.get("planned") and item["kind"] != "gap"]
+
+
+def idtpp_violations(items: list[dict]) -> list[str]:
+    violations: list[str] = []
+    for item in items:
+        fields = {"id": item.get("id")}
+        for section in ("primary", "offsite"):
+            value = item.get(section)
+            if isinstance(value, dict):
+                fields[f"{section}.bucket"] = value.get("bucket")
+                fields[f"{section}.prefix"] = value.get("prefix")
+        for field_name, value in fields.items():
+            if not isinstance(value, str):
+                continue
+            hits = forbidden_tokens_in(value)
+            if hits:
+                violations.append(f"{item['id']}.{field_name}={value!r} contains forbidden segment(s): {hits}")
+    return violations
 
 
 # --- tests: shape only (never need the sibling repo) --------------------------
@@ -213,9 +251,31 @@ def test_every_planned_item_has_notes():
     assert not missing, f"planned items missing 'notes': {missing}"
 
 
+def test_planned_items_are_gap_kind():
+    """`planned: true` must imply `kind: gap`. Both drift checks
+    (offsite_coverage_violations, fresh_equality_violations) skip anything
+    marked `planned` -- if a real odoo-db/odoo-filestore/pg-db item were
+    ever marked planned, it would silently stop being checked at all,
+    instead of failing loud."""
+    items = _load_inventory()["items"]
+    violations = planned_kind_violations(items)
+    assert not violations, f"planned items must be kind: gap: {violations}"
+
+
 def test_no_idtpp_references():
-    violations = idtpp_violations(INVENTORY_PATH.read_text())
-    assert not violations, f"forbidden tokens found in {INVENTORY_PATH}: {violations}"
+    items = _load_inventory()["items"]
+    violations = idtpp_violations(items)
+    assert not violations, violations
+
+
+def test_forbidden_token_matcher_uses_segment_boundaries_not_raw_substring():
+    assert forbidden_tokens_in("tpp-prod-backup") == ["tpp"]
+    assert forbidden_tokens_in("machine") == []
+    assert forbidden_tokens_in("kodemeio-postgres-backup") == []
+    # "idtpp" is one whole segment here -- it must not also register as a
+    # separate "tpp" hit, which a raw substring scan would have done.
+    assert forbidden_tokens_in("idtpp-dokploy") == ["idtpp"]
+    assert forbidden_tokens_in("hz-mac-odoo-filestore") == ["mac"]
 
 
 # --- tests: drift against the real job scripts (skip/fail per sibling rule) --
@@ -265,3 +325,16 @@ def test_mutation_deleting_hrms_filestore_fails_pair_and_coverage_checks():
     job_primary = primary_fresh_prefixes(jobs_dir)
     coverage_result = fresh_equality_violations(mutated, job_offsite, job_primary)
     assert coverage_result, "deleting odoo-hrms-filestore must fail the fresh-prefix coverage check"
+
+
+def test_mutation_marking_a_real_db_item_planned_fails_the_planned_kind_check():
+    """A real db item marked `planned: true` without also being `kind: gap`
+    must fail `test_planned_items_are_gap_kind` -- otherwise it would quietly
+    drop out of both drift checks (they both skip `planned` items) while
+    still looking like a normal, checked inventory entry everywhere else.
+    """
+    items = _load_inventory()["items"]
+    mutated = [dict(item, planned=True) if item["id"] == "odoo-erp-db" else item for item in items]
+
+    violations = planned_kind_violations(mutated)
+    assert violations == ["odoo-erp-db"], violations

@@ -168,7 +168,7 @@ items:
       prefix: supabase/terakidz/
     fresh_h: 800
     drill: none
-    notes: "TeraKidz self-hosted Supabase (tenant tkz, service infra-postgres, kod-prod-02). Primary backup is the Supabase stack's own provider-side mechanism, not a kod-owned Hetzner prefix. Not covered by kod-offsite-mirror.sh / kod-offsite-fresh.sh / kod-hz-fresh.sh -- offsite copy is a manual runbook procedure until a dedicated job exists."
+    notes: "TeraKidz self-hosted Supabase (tenant tkz, service infra-postgres, kod-prod-02). Primary backup is the Supabase stack's own provider-side mechanism, not a kod-owned Hetzner prefix. Not covered by kod-offsite-mirror.sh / kod-offsite-fresh.sh / kod-hz-fresh.sh -- offsite copy is a manual runbook procedure until a dedicated job exists. Offsite bucket inferred; confirm in the supabase runbook."
 
   # --- Planned: the jobs deliberately do not cover these yet ------------------
   # (excluded from the drift/equality tests; each names the task/event that
@@ -187,7 +187,7 @@ items:
   - id: mattermost-files
     kind: gap
     planned: true
-    notes: "Mattermost files on the mm-data Docker volume (abc-prod-02): Task 0 confirmed no S3 bucket is configured in production (live env carries no AmazonS3 credential names). Wave 0 Task 6 adds the backup path."
+    notes: "Inferred (Task 0): files on local docker volume mm-data; verify before Task 6 wires the volume backup."
 
   # --- Gaps: no backup, no task assigned yet ----------------------------------
 
