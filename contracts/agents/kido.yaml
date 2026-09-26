@@ -22,4 +22,4 @@ memory:
 escalation:
   channel: mattermost
   payload: ids_only
-model_route: none
+model_route: litellm:kido

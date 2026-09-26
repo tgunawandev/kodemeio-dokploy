@@ -1,0 +1,86 @@
+kind: instance
+# Deliberately NOT `extends: ../../bases/infra.yaml`.
+#
+# CLAUDE.md ("backup: {} and backup: {enabled: false} DO NOT DISABLE
+# ANYTHING"): merge_manifests() takes the BASE's backup block whenever the
+# instance's own `backup` is None -- so under `extends`, not even
+# `backup: null` disables the infra base's postgres-dump phase, which would
+# fail every deploy with "Destination '' not found" (this compose has no
+# database of its own to dump -- the litellm database lives on kod postgres,
+# see kod-infra-postgres.yaml's SERVICE_DATABASES, and that instance's own
+# backup already covers it). The documented fix for "a compose with no
+# database" is to drop `extends` and inline the three things the base
+# otherwise supplies (type, healthcheck, TZ) -- done below. With no `extends`,
+# `backup` is simply never set, defaults to None, and orchestrator.py's
+# phase_backup() skips it correctly.
+type: infrastructure
+
+instance:
+  name: kod-infra-litellm
+  description: "LiteLLM gateway -- metered, budgeted, no-prompt-storage front door for every Teracorp agent/factory model call"
+
+project: kod
+environment: production
+# founder: change to the new server name -- this is the plan's default
+# (same host as kod postgres, per design D2), not a hardcoded requirement.
+# The founder may provision a fresh server for this deployment; see this
+# repo's docs/runbook-production.md step 1 ("choose target server") before
+# touching anything below this line.
+server: abc-prod-02
+
+# A plain `source:` block, not `source_overrides:` -- source_overrides is only
+# applied by merge_manifests() during an `extends` resolve, and this manifest
+# deliberately carries none (see the note above `type: infrastructure`). A
+# standalone manifest is loaded and used as-is (load_and_resolve()), so
+# source_overrides here would be silently ignored.
+source:
+  type: github
+  owner: tgunawandev
+  repo: kodemeio-llmlite
+  branch: main
+  compose_path: ./docker-compose.prod.yml
+
+dns:
+  zone: kodeme.io
+  name: llm
+
+domain:
+  host: llm.kodeme.io
+  port: 4000
+  service: litellm
+  https: true
+  cert: letsencrypt
+
+# Liveness only, matching docker-compose.prod.yml's own healthcheck and the
+# design spec §1 health note: /health/readiness returns HTTP 200 even during
+# a Postgres outage on this pinned image (the DB state only shows up in the
+# response BODY's `db` field), so neither this healthcheck nor Dokploy's own
+# probe can use readiness to detect a DB outage. The production uptime
+# monitor (runbook step) is what actually reads that body field.
+healthcheck:
+  path: /health/liveliness
+  port: 4000
+  expected_status: 200
+  timeout: 30
+  interval: 30
+
+env_file: ../../env/production/.env.kod-infra-litellm
+
+env_defaults:
+  TZ: "Asia/Jakarta"
+
+env_overrides:
+  COMPOSE_PROJECT_NAME: kod-infra-litellm
+
+# Post-deploy (not handled by the pipeline -- see docs/runbook-production.md
+# in kodemeio-llmlite for the full founder-gated sequence):
+#  1. Add a `litellm` entry to kod postgres's SERVICE_DATABASES and provision it.
+#  2. Put LITELLM_MASTER_KEY / DATABASE_URL / DEEPSEEK_API_KEY /
+#     OPENROUTER_API_KEY / ANTHROPIC_API_KEY into 1Password + this instance's
+#     Dokploy env (never in git).
+#  3. Authentik forward-auth (Proxy Provider + Application) for the gated
+#     Traefik router defined in kodemeio-llmlite's own docker-compose.prod.yml
+#     -- see that file's comments for the AUTHENTIK_HOST one-hop gotcha.
+#  4. `scripts/reconcile_keys.py --apply --url https://llm.kodeme.io` to create
+#     the kido/vision/dsh virtual keys from config/keys.yaml.
+#  5. Switch VISION then dsh over, then remove provider keys from their envs.

@@ -6,6 +6,12 @@ instance:
   description: "Shared PostgreSQL 16 database"
 
 project: kod
+# Was inheriting the infra base's stale `server: kodeme-service` default
+# (never overridden here before). The live kod postgres instance actually
+# runs on abc-prod-02 (Task 5, teracorp-litellm-gateway design doc §1
+# "facts" table) -- correcting it so this manifest matches the fleet, and so
+# kod-infra-litellm (same host, same project) resolves against the truth.
+server: abc-prod-02
 
 source_overrides:
   repo: kodemeio-postgres
