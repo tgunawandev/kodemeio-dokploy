@@ -1,0 +1,122 @@
+# Teracorp CW1 — Chatwoot (Terakidz WhatsApp inbox) + kido_chat + the
+# order_intake ingress, bundled as one compose (kodemeio-chatwoot).
+#
+# Deliberately NOT `extends: ../../bases/infra.yaml` -- same reasoning as
+# kod-infra-litellm.yaml / kod-infra-kctl.yaml / kod-infra-gatus.yaml: under
+# `extends`, the infra base's postgres-dump backup phase is inherited even
+# with `backup: null` and fails every deploy ("Destination '' not found").
+# Chatwoot's own postgres (chatwoot-postgres, service name inside THIS
+# compose, not the infra base's assumed "postgres" service) is not covered
+# by that generic phase anyway. Its backup is a documented GAP, not a
+# `backup:` block here -- see ops/runbooks/teracorp-cw1-rollout.md's
+# "Backups" section and the note below, matching kod-infra-litellm.yaml's
+# own litellm-db precedent (Wave 0 ops/backup-inventory.kod.yaml planned
+# item, not yet added). With no `extends`, `backup` is simply never set,
+# and orchestrator.py's phase_backup() skips it correctly.
+#
+# Design: kodemeio-support/kodemeio-docs/superpowers/specs/
+#         2026-09-26-teracorp-cw1-chatwoot-design.md (D11 "Chatwoot
+#         deployment"; §8 founder gates M1-M7)
+# Task 9 brief/report: kodemeio-support/kodemeio-docs/.superpowers/sdd/
+#         2026-09-26-teracorp-cw1-chatwoot/{task-9-brief,task-9-report}.md
+# Runbooks (read teracorp-cw1-rollout.md FIRST, before any real deploy):
+#   ops/runbooks/teracorp-cw1-host.md          (M1 -- provision `server:` below)
+#   ops/runbooks/teracorp-cw1-meta-whatsapp.md (M2/M3 -- WABA, number, template)
+#   ops/runbooks/teracorp-cw1-privacy.md       (M5 -- draft for counsel)
+#   ops/runbooks/teracorp-cw1-rollout.md       (M6/M7 -- deploy order, kill
+#                                                switches, rollback)
+#
+# The spec's component list (3.3) sketches two manifests (kod-app-chatwoot.yaml,
+# kod-app-kido-chat.yaml); this task's brief instead names ONE file, matching
+# the ONE docker-compose.prod.yml this task builds (Chatwoot + kido_chat +
+# the order_intake ingress/worker all in one compose, one Dokploy app). This
+# manifest follows the brief.
+type: infrastructure
+
+instance:
+  name: kod-app-chatwoot
+  description: "Teracorp CW1 -- Chatwoot (Terakidz WhatsApp inbox) + kido_chat + order_intake ingress"
+
+project: kod
+environment: production
+
+# FOUNDER DECISION PENDING (M1, spec D11): a NEW host, not kod-prod-01/02 --
+# Chatwoot alone needs >=4 vCPU/8GB (D1) plus kido_chat + order_intake's own
+# workers. See ops/runbooks/teracorp-cw1-host.md for sizing and the
+# provisioning steps. This literal value is a placeholder, not a real
+# server -- `kctl-dokploy deploy validate` only checks the manifest's shape,
+# it does not check that this server is registered in Dokploy.
+server: kod-cw1-host  # PLACEHOLDER -- replace once M1 is done
+
+source:
+  type: github
+  owner: tgunawandev
+  repo: kodemeio-chatwoot
+  branch: main
+  compose_path: ./docker-compose.prod.yml
+
+dns:
+  zone: kodeme.io
+  name: chat  # FOUNDER DECISION PENDING (spec §8 Q1): chat.kodeme.io (one
+              # Chatwoot instance, one account per brand) vs a
+              # Terakidz-branded domain. chat.kodeme.io is the spec's own
+              # working default (M6); change both this and `domain.host`
+              # together if the founder picks a different domain.
+
+domain:
+  host: chat.kodeme.io  # FOUNDER DECISION PENDING -- see `dns.name` above
+  port: 3000
+  service: chatwoot-web
+  https: true
+  cert: letsencrypt
+
+# Liveness only (matches Chatwoot's own compose healthcheck: curl -f
+# http://localhost:3000/api). kido_chat's /healthz and order_intake's
+# /healthz are internal-only (no domain, no public route) and are checked by
+# their own container healthchecks in docker-compose.prod.yml instead --
+# nothing outside this stack can reach them, so there is nothing for THIS
+# manifest's healthcheck block to probe there.
+healthcheck:
+  path: /api
+  port: 3000
+  expected_status: 200
+  timeout: 300
+  interval: 15
+
+env_file: ../../env/production/.env.kod-app-chatwoot
+
+env_defaults:
+  TZ: "Asia/Jakarta"
+
+env_overrides:
+  COMPOSE_PROJECT_NAME: kod-app-chatwoot
+
+# `python -m order_intake unconfirmed --older-than-min 15` (Task 2b) finds
+# work orders order_intake accepted (202, durably persisted) but never
+# confirmed -- the only case a submit failure or a crashed Hatchet retry
+# leaves behind, since a signed redelivery only works inside a 300s window
+# (ruling R4). `service` MUST equal a real compose service key (Dokploy
+# resolves the target container by the `com.docker.compose.service` label,
+# scoped to this app's compose project -- a name typo here silently
+# resolves to "No such container" and 14 Odoo schedules broke exactly this
+# way for five months, see ops/runbooks/dokploy-schedules.md). `command` is
+# a single bare token: Dokploy passes a schedule's command to a shell
+# WITHOUT escaping ' ( ) < > | & ; $ or a backtick, so every actual
+# semicolon/comparison/env-substitution needed to also ping Healthchechs.io
+# lives in kodemeio-chatwoot/scripts/check-unconfirmed-orders.sh (mounted
+# read-only into order-intake-worker), never in this field.
+#
+# SHIPS DISABLED. The founder must NOT flip this to enabled: true until:
+#   - HC_CW1_ORDER_INTAKE_UNCONFIRMED (Healthchecks.io check) exists and its
+#     ping URL is in Dokploy's env store (see .env.kod-app-chatwoot.example)
+#   - the stack has been deployed at least once with a real order flowing
+#     through (M6 staging smoke), so a "0 rows" first run is not mistaken
+#     for "the check never actually connected to the state db"
+schedules:
+  - name: cw1-order-intake-unconfirmed
+    cron: "*/15 * * * *"
+    command: "sh /opt/checks/check-unconfirmed-orders.sh"
+    service: order-intake-worker
+    shell: sh
+    timezone: UTC
+    enabled: false
