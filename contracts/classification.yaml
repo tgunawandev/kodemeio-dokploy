@@ -1,10 +1,15 @@
 version: 1
 levels:
-  - {name: public,    allowed_in_events: true,  allowed_in_logs: true,  allowed_in_chat: true,  allowed_to_third_party_llm: true}
-  - {name: internal,  allowed_in_events: true,  allowed_in_logs: true,  allowed_in_chat: true,  allowed_to_third_party_llm: true}
-  - {name: personal,  allowed_in_events: true,  allowed_in_logs: false, allowed_in_chat: false, allowed_to_third_party_llm: false}
-  - {name: financial, allowed_in_events: false, allowed_in_logs: false, allowed_in_chat: false, allowed_to_third_party_llm: false}
-  - {name: child,     allowed_in_events: false, allowed_in_logs: false, allowed_in_chat: false, allowed_to_third_party_llm: false}
+  - {name: public,    allowed_in_events: true,  allowed_in_logs: true,  allowed_in_chat: true,  allowed_to_third_party_llm: true,  allowed_to_vetted_llm: true}
+  - {name: internal,  allowed_in_events: true,  allowed_in_logs: true,  allowed_in_chat: true,  allowed_to_third_party_llm: true,  allowed_to_vetted_llm: true}
+  # FOUNDER DECISION PENDING (2026-09-26): approve vetted-LLM routing for personal data
+  - {name: personal,  allowed_in_events: true,  allowed_in_logs: false, allowed_in_chat: false, allowed_to_third_party_llm: false, allowed_to_vetted_llm: true}
+  - {name: financial, allowed_in_events: false, allowed_in_logs: false, allowed_in_chat: false, allowed_to_third_party_llm: false, allowed_to_vetted_llm: false}
+  - {name: child,     allowed_in_events: false, allowed_in_logs: false, allowed_in_chat: false, allowed_to_third_party_llm: false, allowed_to_vetted_llm: false}
 notes: >
   "personal" events carry references only (e.g. odoo:res.partner/42); the referenced record
-  is read by the consumer under its own authorization.
+  is read by the consumer under its own authorization. "allowed_to_vetted_llm" is a narrower
+  gate than "allowed_to_third_party_llm": a "vetted" route is a specific LiteLLM group (e.g.
+  grp-personal) whose provider terms the founder has approved (no training, bounded retention)
+  — see contracts/agents/kido_chat.yaml's data_scope.llm. financial and child data are never
+  allowed to any LLM route, vetted or not.

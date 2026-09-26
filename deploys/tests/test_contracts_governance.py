@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import subprocess
 
+import jsonschema
 import pytest
 import yaml
 from contracts_lib import (
@@ -66,6 +67,63 @@ def test_kido_profile_validates():
 
 def test_friday_profile_validates():
     validator_for(CONTRACTS / "agents/dev_agent_profile.v1.schema.json").validate(_yaml("agents/friday.yaml"))
+
+
+def test_kido_chat_profile_validates():
+    validator_for(CONTRACTS / "agents/profile.v1.schema.json").validate(_yaml("agents/kido_chat.yaml"))
+
+
+def test_kido_profile_still_validates_unchanged():
+    # kido.yaml itself is untouched by the kido_chat amendment; pin it explicitly.
+    validator_for(CONTRACTS / "agents/profile.v1.schema.json").validate(_yaml("agents/kido.yaml"))
+
+
+@pytest.mark.parametrize("bad_tool", ["confirm_order", "refund"])
+def test_chat_tools_rejects_tools_outside_the_allowed_enum(bad_tool):
+    profile = _yaml("agents/kido_chat.yaml")
+    profile["chat_tools"] = [*profile["chat_tools"], bad_tool]
+    with pytest.raises(jsonschema.ValidationError):
+        validator_for(CONTRACTS / "agents/profile.v1.schema.json").validate(profile)
+
+
+@pytest.mark.parametrize("n", [1, 4, 8])
+def test_max_tool_calls_per_turn_allows_1_to_8(n):
+    profile = _yaml("agents/kido_chat.yaml")
+    profile["max_tool_calls_per_turn"] = n
+    validator_for(CONTRACTS / "agents/profile.v1.schema.json").validate(profile)
+
+
+@pytest.mark.parametrize("n", [0, 9, -1])
+def test_max_tool_calls_per_turn_rejects_outside_1_to_8(n):
+    profile = _yaml("agents/kido_chat.yaml")
+    profile["max_tool_calls_per_turn"] = n
+    with pytest.raises(jsonschema.ValidationError):
+        validator_for(CONTRACTS / "agents/profile.v1.schema.json").validate(profile)
+
+
+def test_registry_lists_kido_chat_as_an_order_requested_producer():
+    entry = next(e for e in _yaml("events/registry.yaml")["events"] if e["type"] == "order.requested")
+    assert "kido_chat" in entry["producer"]
+
+
+def test_personal_class_allowed_to_vetted_llm_but_not_third_party():
+    levels = {c["name"]: c for c in _yaml("classification.yaml")["levels"]}
+    assert levels["personal"]["allowed_to_vetted_llm"] is True
+    assert levels["personal"]["allowed_to_third_party_llm"] is False
+
+
+@pytest.mark.parametrize("name", ["financial", "child"])
+def test_financial_and_child_blocked_from_every_llm_route(name):
+    levels = {c["name"]: c for c in _yaml("classification.yaml")["levels"]}
+    assert levels[name]["allowed_to_vetted_llm"] is False
+    assert levels[name]["allowed_to_third_party_llm"] is False
+
+
+def test_every_level_except_personal_has_matching_llm_route_flags():
+    for level in _yaml("classification.yaml")["levels"]:
+        if level["name"] == "personal":
+            continue
+        assert level["allowed_to_vetted_llm"] == level["allowed_to_third_party_llm"], level["name"]
 
 
 def test_policy_lists_always_human_classes():

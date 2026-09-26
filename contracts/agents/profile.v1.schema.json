@@ -8,7 +8,7 @@
                "auto_approve_draft", "require_distinct_approver", "approval_ttl_minutes",
                "data_scope", "tenant_scope", "budget", "memory", "escalation", "model_route"],
   "properties": {
-    "profile": {"type": "string", "pattern": "^[a-z][a-z0-9-]{1,31}$"},
+    "profile": {"type": "string", "pattern": "^[a-z][a-z0-9_-]{1,31}$"},
     "version": {"type": "integer", "minimum": 1},
     "principal": {"type": "string", "pattern": "^agent:[a-z0-9-]+$"},
     "brand": {"enum": ["terakidz", "terakon", "terafin", "terakod", "internal"]},
@@ -28,7 +28,8 @@
       "type": "object", "additionalProperties": false, "required": ["max_classification", "forbidden"],
       "properties": {
         "max_classification": {"enum": ["public", "internal", "personal"]},
-        "forbidden": {"type": "array", "items": {"enum": ["financial", "child"]}, "minItems": 2}
+        "forbidden": {"type": "array", "items": {"enum": ["financial", "child"]}, "minItems": 2},
+        "llm": {"enum": ["vetted", "third_party"]}
       }
     },
     "tenant_scope": {
@@ -45,8 +46,14 @@
     },
     "escalation": {
       "type": "object", "additionalProperties": false, "required": ["channel", "payload"],
-      "properties": {"channel": {"enum": ["mattermost"]}, "payload": {"const": "ids_only"}}
+      "properties": {"channel": {"enum": ["mattermost", "chatwoot_handoff"]}, "payload": {"const": "ids_only"}}
     },
-    "model_route": {"type": "string"}
+    "model_route": {"type": "string"},
+    "chat_tools": {
+      "type": "array",
+      "items": {"enum": ["catalog_search", "product_info", "my_orders", "request_order", "handoff"]},
+      "uniqueItems": true
+    },
+    "max_tool_calls_per_turn": {"type": "integer", "minimum": 1, "maximum": 8}
   }
 }

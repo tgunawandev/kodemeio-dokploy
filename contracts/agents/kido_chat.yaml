@@ -1,0 +1,28 @@
+profile: kido_chat
+version: 1
+principal: agent:kido-chat
+brand: terakidz
+tools: [odoo_whoami, odoo_search, odoo_get, odoo_prepare_operation, odoo_execute_operation, odoo_operation_status]
+resources:
+  read: [products, sale-orders, partners]
+  write: [partners]
+risk_ceiling: draft
+auto_approve_draft: true
+require_distinct_approver: true
+approval_ttl_minutes: 15
+data_scope:
+  max_classification: personal
+  forbidden: [financial, child]
+  llm: vetted
+tenant_scope:
+  company: Terakidz TEST
+budget:
+  llm_usd_per_day: 0          # founder sets before live use (M4)
+memory:
+  long_term: false
+escalation:
+  channel: chatwoot_handoff
+  payload: ids_only
+model_route: litellm:kido
+chat_tools: [catalog_search, product_info, my_orders, request_order, handoff]
+max_tool_calls_per_turn: 4
