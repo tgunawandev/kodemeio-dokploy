@@ -1,0 +1,13 @@
+{
+  "work_order_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
+  "brand": "terakidz",
+  "kind": "factory_job",
+  "factory": "website",
+  "gate": "expert",
+  "correlation_id": "wo-terakidz-website-0001",
+  "state": "awaiting_approval",
+  "refs": {
+    "odoo_factory_work_order": "odoo:factory.work.order/101",
+    "odoo_landing_page_version": "odoo:landing.page.version/42"
+  }
+}

@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kodeme.io/contracts/brands/brand_kit.v1.schema.json",
+  "title": "Brand kit v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "code",
+    "version",
+    "status",
+    "brand",
+    "locale",
+    "voice",
+    "audience",
+    "rules",
+    "colors",
+    "fonts",
+    "contact",
+    "reviewers",
+    "assets"
+  ],
+  "properties": {
+    "code": {"type": "string", "pattern": "^[a-z][a-z0-9-]{1,31}$"},
+    "version": {"type": "integer", "minimum": 1},
+    "status": {"enum": ["draft", "active", "retired"]},
+    "brand": {"enum": ["terakidz", "terakon", "terafin", "terakod"]},
+    "locale": {"enum": ["id_ID", "en_US"]},
+    "voice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["summary", "do", "dont"],
+      "properties": {
+        "summary": {"type": "string", "minLength": 1},
+        "do": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "dont": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "audience": {"type": "string", "minLength": 1},
+    "rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "forbidden_phrases",
+        "required_disclaimers",
+        "ai_disclosure",
+        "affiliate_hosts",
+        "affiliate_disclosure"
+      ],
+      "properties": {
+        "forbidden_phrases": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "required_disclaimers": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "ai_disclosure": {"type": "string", "minLength": 1},
+        "affiliate_hosts": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "affiliate_disclosure": {"type": "string"}
+      }
+    },
+    "colors": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "primary": {"type": "string", "pattern": "^(#[0-9a-fA-F]{6}|oklch\\([^;{}<>]{1,60}\\)|[0-9.]+rem)$"},
+        "primary_foreground": {
+          "type": "string",
+          "pattern": "^(#[0-9a-fA-F]{6}|oklch\\([^;{}<>]{1,60}\\)|[0-9.]+rem)$"
+        },
+        "accent": {"type": "string", "pattern": "^(#[0-9a-fA-F]{6}|oklch\\([^;{}<>]{1,60}\\)|[0-9.]+rem)$"},
+        "accent_foreground": {
+          "type": "string",
+          "pattern": "^(#[0-9a-fA-F]{6}|oklch\\([^;{}<>]{1,60}\\)|[0-9.]+rem)$"
+        },
+        "background": {"type": "string", "pattern": "^(#[0-9a-fA-F]{6}|oklch\\([^;{}<>]{1,60}\\)|[0-9.]+rem)$"},
+        "foreground": {"type": "string", "pattern": "^(#[0-9a-fA-F]{6}|oklch\\([^;{}<>]{1,60}\\)|[0-9.]+rem)$"},
+        "muted": {"type": "string", "pattern": "^(#[0-9a-fA-F]{6}|oklch\\([^;{}<>]{1,60}\\)|[0-9.]+rem)$"},
+        "muted_foreground": {
+          "type": "string",
+          "pattern": "^(#[0-9a-fA-F]{6}|oklch\\([^;{}<>]{1,60}\\)|[0-9.]+rem)$"
+        },
+        "card": {"type": "string", "pattern": "^(#[0-9a-fA-F]{6}|oklch\\([^;{}<>]{1,60}\\)|[0-9.]+rem)$"},
+        "card_foreground": {
+          "type": "string",
+          "pattern": "^(#[0-9a-fA-F]{6}|oklch\\([^;{}<>]{1,60}\\)|[0-9.]+rem)$"
+        },
+        "border": {"type": "string", "pattern": "^(#[0-9a-fA-F]{6}|oklch\\([^;{}<>]{1,60}\\)|[0-9.]+rem)$"},
+        "ring": {"type": "string", "pattern": "^(#[0-9a-fA-F]{6}|oklch\\([^;{}<>]{1,60}\\)|[0-9.]+rem)$"},
+        "radius": {"type": "string", "pattern": "^(#[0-9a-fA-F]{6}|oklch\\([^;{}<>]{1,60}\\)|[0-9.]+rem)$"}
+      }
+    },
+    "fonts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["heading", "body"],
+      "properties": {
+        "heading": {"type": "string", "pattern": "^asset:[a-z0-9-]+$"},
+        "body": {"type": "string", "pattern": "^asset:[a-z0-9-]+$"}
+      }
+    },
+    "contact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["whatsapp"],
+      "properties": {
+        "whatsapp": {"type": "string", "pattern": "^\\+?[0-9]{8,15}$"}
+      }
+    },
+    "reviewers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["expert_logins"],
+      "properties": {
+        "expert_logins": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "assets": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^asset:[a-z0-9-]+$"}
+    }
+  }
+}

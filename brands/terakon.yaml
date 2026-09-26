@@ -1,0 +1,72 @@
+# Terakon brand kit — DRAFT test fixture only (2026-09-26 Teracorp slice).
+#
+# Terakon has no shipped product or repo today (per spec decision D4/founder
+# gate 2: "confirm the draft Terakon kit is only a test fixture until TKN1").
+# EVERY value below is a placeholder invented for this slice, chosen only to
+# be visibly different from terakidz's palette/fonts so acceptance test A3
+# ("two brand kits render distinct output from one template") has a second,
+# real, schema-valid kit to render against. Nothing here should be treated as
+# approved brand content — status stays `draft` until a founder-approved
+# Terakon brief exists.
+code: terakon
+version: 1
+status: draft
+brand: terakon
+locale: id_ID
+
+voice:
+  summary: >
+    PLACEHOLDER — no approved Terakon voice exists yet. Draft tone: direct,
+    confident, professional (business/finance-adjacent), distinct from
+    Terakidz's warm/soft-pastel parent-facing voice.
+  do:
+    - "PLACEHOLDER: keep any real copy grounded in a founder-approved brief once one exists."
+  dont:
+    - "PLACEHOLDER: do not publish anything under this kit while status is draft."
+
+audience: >
+  PLACEHOLDER — target audience not yet defined; draft only, to be replaced
+  once TKN1 scopes the Terakon product.
+
+rules:
+  forbidden_phrases:
+    - "dijamin untung"
+    - "bebas risiko"
+  required_disclaimers:
+    - "Terakon adalah kit uji coba (draft) dan belum merupakan produk yang dipasarkan."
+  ai_disclosure: >
+    PLACEHOLDER — draft kit; no generated content should be published under
+    this brand while status is draft.
+  affiliate_hosts: []
+  affiliate_disclosure: "Terakon tidak memiliki tautan afiliasi berbayar pada halaman ini."
+
+colors:
+  primary: "#2563eb"            # PLACEHOLDER — deliberately different hue family from terakidz's green
+  primary_foreground: "#ffffff"
+  accent: "#7c3aed"             # PLACEHOLDER — purple, distinct from terakidz's apricot accent
+  accent_foreground: "#ffffff"
+  background: "#f8fafc"         # PLACEHOLDER — cool light grey, distinct from terakidz's warm cream
+  foreground: "#0f172a"         # PLACEHOLDER — cool dark slate, distinct from terakidz's warm ink
+  muted: "#e2e8f0"              # PLACEHOLDER
+  muted_foreground: "#334155"   # PLACEHOLDER
+  card: "#ffffff"
+  card_foreground: "#0f172a"    # PLACEHOLDER
+  border: "#cbd5e1"             # PLACEHOLDER
+  ring: "#2563eb"               # PLACEHOLDER
+  radius: "0.75rem"             # PLACEHOLDER — smaller/sharper radius than terakidz's 1.5rem
+
+fonts:
+  # licence: OFL-1.1 (SIL Open Font License 1.1) — Google Fonts "Inter"
+  # PLACEHOLDER family choice, deliberately different from terakidz's Nunito
+  heading: "asset:font-inter"
+  body: "asset:font-inter"
+
+contact:
+  # PLACEHOLDER — no real Terakon WhatsApp number exists; draft fixture only
+  whatsapp: "+6281200000000"
+
+reviewers:
+  expert_logins: [] # draft kit: no expert reviewers assigned; work orders under this kit cannot pass the expert tier
+
+assets:
+  - "asset:font-inter"

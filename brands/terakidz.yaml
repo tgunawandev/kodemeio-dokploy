@@ -1,0 +1,90 @@
+# Terakidz brand kit — factory commons (2026-09-26 Teracorp slice).
+#
+# Sourced from tracked content in kodemeio-next/apps/terakidz-web (HEAD, dirty
+# files in that app were NOT read): app/globals.css (colours, font, radius),
+# components/ui.tsx (button/card colour pairings), components/Audience.tsx,
+# components/Trust.tsx, lib/content.ts (FAQ), lib/site.ts (contact/copy facts).
+# Every field below is either a real value found in that repo, or is marked
+# `# FOUNDER: confirm` where the site has no committed value yet (WhatsApp
+# number is literally unset in lib/site.ts: `WHATSAPP_NUMBER = ""`).
+#
+# Fonts: Nunito is served self-hosted in terakidz-web (public/fonts/nunito-*.woff2)
+# and is a Google Fonts family — licence SIL Open Font License 1.1 (OFL-1.1).
+# `asset:font-nunito` below is the factory asset key Task 5 (kodemeio-odoo,
+# factory_base) will register with that licence id and evidence on file.
+code: terakidz
+version: 1
+status: active
+brand: terakidz
+locale: id_ID
+
+voice:
+  summary: >
+    Hangat, tenang, dan meyakinkan bagi orang tua dan pengasuh anak di seluruh
+    spektrum autisme — bahasa sederhana, tanpa jargon klinis, tanpa tekanan.
+    Terakidz selalu memposisikan diri sebagai pendukung tujuan terapi dan
+    profesional anak (terapis wicara, terapis okupasi, tenaga ABA/PECS), bukan
+    pengganti mereka.
+  do:
+    - "Gunakan foto nyata dan instruksi sederhana, bukan klaim berlebihan."
+    - "Rujuk hasil sebagai 'mendukung tujuan terapi' yang sudah dijalankan bersama tenaga profesional anak."
+    - "Tulis dengan nada tenang dan meyakinkan, selaras dengan antarmuka sensorik-ramah aplikasi."
+    - "Sebutkan fitur nyata: papan komunikasi AAC, cerita sosial, latihan kosakata, laporan orang tua, mode offline."
+  dont:
+    - "Jangan mengklaim Terakidz dapat menyembuhkan, mendiagnosis, atau menggantikan terapi profesional."
+    - "Jangan menjanjikan hasil medis atau garis waktu perkembangan tertentu."
+    - "Jangan gunakan foto anak sungguhan tanpa izin tertulis orang tua yang terdokumentasi."
+
+audience: >
+  Orang tua dan pengasuh anak usia 3-9 tahun di seluruh spektrum autisme dan
+  kebutuhan komunikasi khusus di Indonesia — termasuk anak non-verbal, anak
+  sensitif sensorik, dan anak yang sedang menjalani terapi wicara, terapi
+  okupasi, atau pendekatan ABA/PECS bersama tenaga profesional anak.
+
+rules:
+  forbidden_phrases:
+    - "menyembuhkan autisme"
+    - "terapi"
+    - "diagnosis"
+    - "mendiagnosis"
+    - "obat autisme"
+    - "sembuh total"
+  required_disclaimers:
+    - "Terakidz adalah layanan edukasi, bukan layanan diagnosis atau terapi."
+  ai_disclosure: >
+    Sebagian konten pada halaman ini dibuat dengan bantuan kecerdasan buatan
+    (AI) dan ditinjau oleh tim Terakidz sebelum dipublikasikan.
+  affiliate_hosts: []
+  affiliate_disclosure: "Terakidz tidak memiliki tautan afiliasi berbayar pada halaman ini."
+
+colors:
+  primary: "#2f855a"           # found: app/globals.css --color-brand
+  primary_foreground: "#ffffff" # found: components/ui.tsx ButtonLink primary "bg-brand text-white"
+  accent: "#f6ad55"            # found: app/globals.css --color-accent
+  accent_foreground: "#1f2933" # FOUNDER: confirm — no explicit accent+text pairing committed yet; ink used as a readable default
+  background: "#fffaf3"        # found: app/globals.css --color-cream (body background)
+  foreground: "#1f2933"        # found: app/globals.css --color-ink (body text)
+  muted: "#c6f6d5"              # found: app/globals.css --color-brand-light (icon-badge/background surface, e.g. components/Audience.tsx)
+  muted_foreground: "#276749"  # found: app/globals.css --color-brand-dark, paired with brand-light in components/ui.tsx Badge
+  card: "#ffffff"               # found: components/ui.tsx Card "bg-white"
+  card_foreground: "#1f2933"   # found: Card content uses "text-ink" (e.g. components/Audience.tsx headings)
+  border: "#e5decf"            # FOUNDER: confirm — approximates the committed "ring-black/5" on the cream background; no explicit hex committed
+  ring: "#2f855a"               # found: app/globals.css :focus-visible outline uses var(--color-brand)
+  radius: "1.5rem"              # found: app/globals.css --radius-card
+
+fonts:
+  # licence: OFL-1.1 (SIL Open Font License 1.1) — Google Fonts "Nunito"
+  heading: "asset:font-nunito"
+  body: "asset:font-nunito"
+
+contact:
+  # FOUNDER: confirm — real WHATSAPP_NUMBER is unset in terakidz-web/lib/site.ts
+  # ("" until the owner goes live). This is a placeholder in the same format as
+  # that file's own example comment ("6281234567890"), not a real number.
+  whatsapp: "+6281234567890"
+
+reviewers:
+  expert_logins: [] # founder fills: name the special-education reviewer(s) before any Terakidz work order can pass the expert tier
+
+assets:
+  - "asset:font-nunito"

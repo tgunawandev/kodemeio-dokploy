@@ -8,7 +8,11 @@
   "properties": {
     "work_order_id": {"type": "string", "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"},
     "brand": {"enum": ["terakidz", "terakon", "terafin", "terakod"]},
-    "kind": {"enum": ["order"]},
+    "kind": {"enum": ["order", "factory_job"]},
+    "factory": {
+      "enum": ["website", "template", "ebook", "course", "video", "social", "affiliate", "software"]
+    },
+    "gate": {"enum": ["auto", "expert", "founder"]},
     "correlation_id": {"type": "string", "minLength": 8, "maxLength": 64},
     "state": {"enum": ["received", "proposed", "awaiting_approval", "executing", "done", "failed", "manual_review"]},
     "refs": {
@@ -18,7 +22,9 @@
         "inbound_event_id": {"type": "string"},
         "mcp_operation_ids": {"type": "array", "items": {"type": "string"}},
         "odoo_sale_order": {"type": "string", "pattern": "^odoo:sale\\.order/[0-9]+$"},
-        "hatchet_run_id": {"type": "string"}
+        "hatchet_run_id": {"type": "string"},
+        "odoo_factory_work_order": {"type": "string", "pattern": "^odoo:factory\\.work\\.order/[0-9]+$"},
+        "odoo_landing_page_version": {"type": "string", "pattern": "^odoo:landing\\.page\\.version/[0-9]+$"}
       }
     }
   }
