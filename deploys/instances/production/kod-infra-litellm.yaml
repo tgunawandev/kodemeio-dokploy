@@ -80,6 +80,15 @@ env_defaults:
 
 env_overrides:
   COMPOSE_PROJECT_NAME: kod-infra-litellm
+  # Fallback default matching the runbook's recommended placement A
+  # (co-located, docs/runbook-production.md Step 1): starts the compose's
+  # own litellm-db under the `colocated` profile even if the gitignored
+  # env_file forgets to set it. env_overrides beats env_file (highest
+  # priority — see kctl-dokploy's core/deploy/orchestrator.py), so switching
+  # to placement B (shared kod postgres, abc-prod-02) means editing THIS
+  # line, not the env_file: delete it (or set it to an empty string) here,
+  # following kod-infra-plane-tpp.yaml:30's COMPOSE_PROFILES pattern.
+  COMPOSE_PROFILES: colocated
 
 # Post-deploy (not handled by the pipeline -- see docs/runbook-production.md
 # in kodemeio-llmlite for the full founder-gated sequence):
