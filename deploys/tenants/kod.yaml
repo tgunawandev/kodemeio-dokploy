@@ -66,6 +66,44 @@ filestore_backups:
     bucket: kodemeio-odoo-filestore
     server: abc-prod-02
 
+  # erp and hrms (Teracorp Wave 0 Task 5, 2026-09-26) — same shape as desk
+  # above. volume is read from Task 0 Step 3's live `compose get` evidence
+  # (kod-odoo-erp / kod-odoo-hrms appName, the same rule desk's volume was
+  # derived by), not guessed: erp = y0gfh3PIrT9lDn_OdSUEI's appName, hrms =
+  # pUm3HJTChKYHtiTG5IwAF's appName.
+  #
+  # min_files is a SEED, not a measurement — this task never ran the guard
+  # against erp/hrms (local-only, no deploy). Founder gate G5 (spec §7) is
+  # what actually deploys these and measures the real files=N; until then
+  # 1 only guards against an empty/wrong volume, not a shrinking one.
+  #
+  # server is abc-prod-02 for both, per Task 0's server-facts table — the
+  # same host desk's compose is already registered on (not the
+  # `kod-prod-02` this file's environments block names as the tenant
+  # default), because Dokploy has all three kod Odoo composes (erp, hrms,
+  # desk) on that one server. This is a confirmed fact from Task 0, not a
+  # founder placeholder to fill in — G5 is "deploy and measure", not
+  # "choose a host".
+  - short: erp
+    instance_short: erp
+    project: apps
+    volume: compose-connect-online-firewall-uowe1h_odoo-filestore
+    database: kod_odoo_erp
+    min_files: 1  # SEED — set to 90% of the first measured files=N (docs/admin/filestore-backup.md); founder gate G5
+    pinned_cron: "20 22 * * *"
+    bucket: kodemeio-odoo-filestore
+    server: abc-prod-02
+
+  - short: hrms
+    instance_short: hrms
+    project: apps
+    volume: compose-generate-digital-alarm-z4bb6z_odoo-filestore
+    database: kod_odoo_hrms
+    min_files: 1  # SEED — set to 90% of the first measured files=N (docs/admin/filestore-backup.md); founder gate G5
+    pinned_cron: "20 22 * * *"
+    bucket: kodemeio-odoo-filestore
+    server: abc-prod-02
+
 # Hermes — agent on kod-prod-04-claude. Telegram inbound. Honcho enabled
 # after Phase B of the 2026-05-23 Honcho rollout (currently false because
 # the deploy waits on the operator's OpenRouter key).
