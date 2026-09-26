@@ -1,13 +1,10 @@
 profile: friday
 principal: agent:friday
-# DSH_BROKER_REPOS (kodemeio-dsh/.env.example) is the broker's actual repo
-# allowlist today: kodemeio-dsh, kodemeio-skills, kodemeio-odoo, kodemeio-next,
-# kodemeio-react, kodemeio-postgres, kodemeio-supabase, kodemeio-dokploy,
-# kodemeio-authentik, kodemeio-mattermost, kodemeio-hermes. FRIDAY's repos here
-# are the intersection of that list with the plan's target repos; kodemeio-hatchet
-# and kodemeio-llmlite are NOT on the broker allowlist yet, so they are excluded
-# until a broker change (out of scope for this task) adds them.
-repos: [kodemeio-dokploy, kodemeio-next, kodemeio-react, kodemeio-odoo]
+# Every repo here must also be on the broker's repo allowlist, DSH_BROKER_REPOS
+# in kodemeio-dsh/.env.example (the broker refuses any other repo at create and
+# load). deploys/tests/test_friday_broker_repos.py asserts this subset relation.
+# kodemeio-hatchet and kodemeio-llmlite were added to both lists by ruling R3.
+repos: [kodemeio-dokploy, kodemeio-next, kodemeio-react, kodemeio-odoo, kodemeio-hatchet, kodemeio-llmlite]
 model_route: litellm:dsh
 budget:
   llm_usd_per_day: 10
