@@ -40,6 +40,9 @@ EXPECTED_INVALID = {
     "extra-field": ("additionalProperties", (), "'note'"),
     "financial-class": ("enum", ("data_classification",), "'financial'"),
     "pii-in-payload": ("additionalProperties", ("payload",), "'email'"),
+    "bad-work-order-id": ("pattern", ("work_order_id",), "'WO-bad-id'"),
+    "bad-state": ("enum", ("state",), "'in_progress'"),
+    "refs-extra-field": ("additionalProperties", ("refs",), "'secret'"),
 }
 
 

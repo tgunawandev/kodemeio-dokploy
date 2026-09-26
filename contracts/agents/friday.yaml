@@ -1,0 +1,18 @@
+profile: friday
+principal: agent:friday
+# DSH_BROKER_REPOS (kodemeio-dsh/.env.example) is the broker's actual repo
+# allowlist today: kodemeio-dsh, kodemeio-skills, kodemeio-odoo, kodemeio-next,
+# kodemeio-react, kodemeio-postgres, kodemeio-supabase, kodemeio-dokploy,
+# kodemeio-authentik, kodemeio-mattermost, kodemeio-hermes. FRIDAY's repos here
+# are the intersection of that list with the plan's target repos; kodemeio-hatchet
+# and kodemeio-llmlite are NOT on the broker allowlist yet, so they are excluded
+# until a broker change (out of scope for this task) adds them.
+repos: [kodemeio-dokploy, kodemeio-next, kodemeio-react, kodemeio-odoo]
+model_route: litellm:dsh
+budget:
+  llm_usd_per_day: 10
+  wall_clock_minutes: 45
+forbidden: [production_secrets, production_databases, merge, deploy]
+pr:
+  draft: true
+  label: friday

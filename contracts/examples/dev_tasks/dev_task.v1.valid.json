@@ -1,0 +1,13 @@
+{
+  "work_order_id": "WO-7G0J15DD5D72P5VCMMYZEW59R9",
+  "repo": "kodemeio-dokploy",
+  "issue_number": 42,
+  "issue_url": "https://github.com/tgunawandev/kodemeio-dokploy/issues/42",
+  "approved_by": "tgunawandev",
+  "state": "checks_passed",
+  "refs": {
+    "broker_task_id": "task_01HZY9KX3F",
+    "pr_url": "https://github.com/tgunawandev/kodemeio-dokploy/pull/103",
+    "hatchet_run_id": "run_01HZY9KX9J"
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kodeme.io/contracts/dev_tasks/dev_task.v1.schema.json",
+  "title": "Dev task v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["work_order_id", "repo", "issue_number", "issue_url", "approved_by", "state", "refs"],
+  "properties": {
+    "work_order_id": {"type": "string", "pattern": "^WO-[0-9A-HJKMNP-TV-Z]{26}$"},
+    "repo": {"type": "string", "pattern": "^kodemeio-[a-z0-9-]+$"},
+    "issue_number": {"type": "integer", "minimum": 1},
+    "issue_url": {
+      "type": "string",
+      "pattern": "^https://github\\.com/tgunawandev/kodemeio-[a-z0-9-]+/issues/[0-9]+$"
+    },
+    "approved_by": {"type": "string", "pattern": "^[a-zA-Z\\d](?:[a-zA-Z\\d]|-(?=[a-zA-Z\\d])){0,38}$"},
+    "state": {
+      "enum": [
+        "received",
+        "task_created",
+        "session_running",
+        "published",
+        "checks_passed",
+        "checks_failed",
+        "failed",
+        "no_changes"
+      ]
+    },
+    "refs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "broker_task_id": {"type": "string", "minLength": 1},
+        "pr_url": {
+          "type": "string",
+          "pattern": "^https://github\\.com/tgunawandev/kodemeio-[a-z0-9-]+/pull/[0-9]+$"
+        },
+        "hatchet_run_id": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

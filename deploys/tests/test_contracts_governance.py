@@ -64,6 +64,10 @@ def test_kido_profile_validates():
     validator_for(CONTRACTS / "agents/profile.v1.schema.json").validate(_yaml("agents/kido.yaml"))
 
 
+def test_friday_profile_validates():
+    validator_for(CONTRACTS / "agents/dev_agent_profile.v1.schema.json").validate(_yaml("agents/friday.yaml"))
+
+
 def test_policy_lists_always_human_classes():
     classes = set(_yaml("approvals/policy.v1.yaml")["always_human"])
     assert {

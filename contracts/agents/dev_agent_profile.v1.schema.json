@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kodeme.io/contracts/agents/dev_agent_profile.v1.schema.json",
+  "title": "Dev agent profile v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["profile", "principal", "repos", "model_route", "budget", "forbidden", "pr"],
+  "properties": {
+    "profile": {"type": "string", "pattern": "^[a-z][a-z0-9-]{1,31}$"},
+    "principal": {"type": "string", "pattern": "^agent:[a-z0-9-]+$"},
+    "repos": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^kodemeio-[a-z0-9-]+$"},
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "model_route": {"type": "string", "pattern": "^litellm:[a-z0-9-]+$"},
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["llm_usd_per_day", "wall_clock_minutes"],
+      "properties": {
+        "llm_usd_per_day": {"type": "number", "minimum": 0},
+        "wall_clock_minutes": {"type": "integer", "minimum": 5, "maximum": 120}
+      }
+    },
+    "forbidden": {
+      "type": "array",
+      "items": {"enum": ["production_secrets", "production_databases", "merge", "deploy"]},
+      "uniqueItems": true,
+      "minItems": 4
+    },
+    "pr": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["draft", "label"],
+      "properties": {
+        "draft": {"const": true},
+        "label": {"const": "friday"}
+      }
+    }
+  }
+}
