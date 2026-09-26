@@ -35,7 +35,10 @@ JOBS_DIR = test_ci_gates.WORKSPACE_ROOT / SIBLING_REPO / "docker" / "jobs"
 ODOO_PAIR_KINDS = {"odoo-db": "odoo-filestore", "odoo-filestore": "odoo-db"}
 # Kinds the two freshness jobs actually check per-prefix (excludes gap,
 # app-dump, and bucket, none of which the b2-fresh/hz-fresh loops cover).
-FRESH_ELIGIBLE_KINDS = {"odoo-db", "odoo-filestore", "pg-db"}
+# `filestore` (Task 6): a non-Odoo volume/attachment tar backup (Authentik
+# media, Mattermost files) -- fresh-eligible like odoo-filestore/pg-db, but
+# NOT in ODOO_PAIR_KINDS since it has no odoo-db partner to pair with.
+FRESH_ELIGIBLE_KINDS = {"odoo-db", "odoo-filestore", "pg-db", "filestore"}
 FORBIDDEN_TOKENS = {"tpp", "mac", "idtpp"}
 # Bucket/prefix/id values are split on their natural word boundaries before
 # matching a forbidden token, so a token must appear as a WHOLE segment, not
