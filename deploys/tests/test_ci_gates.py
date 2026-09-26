@@ -2,9 +2,10 @@
 
 FRIDAY opens draft PRs against sibling repos in this workspace
 (``contracts/agents/friday.yaml``'s ``repos:``; ``kodemeio-llmlite`` and
-``kodemeio-hatchet`` joined that list and the broker allowlist by ruling R3,
-and ``GATE_WORKFLOW`` below covers the repos whose PR gate this plan task
-added or edited). Before FRIDAY exists, "a PR gate runs" is just a
+``kodemeio-hatchet`` joined that list and the broker allowlist by ruling R3).
+``GATE_WORKFLOW`` below now covers all six repos in that list -- it originally
+covered only the four whose gate this plan task added or edited, which the
+final review raised as I1. Before FRIDAY exists, "a PR gate runs" is just a
 workflow file; this module is the thing that actually reads each sibling's
 PR-triggered workflow(s) and asserts four rules mechanically, the same way
 the plan's Global Constraints describe a real gate:
@@ -60,22 +61,28 @@ FIXTURES = TESTS_DIR / "fixtures" / "ci_gates"
 CI = os.environ.get("CI", "").strip().lower() == "true"
 REQUIRED_IN_CI = {name.strip() for name in os.environ.get("CI_GATES_REQUIRED_SIBLINGS", "").split(",") if name.strip()}
 
-# The one PR-gate workflow this plan task added or edited per sibling repo.
-# Deliberately scoped to exactly these files, not "every workflow that
-# happens to trigger on pull_request in that repo": kodemeio-react alone
-# carries two more (app-kit-scaffold.yml, terakidz-deploy.yml) that are
-# pre-existing, out of this task's scope, and nobody's asked this checker to
-# audit. "The repos FRIDAY will open PRs against" (task-5-brief.md) names A
-# gate per repo -- this mapping is it. Not read from
-# contracts/agents/friday.yaml's `repos:` list either (kodemeio-dokploy and
-# kodemeio-hatchet are on it but their gates are not this task's), and
-# "keep it simple" argues against wiring a second contract's schema into a
-# test that has nothing to do with dev tasks or agent profiles.
+# The one PR-gate workflow per sibling repo FRIDAY will open PRs against
+# (contracts/agents/friday.yaml's `repos:` list, six repos by ruling R3).
+# Deliberately scoped to exactly one named file per repo, not "every workflow
+# that happens to trigger on pull_request in that repo": kodemeio-react alone
+# carries more (app-kit-scaffold.yml, terakidz-deploy.yml) that are
+# pre-existing and nobody's asked this checker to audit.
+#
+# All six are covered. kodemeio-dokploy and kodemeio-hatchet were missing at
+# the final review (finding I1): the mapping stopped at the four repos whose
+# gate this plan task edited, while the acceptance claim ("31 passed (Task 5
+# workflows in odoo, next, react, llmlite, dokploy, hatchet)") named six.
+# Adding them here is what makes that claim true -- kodemeio-hatchet's ci.yml
+# had no top-level `permissions:` at all, which this checker's rule 2 catches
+# (fixed in the same wave), and Step 10 of the rollout runbook requires
+# hatchet's `validate` and dokploy's `repository` as blocking checks.
 GATE_WORKFLOW = {
     "kodemeio-odoo": "pr-gate.yml",
     "kodemeio-next": "ci.yml",
     "kodemeio-react": "pull-request.yml",
     "kodemeio-llmlite": "ci.yml",
+    "kodemeio-dokploy": "validate.yml",
+    "kodemeio-hatchet": "ci.yml",
 }
 SIBLING_REPOS = tuple(GATE_WORKFLOW)
 
