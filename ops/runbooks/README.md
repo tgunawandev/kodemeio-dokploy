@@ -11,6 +11,7 @@ safe operating instructions.
 | [mattermost-sg-migration.md](mattermost-sg-migration.md) | Reviewed Mattermost Singapore migration |
 | [hetzner-disk-resize.md](hetzner-disk-resize.md) | Resize Hetzner disks and filesystems |
 | [teracorp-odoo-rollout.md](teracorp-odoo-rollout.md) | Install/upgrade the MCP governance addons (fail-closed binding, kill switch, rollback) |
+| [teracorp-friday-rollout.md](teracorp-friday-rollout.md) | Roll out FRIDAY (SW1 software factory): GitHub tokens/labels/webhooks, branch protection, deploy the `friday` container and `friday_dispatch` worker, kill switch, rollback |
 | [teracorp-midtrans-rollout.md](teracorp-midtrans-rollout.md) | PAY1: Midtrans QRIS/VA payments for Terakidz (keys, sandbox→production switch, monitoring, kill switch) |
 
 For the dependency graph, see
