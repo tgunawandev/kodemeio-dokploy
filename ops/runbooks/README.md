@@ -21,6 +21,7 @@ safe operating instructions.
 | [supabase-export.md](supabase-export.md) | Founder-run Supabase (TeraKidz) export to B2 and sandbox restore |
 | [teracorp-friday-rollout.md](teracorp-friday-rollout.md) | Roll out FRIDAY (SW1 software factory): GitHub tokens/labels/webhooks, branch protection, deploy the `friday` container and `friday_dispatch` worker, kill switch, rollback |
 | [teracorp-midtrans-rollout.md](teracorp-midtrans-rollout.md) | PAY1: Midtrans QRIS/VA payments for Terakidz (keys, sandbox→production switch, monitoring, kill switch) |
+| [factory-website-terakidz.md](factory-website-terakidz.md) | FC1–FC5 + F2: install the factory commons, push the brand kits, govern the Terakidz site, deploy the landing renderer, smoke test and roll back |
 
 For the dependency graph, see
 [docs/service-map.md](../../docs/service-map.md).

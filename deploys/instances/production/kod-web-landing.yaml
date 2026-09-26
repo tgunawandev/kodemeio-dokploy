@@ -1,0 +1,74 @@
+# kod-web-landing — the website factory's renderer (kodemeio-next `apps/landing-web`)
+#
+# HAND-MAINTAINED, not generated. `deploys/generate.py` emits the `odoo`, `web.corporate`
+# and `web.careers` shapes (they carry the `# GENERATED FROM tenants/…` header); the
+# service composes on this estate (kod-nextjs-web, kod-infra-*) are hand-written instance
+# manifests extending a base. Verified 2026-09-27: `generate.py --tenant kod --dry-run
+# --diff` does NOT own this path (it would write only the odoo/react/react-pwa envs).
+#
+# FLEET TRUTH, read 2026-09-27 through `kctl-dokploy -p kodemeio` (read-only) — this file
+# records what is live rather than inventing it:
+#
+#   * The live compose is `kod-landing-web` (id WC--JcWDKQquI3nOsjoDj, created 2026-09-19
+#     outside this manifest tree), source github tgunawandev/kodemeio-next@main,
+#     composePath apps/landing-web/docker-compose.prod.yml — exactly the values below.
+#   * It runs on server `abc-prod-02` (serverId Fd2OhhToQOlWUmYRv78vn; 138.199.213.219,
+#     the same host as erp/hrms/desk Odoo, Authentik and Mattermost), Dokploy project
+#     `apps`.
+#   * 🔴 `bases/nextjs.yaml` names `server: kodemeio-service`, which is NOT a registered
+#     Dokploy server any more (the estate lists abc-prod-01/02 and kod-prod-01/02), and it
+#     names `project: kod`, which does not exist either (this Dokploy has web, database and
+#     apps — `tenants/kod.yaml`'s filestore entry documents the same trap). Both are
+#     overridden below on purpose; do not "tidy" them back to the base's values.
+#   * Today it answers go.desk.kodeme.io with ODOO_BASE_URL=https://desk.kodeme.io,
+#     IMAGE=ghcr.io/tgunawandev/kodemeio-landing-web:sha-678db05 and autoDeploy=false.
+#
+# NOT APPLIED. This is the desired-state record for the Terakidz campaign host; the founder
+# applies it (runbook: ops/runbooks/factory-website-terakidz.md, step M7).
+#
+# The compose behind it already carries every production rule the estate asks for
+# (verified in kodemeio-next at apps/landing-web/docker-compose.prod.yml): external
+# `dokploy-network`, `restart: unless-stopped`, a healthcheck on /api/healthz, resource
+# limits (1.0 cpu / 512M), no published ports, and the Traefik rule driven by LANDING_HOST
+# with an explicit priority + tls flags.
+
+kind: instance
+extends: ../../bases/nextjs.yaml
+
+instance:
+  name: kod-web-landing
+  description: "Terakidz lead pages — the landing kernel's renderer (kodemeio-next apps/landing-web)"
+
+project: apps
+environment: production
+server: abc-prod-02
+
+# Verified false on the live compose: a push to kodemeio-next must never redeploy this by
+# itself, because the image is built and pushed by hand (see the runbook's M7).
+auto_deploy: false
+
+source_overrides:
+  owner: tgunawandev
+  repo: kodemeio-next
+  branch: main
+  compose_path: apps/landing-web/docker-compose.prod.yml
+
+dns:
+  zone: terakidz.id
+  name: go
+
+domain:
+  host: go.terakidz.id          # PLACEHOLDER — the founder confirms the campaign host
+  port: 3000
+  service: landing-web          # the compose's own service name (one service, every site)
+  https: true
+  cert: letsencrypt
+
+env_file: ../../env/production/.env.kod-web-landing
+
+healthcheck:
+  path: /api/healthz
+  port: 3000
+  expected_status: 200
+  timeout: 600
+  interval: 10
