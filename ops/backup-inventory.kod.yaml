@@ -70,6 +70,7 @@ items:
     fresh_h: 8
     drill: odoo
 
+    notes: "Wave 0 Task 5 (2026-09-26): kod-odoo-erp-filestore-backup manifest generated (deploys/instances/production/), restic tag kod-odoo-erp under kodemeio-odoo-filestore -- matches primary.prefix. min_files is a SEED (1); founder gate G5 deploys it and sets the real floor from the first measured files=N. Not live until G5 runs."
   - id: odoo-hrms-db
     kind: odoo-db
     pair: odoo-hrms-filestore
@@ -97,6 +98,7 @@ items:
     fresh_h: 8
     drill: odoo
 
+    notes: "Wave 0 Task 5 (2026-09-26): kod-odoo-hrms-filestore-backup manifest generated (deploys/instances/production/), restic tag kod-odoo-hrms under kodemeio-odoo-filestore -- matches primary.prefix. min_files is a SEED (1); founder gate G5 deploys it and sets the real floor from the first measured files=N. Not live until G5 runs."
   - id: odoo-desk-db
     kind: odoo-db
     pair: odoo-desk-filestore
