@@ -1,0 +1,28 @@
+# Redaction contract v1 — what must never leave a service in logs, error reports,
+# alerts or drill results (Wave 0 spec D18, P4 minimal).
+#
+# Consumers:
+#   odoo-sentry        kodemeio-odoo docker/sentry_init.py copies these patterns as
+#                      constants (deploys/tests/test_contracts_redaction.py fails on drift
+#                      when both repos are checked out)
+#   application-logs   ops/scripts/redaction-grep.sh greps docker logs / files for the
+#                      synthetic markers (plant a marker, then prove it never surfaces)
+#   gatus-alerts, drill-results   same markers + patterns
+#
+# Semantics: a header in deny_headers (case-insensitive) is dropped or its value
+# replaced; a key matching any deny_key_patterns has its VALUE replaced; any
+# substring matching a redact_value_patterns entry is replaced; replacement text is
+# `replacement`. synthetic_markers are prefixes planted in test data: finding one
+# downstream proves a leak.
+version: 1
+deny_headers: [authorization, cookie, set-cookie, x-api-key, x-gateway-secret, x-helpdesk-bridge-secret, proxy-authorization]
+deny_key_patterns: ['(?i)pass(word)?', '(?i)secret', '(?i)token', '(?i)api[_-]?key', '(?i)session', '(?i)csrf', '(?i)^auth']
+redact_value_patterns:
+  email: '[\w.+-]+@[\w-]+\.[\w.-]+'
+  phone_id: '(?:\+62|62|0)8\d{7,11}'
+  nik: '\b\d{16}\b'
+  npwp: '\b\d{2}\.?\d{3}\.?\d{3}\.?\d-?\d{3}\.?\d{3}\b'
+  bearer: '(?i)bearer\s+[a-z0-9._-]+'
+replacement: '[REDACTED]'
+synthetic_markers: ['ZZPII-MARKER-', 'ZZSECRET-MARKER-']
+applies_to: [odoo-sentry, application-logs, gatus-alerts, drill-results]
