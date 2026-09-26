@@ -1,0 +1,31 @@
+# Local-only Traefik admin-gate test (W11/W12) — driven by test_gates.sh.
+# DYNAMIC_DIR holds (a) a copy of ../dokploy-admin-gate.yml with hosts
+# rewritten to *.localtest and entrypoint `web`, no TLS, and (b) a stand-in for
+# Dokploy's own dokploy.yml (router dokploy-router-app-secure + service
+# dokploy-service-app -> http://dokploy:3000), exactly the names production has.
+services:
+  traefik:
+    image: traefik:v3.6.13
+    command:
+      - --entrypoints.web.address=:80
+      - --providers.file.directory=/dynamic
+      - --providers.file.watch=true
+      - --log.level=ERROR
+    volumes:
+      - ${DYNAMIC_DIR:?set by test_gates.sh}:/dynamic:ro
+    ports:
+      - "127.0.0.1::80"
+    depends_on:
+      - dokploy
+      - authentik-outpost
+
+  # traefik/whoami standing in for Dokploy (answers 200 on every path)
+  dokploy:
+    image: traefik/whoami:v1.11.0
+    command: ["--port", "3000"]
+
+  authentik-outpost:
+    image: python:3.12-alpine
+    command: ["python", "-u", "/app/stub_auth.py", "9000"]
+    volumes:
+      - ./stub_auth.py:/app/stub_auth.py:ro

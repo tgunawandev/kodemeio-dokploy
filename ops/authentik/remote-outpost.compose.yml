@@ -1,0 +1,42 @@
+# Authentik remote PROXY outpost — for hosts that do not run Authentik itself
+# (Wave 0 spec D8/D9, F27). Authentik's embedded outpost answers only on its own
+# host (abc-prod-02); the Dokploy host (and Hatchet, both kod-prod-01 today)
+# need their own outpost on dokploy-network so Traefik forward-auth can reach
+# `http://authentik-outpost:9000/outpost.goauthentik.io/auth/traefik`.
+#
+# Founder gate G8: create the outpost in Authentik (Applications -> Outposts ->
+# type Proxy, integration none/manual), assign the Dokploy (and Hatchet) Proxy
+# Providers in forward-auth (single application) mode, copy its token into
+# 1Password + this compose's env as AUTHENTIK_OUTPOST_TOKEN. Never commit it.
+#
+# Image tag MUST match the Authentik server version (2026.2.3).
+services:
+  authentik-outpost:
+    image: ghcr.io/goauthentik/proxy:2026.2.3
+    restart: unless-stopped
+    environment:
+      AUTHENTIK_HOST: https://auth.kodeme.io
+      AUTHENTIK_HOST_BROWSER: https://auth.kodeme.io
+      AUTHENTIK_INSECURE: "false"
+      AUTHENTIK_TOKEN: "${AUTHENTIK_OUTPOST_TOKEN:?AUTHENTIK_OUTPOST_TOKEN is required - 1Password item authentik-outpost-kod-prod-01}"
+    healthcheck:
+      # Same command as the image's own HEALTHCHECK (goauthentik
+      # lifecycle/container/proxy.Dockerfile @ version/2026.2.3).
+      test: ["CMD", "/proxy", "healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+    # No ports: Traefik reaches it over dokploy-network by the alias below.
+    networks:
+      dokploy-network:
+        aliases: [authentik-outpost]
+
+networks:
+  dokploy-network:
+    external: true

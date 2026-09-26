@@ -1,0 +1,78 @@
+# Dokploy admin gate — Traefik v3 dynamic (file-provider) config. Wave 0 spec D8.
+#
+# WHAT: split the Dokploy control plane over two hostnames.
+#   dokploy.kodeme.io      browser UI — the WHOLE host sits behind Authentik
+#                          forward-auth (remote outpost `authentik-outpost` on
+#                          dokploy-network, ops/authentik/remote-outpost.compose.yml).
+#   dokploy-api.kodeme.io  machine API — only `/api/*` MINUS `/api/auth*` and
+#                          `/api/trpc*` (API-key + webhook routes; no login surface).
+#                          Every other path on this host matches no router -> 404.
+#   kctl-dokploy's base URL and the GitHub webhook URLs move to dokploy-api.
+#
+# HOW IT IS INSTALLED (founder gate G8 — can lock you out of the control plane):
+#   kctl-dokploy -p kodemeio traefik file put dokploy-admin-gate.yml --server kod-prod-01
+#   (read-then-confirm; Task 0 verified `traefik file get/put` on kod-prod-01).
+#   Dokploy's own dokploy.yml keeps `dokploy-router-app-secure` + service
+#   `dokploy-service-app` (-> http://dokploy:3000, verified 2026-09-26); the
+#   routers below outrank it by explicit priority (200/250 vs Traefik's
+#   rule-length default) and reuse that service by name (same file provider).
+#
+# BREAK-GLASS — test it BEFORE enabling this file:
+#   ssh -L 3000:localhost:3000 <dokploy-host>   then open http://localhost:3000
+#   This reaches Dokploy's local port directly and bypasses Traefik entirely, so
+#   a broken outpost, a dead Authentik or a bad rule here can never lock you out.
+#   Rollback = `traefik file put` an empty `http: {}` (or delete this file); the
+#   original dokploy-router-app-secure takes over again immediately.
+#
+# Traefik: v3 rule syntax (Dokploy bootstrap pins traefik:v3.6.13; the local
+# test runs the same tag). Verify the production tag with the founder before G8.
+http:
+  middlewares:
+    dokploy-authentik:
+      forwardAuth:
+        address: "http://authentik-outpost:9000/outpost.goauthentik.io/auth/traefik"
+        trustForwardHeader: true
+        authResponseHeaders: [X-authentik-username, X-authentik-uid, X-authentik-email]
+
+  routers:
+    dokploy-ui-gated:
+      rule: "Host(`dokploy.kodeme.io`)"
+      priority: 200
+      entryPoints: [websecure]
+      middlewares: [dokploy-authentik]
+      service: dokploy-service-app
+      tls: {certResolver: letsencrypt}
+
+    # The outpost's own endpoints (sign-in start, callback) must be reachable
+    # WITHOUT the gate, or the login flow can never complete.
+    dokploy-outpost:
+      rule: "Host(`dokploy.kodeme.io`) && PathPrefix(`/outpost.goauthentik.io/`)"
+      priority: 250
+      entryPoints: [websecure]
+      service: authentik-outpost
+      tls: {certResolver: letsencrypt}
+
+    dokploy-api:
+      rule: "Host(`dokploy-api.kodeme.io`) && PathPrefix(`/api/`) && !PathPrefix(`/api/auth`) && !PathPrefix(`/api/trpc`)"
+      priority: 200
+      entryPoints: [websecure]
+      service: dokploy-service-app
+      tls: {certResolver: letsencrypt}
+
+    # Hatchet UI (kodemeio-hatchet, same Traefik on kod-prod-01 today): its
+    # Authentik Proxy Provider runs in forward-auth SINGLE-APPLICATION mode on
+    # this remote outpost, so the login callback lands on
+    # hatchet.kodeme.io/outpost.goauthentik.io/callback and must reach the
+    # outpost. The gate itself is Hatchet's own `authentik-hatchet` middleware
+    # (HATCHET_UI_MIDDLEWARES=authentik-hatchet@docker). Remove this router if
+    # Hatchet moves to a host with a different Traefik.
+    hatchet-outpost:
+      rule: "Host(`hatchet.kodeme.io`) && PathPrefix(`/outpost.goauthentik.io/`)"
+      priority: 250
+      entryPoints: [websecure]
+      service: authentik-outpost
+      tls: {certResolver: letsencrypt}
+
+  services:
+    authentik-outpost:
+      loadBalancer: {servers: [{url: "http://authentik-outpost:9000"}]}
