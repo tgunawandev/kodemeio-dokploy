@@ -49,7 +49,7 @@ done on the live dsh host.
 
 ## What "done" looks like today (2026-09-26, read before you start)
 
-- kodemeio-dsh local `main` is **nine** commits ahead of `bdc234b`; **none have been pushed**.
+- kodemeio-dsh local `main` is **ten** commits ahead of `bdc234b`; **none have been pushed**.
   The broker's `work_order_id`/PR-tagging commits (`d802dce`, `312f467`) and the containment
   commits (`aa7b282` … `bdc234b`) are inert or containment-only until the LiteLLM runbook pushes
   them (its Step 14). The FRIDAY **push range** Step 5 publishes is *everything in
@@ -57,8 +57,9 @@ done on the live dsh host.
   As of this revision that range is, newest first:
 
   ```
-  9a46e73 docs(dsh): SW1 final review I5 — broker token scope: Issues: write      <- final fix wave
-  c2e9c88 fix(dsh): SW1 final review I7 — FRIDAY secrets render non-fatally         <- final fix wave
+  afe8d3b test(dsh): SW1 final review M5 — Landlock suite asserts "full or refused"  <- final fix wave
+  9a46e73 docs(dsh): SW1 final review I5 — broker token scope: Issues: write         <- final fix wave
+  c2e9c88 fix(dsh): SW1 final review I7 — FRIDAY secrets render non-fatally          <- final fix wave
   db6590a test(egress): F6 checks for production credentials in FRIDAY sessions
   6d816ab feat(broker): broker-only dsh-dispatch network for the friday_dispatch worker
   2fe3cb2 fix(friday): wipe as the session uid, fail closed on Landlock and scratch (fix round 3)
@@ -309,9 +310,9 @@ final review C2):**
 ```bash
 git -C kodemeio-dsh fetch origin
 git -C kodemeio-dsh log --oneline bdc234b..main
-# expect these nine, newest first (see "What 'done' looks like today"; re-check against a newer
+# expect these ten, newest first (see "What 'done' looks like today"; re-check against a newer
 # fix round if one has landed -- the list is a snapshot, the command is the contract):
-#   9a46e73 c2e9c88 db6590a 6d816ab 2fe3cb2 b313a48 750b6c2 ee1b4ee 5f52c25
+#   afe8d3b 9a46e73 c2e9c88 db6590a 6d816ab 2fe3cb2 b313a48 750b6c2 ee1b4ee 5f52c25
 # 6d816ab is REQUIRED: it creates the kod-infra-dsh-dispatch network the worker uses (Step 6
 # pre-checks it). 750b6c2 belongs to the LiteLLM track and rides along.
 git -C kodemeio-dsh merge-base --is-ancestor origin/main bdc234b && echo "LiteLLM runbook Step 14 already pushed: OK"
@@ -370,8 +371,8 @@ git -C kodemeio-dsh revert --no-edit $(git -C kodemeio-dsh rev-list --no-merges 
 git -C kodemeio-dsh push origin HEAD:refs/heads/main
 kctl-dokploy -p kodemeio compose redeploy "$D_ID"
 ```
-`rev-list --no-merges bdc234b..main` re-derives the set at run time (today: `9a46e73 c2e9c88
-db6590a 6d816ab 2fe3cb2 b313a48 750b6c2 ee1b4ee 5f52c25`, i.e. the same nine Step 5 pushed); if a
+`rev-list --no-merges bdc234b..main` re-derives the set at run time (today: `afe8d3b 9a46e73
+c2e9c88 db6590a 6d816ab 2fe3cb2 b313a48 750b6c2 ee1b4ee 5f52c25`, i.e. the same ten Step 5 pushed); if a
 later fix round landed after this runbook, it is included automatically, which is the point. The
 `friday` and `friday-egress-proxy` services and the `dsh-friday`/`dsh-dispatch` networks
 disappear; the broker and the web Harness are unaffected
