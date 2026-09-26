@@ -1,0 +1,44 @@
+# Local-only Gatus alert test (W9) — driven by test_gatus.py, never deployed.
+# Own default network (no dokploy-network); fake targets + alert sink publish
+# on 127.0.0.1 ephemeral ports only. GATUS_TEST_CONFIG is the generated config
+# (production config.yaml with hostnames rewritten to fake-targets, 5 s
+# interval, thresholds 1, telegram api-url -> alert-sink, email removed).
+services:
+  fake-targets:
+    image: python:3.12-alpine
+    command: ["python", "-u", "/app/fake_targets.py"]
+    volumes:
+      - ./fake_targets.py:/app/fake_targets.py:ro
+    ports:
+      - "127.0.0.1::8000"
+
+  alert-sink:
+    image: python:3.12-alpine
+    command: ["python", "-u", "/app/alert_sink.py"]
+    volumes:
+      - ./alert_sink.py:/app/alert_sink.py:ro
+    ports:
+      - "127.0.0.1::9000"
+
+  gatus:
+    image: ghcr.io/twin/gatus:v5.37.0
+    environment:
+      GATUS_TELEGRAM_TOKEN: "000000:TEST-TOKEN"
+      GATUS_TELEGRAM_CHAT_ID: "4242"
+    volumes:
+      - ${GATUS_TEST_CONFIG:?set by test_gatus.py}:/config/config.yaml:ro
+    depends_on:
+      - fake-targets
+      - alert-sink
+
+  heartbeat:
+    image: alpine:3.20
+    command: ["sh", "/heartbeat.sh"]
+    environment:
+      HC_GATUS_URL: http://alert-sink:9000/hc/gatus
+      GATUS_HEALTH_URL: http://gatus:8080/health
+      HEARTBEAT_INTERVAL: "2"
+    volumes:
+      - ../heartbeat.sh:/heartbeat.sh:ro
+    depends_on:
+      - gatus

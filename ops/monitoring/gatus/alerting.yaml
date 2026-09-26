@@ -1,49 +1,5 @@
-# Gatus Alerting Configuration
-# Kodemeio Platform — Alert channels and thresholds
+# SUPERSEDED by config.yaml (same directory) — Teracorp Wave 0, 2026-09-26.
 #
-# This file defines alerting providers for Gatus.
-# Merge into the Gatus server config at /config/config.yaml
-#
-# Alert strategy:
-#   - Telegram: critical services (PostgreSQL, Authentik, Traefik, DNS)
-#   - Slack webhook: non-critical services (websites, Odoo, tooling)
-#   - Thresholds: 3 consecutive failures = alert, 2 consecutive successes = resolve
-
-alerting:
-  # -------------------------------------------------------------------------
-  # Telegram — Critical alerts
-  # Sends to the @kodemeio_alerts channel via bot
-  # -------------------------------------------------------------------------
-  telegram:
-    token: "${GATUS_TELEGRAM_BOT_TOKEN}"
-    id: "${GATUS_TELEGRAM_CHAT_ID}"
-    default-alert:
-      enabled: true
-      description: "Kodemeio critical service alert"
-      send-on-resolved: true
-      failure-threshold: 3
-      success-threshold: 2
-
-  # -------------------------------------------------------------------------
-  # Slack-compatible webhook — Non-critical alerts
-  # Can point to Slack, Mattermost, or any webhook-compatible endpoint
-  # -------------------------------------------------------------------------
-  slack:
-    webhook-url: "${GATUS_SLACK_WEBHOOK_URL}"
-    default-alert:
-      enabled: true
-      description: "Kodemeio service alert"
-      send-on-resolved: true
-      failure-threshold: 3
-      success-threshold: 2
-
-# ---------------------------------------------------------------------------
-# Maintenance windows (optional)
-# Suppress alerts during scheduled maintenance
-# ---------------------------------------------------------------------------
-# maintenance:
-#   start: "23:00"
-#   duration: "1h"
-#   timezone: "Asia/Jakarta"
-#   every:
-#     - Sunday
+# Alerting (Telegram + email, thresholds 3 fail / 2 success, send-on-resolved)
+# now lives in the `alerting:` block of ops/monitoring/gatus/config.yaml, the
+# file the deployed Gatus actually reads. Do not add providers here.

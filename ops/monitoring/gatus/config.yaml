@@ -1,0 +1,213 @@
+# Gatus — kod (kodeme.io) external uptime + admin-gate monitoring.
+#
+# THIS is the file the running Gatus reads: ops/monitoring/gatus/docker-compose.yml
+# mounts it read-only at /config/config.yaml, and
+# deploys/instances/production/kod-infra-gatus.yaml deploys that compose from
+# THIS repo (the old `kodemeio-gatus` source is retired — Wave 0 spec D6).
+# endpoints.yaml / alerting.yaml next to it are superseded pointers.
+#
+# Pinned image: ghcr.io/twin/gatus:v5.37.0 (newest release 2026-09-24). Keys
+# below verified against that tag's README: telegram {token, id, api-url},
+# email {from, username, password, host, port, to}, [CERTIFICATE_EXPIRATION],
+# storage.type sqlite, client.ignore-redirect, any(...), ${VAR} substitution
+# from the container environment (a literal `$` must be written `$$`).
+#
+# Scope: kodeme.io only. No host of another estate belongs here — the lint in
+# tests/test_gatus.py fails on one.
+#
+# Alerting: every endpoint alerts BOTH telegram and email (lint-enforced).
+# Gatus itself pings Healthchecks.io every minute from the `heartbeat` sidecar,
+# so "Gatus is dead" is alerted from outside Hetzner (spec D5/D6).
+
+storage:
+  type: sqlite
+  path: /data/data.db
+
+alerting:
+  telegram:
+    token: "${GATUS_TELEGRAM_TOKEN}"
+    id: "${GATUS_TELEGRAM_CHAT_ID}"
+    default-alert:
+      enabled: true
+      failure-threshold: 3
+      success-threshold: 2
+      send-on-resolved: true
+  email:
+    from: "${GATUS_SMTP_FROM}"
+    username: "${GATUS_SMTP_USER}"
+    password: "${GATUS_SMTP_PASS}"
+    host: "${GATUS_SMTP_HOST}"
+    port: 587
+    to: "${GATUS_ALERT_TO}"
+    default-alert:
+      enabled: true
+      failure-threshold: 3
+      success-threshold: 2
+      send-on-resolved: true
+
+endpoints:
+  # ---------------------------------------------------------------------------
+  # Identity
+  # ---------------------------------------------------------------------------
+  - name: authentik
+    group: identity
+    url: "https://auth.kodeme.io/-/health/live/"
+    interval: 60s
+    conditions:
+      - "[STATUS] == 200"
+      - "[CERTIFICATE_EXPIRATION] > 336h"
+    alerts:
+      - type: telegram
+      - type: email
+
+  # ---------------------------------------------------------------------------
+  # Odoo (kod). Status only: Task 0 did not capture a /web/health body for
+  # these hosts, and the old copy (endpoints.yaml) asserted a body a real
+  # /web/health never returned — so no [BODY] condition until one is recorded.
+  # ---------------------------------------------------------------------------
+  - name: odoo-erp
+    group: odoo
+    url: "https://erp.kodeme.io/web/health"
+    interval: 60s
+    conditions:
+      - "[STATUS] == 200"
+      - "[CERTIFICATE_EXPIRATION] > 336h"
+    alerts:
+      - type: telegram
+      - type: email
+
+  - name: odoo-hris
+    group: odoo
+    url: "https://hris.kodeme.io/web/health"
+    interval: 60s
+    conditions:
+      - "[STATUS] == 200"
+      - "[CERTIFICATE_EXPIRATION] > 336h"
+    alerts:
+      - type: telegram
+      - type: email
+
+  - name: odoo-desk
+    group: odoo
+    url: "https://desk.kodeme.io/web/health"
+    interval: 60s
+    conditions:
+      - "[STATUS] == 200"
+      - "[CERTIFICATE_EXPIRATION] > 336h"
+    alerts:
+      - type: telegram
+      - type: email
+
+  # ---------------------------------------------------------------------------
+  # Mattermost
+  # ---------------------------------------------------------------------------
+  - name: mattermost
+    group: chat
+    url: "https://mm.kodeme.io/api/v4/system/ping"
+    interval: 60s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == OK"
+      - "[CERTIFICATE_EXPIRATION] > 336h"
+    alerts:
+      - type: telegram
+      - type: email
+
+  # ---------------------------------------------------------------------------
+  # LiteLLM. /health/readiness returns HTTP 200 even with Postgres DOWN on the
+  # pinned image (spec F19) — only body.db changes, so the body condition is
+  # the whole point of this check.
+  #
+  # enabled: false — Task 0: kod-infra-litellm is NOT deployed (no Dokploy
+  # compose, no DNS for llm.kodeme.io). Enabling now would alarm forever on a
+  # host that does not exist (same ruling as R5 for the freshness jobs).
+  # FOUNDER: flip all three llm-* entries to `enabled: true` in the same
+  # commit that ships LiteLLM (rollout runbook, Gatus step).
+  # ---------------------------------------------------------------------------
+  - name: llm-readiness
+    group: llm
+    enabled: false
+    url: "https://llm.kodeme.io/health/readiness"
+    interval: 60s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].db == connected"
+    alerts:
+      - type: telegram
+      - type: email
+
+  - name: llm-liveliness
+    group: llm
+    enabled: false
+    url: "https://llm.kodeme.io/health/liveliness"
+    interval: 60s
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: telegram
+      - type: email
+
+  # ---------------------------------------------------------------------------
+  # Admin gates (spec D10). An unauthenticated GET must be refused: 302 to the
+  # Authentik outpost, or 401/403. Redirects are NOT followed, so a 200 means
+  # the gate is open. Gatus cannot read the Location header — the target host
+  # of a 302 is checked by ops/scripts/check-admin-gates.sh (run after every
+  # deploy); this is the continuous "the gate is still there" alarm.
+  #
+  # NOTE (rollout order): dokploy.kodeme.io serves its own login page (200)
+  # until founder gate G8 puts it behind forward-auth, so this check alarms
+  # from the moment Gatus is deployed until G8 is done. That is intended —
+  # an open admin UI SHOULD alarm.
+  # ---------------------------------------------------------------------------
+  - name: gate-dokploy
+    group: admin-gates
+    url: "https://dokploy.kodeme.io/"
+    interval: 60s
+    client:
+      ignore-redirect: true
+    conditions:
+      - "[STATUS] == any(302, 401, 403)"
+    alerts:
+      - type: telegram
+      - type: email
+
+  - name: gate-hatchet
+    group: admin-gates
+    url: "https://hatchet.kodeme.io/"
+    interval: 60s
+    client:
+      ignore-redirect: true
+    conditions:
+      - "[STATUS] == any(302, 401, 403)"
+    alerts:
+      - type: telegram
+      - type: email
+
+  - name: gate-llm-ui
+    group: admin-gates
+    enabled: false  # see the llm-* note above — enable when LiteLLM ships
+    url: "https://llm.kodeme.io/ui"
+    interval: 60s
+    client:
+      ignore-redirect: true
+    conditions:
+      - "[STATUS] == any(302, 401, 403)"
+    alerts:
+      - type: telegram
+      - type: email
+
+  - name: gate-dsh
+    group: admin-gates
+    url: "https://dsh.kodeme.io/"
+    interval: 60s
+    client:
+      ignore-redirect: true
+    conditions:
+      - "[STATUS] == any(302, 401, 403)"
+    alerts:
+      - type: telegram
+      - type: email
+
+# external-endpoints (backup-heartbeat): intentionally omitted. Healthchecks.io
+# is the primary dead-man for every backup job (spec D5); a second, Hetzner-
+# hosted heartbeat would add nothing that survives a Hetzner outage.

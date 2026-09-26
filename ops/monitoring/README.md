@@ -10,7 +10,18 @@ Declarative monitoring configuration for the Kodemeio platform. All configs are 
 | GlitchTip | Error tracking & DSN keys | `kctl-glitchtip` | glitchtip.kodeme.io |
 | Prometheus | Metrics collection & alerting | (via Grafana) | prometheus.kodeme.io |
 
-> **Note:** Uptime and health check monitoring is handled by Grafana (via `kctl-grafana`). Gatus has been removed.
+> **Gatus is back (Teracorp Wave 0, 2026-09-26) — for the kod (kodeme.io) estate.**
+> External uptime, body-level health (`[BODY].db == connected` for LiteLLM), 14-day
+> certificate expiry and admin-gate checks (unauthenticated GET must be 302/401/403)
+> live as config-as-code in `gatus/config.yaml`, deployed from this repo by
+> `deploys/instances/production/kod-infra-gatus.yaml` (compose
+> `gatus/docker-compose.yml`, pinned `ghcr.io/twin/gatus:v5.37.0`, no public UI) on a
+> monitor host that is not the Teracorp production server. Alerts go to Telegram and
+> email; a heartbeat sidecar pings Healthchecks.io every minute so a dead Gatus is
+> alerted from outside Hetzner. `uv run pytest ops/monitoring/gatus/tests -q` lints the
+> config and runs a local forced-outage test (fake targets + alert sink). The old
+> `gatus/endpoints.yaml` / `alerting.yaml` are superseded pointers; the Grafana notes
+> below predate Wave 0 and were not re-verified by it.
 
 ## Directory Structure
 

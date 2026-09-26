@@ -1,20 +1,43 @@
 kind: instance
-extends: ../../bases/infra.yaml
+# Deliberately NOT `extends: ../../bases/infra.yaml` -- same reasoning as
+# kod-infra-litellm.yaml / kod-infra-kctl.yaml: under `extends`, the infra
+# base's postgres-dump backup phase is inherited even with `backup: null` and
+# fails every deploy. Gatus keeps its history in a local sqlite volume
+# (gatus-data), which is disposable: config is in git, and losing uptime
+# history loses nothing that must be restored. With no `extends`, `backup` is
+# never set and phase_backup() skips it.
+type: infrastructure
 
 instance:
   name: kod-infra-gatus
-  description: "Gatus health monitoring"
+  description: "Gatus external uptime + admin-gate monitor for the kod (kodeme.io) estate -- Telegram + email alerts, Healthchecks.io heartbeat"
 
 project: kod
+environment: production
+server: kod-prod-01  # founder: monitor host — must NOT be the Teracorp production server (spec D6, G1)
 
-source_overrides:
-  repo: kodemeio-gatus
+# Deployed from THIS repo (Wave 0 spec D6). The old `source_overrides: repo:
+# kodemeio-gatus` is retired: that repo was a stale copy nothing kept in sync.
+source:
+  type: github
+  owner: tgunawandev
+  repo: kodemeio-dokploy
+  branch: main
+  compose_path: ./ops/monitoring/gatus/docker-compose.yml
 
-domain:
-  host: gatus.kodeme.io
-  port: 8080
-  service: gatus
-  https: true
-  cert: letsencrypt
+# No dns/domain block: the status UI is private by default (no Traefik router,
+# no published port). The founder may publish it later behind Authentik
+# forward-auth (G7) by adding a domain block + router labels.
+#
+# KNOWN: the verify phase polls {scheme}://{host}{path}; with no domain it
+# falls back to localhost and fails -- the same kctl-dokploy gap
+# kod-infra-kctl.yaml documents. Real verification = the heartbeat check going
+# green on Healthchecks.io + the forced-outage test in the rollout runbook.
 
 env_file: ../../env/production/.env.kod-infra-gatus
+
+env_defaults:
+  TZ: "UTC"
+
+env_overrides:
+  COMPOSE_PROJECT_NAME: kod-infra-gatus

@@ -1,0 +1,76 @@
+# Gatus (kod external uptime + admin-gate monitor) — deployed by
+# deploys/instances/production/kod-infra-gatus.yaml from THIS repo.
+#
+# Host: a monitor host that is NOT the Teracorp production server (spec D6,
+# founder gate G1). No published port and no Traefik router: the status UI is
+# private by default (founder may add a router behind Authentik forward-auth,
+# G7). Alerts leave via Telegram + email; Gatus's own liveness leaves via the
+# heartbeat sidecar to Healthchecks.io.
+#
+# Paths are relative to THIS file's directory (Dokploy sets the compose
+# working_dir to the compose file's folder).
+services:
+  gatus:
+    image: ghcr.io/twin/gatus:v5.37.0
+    restart: unless-stopped
+    environment:
+      # Substituted into config.yaml by Gatus at start (${VAR}).
+      GATUS_TELEGRAM_TOKEN: ${GATUS_TELEGRAM_TOKEN:?GATUS_TELEGRAM_TOKEN is required}
+      GATUS_TELEGRAM_CHAT_ID: ${GATUS_TELEGRAM_CHAT_ID:?GATUS_TELEGRAM_CHAT_ID is required}
+      GATUS_SMTP_FROM: ${GATUS_SMTP_FROM:-Kodemeio Monitor <ops@kodeme.io>}
+      GATUS_SMTP_USER: ${GATUS_SMTP_USER:?GATUS_SMTP_USER is required}
+      GATUS_SMTP_PASS: ${GATUS_SMTP_PASS:?GATUS_SMTP_PASS is required}
+      GATUS_SMTP_HOST: ${GATUS_SMTP_HOST:-mail.kodeme.io}
+      GATUS_ALERT_TO: ${GATUS_ALERT_TO:?GATUS_ALERT_TO is required}
+    volumes:
+      - ./config.yaml:/config/config.yaml:ro
+      - gatus-data:/data
+    # No container healthcheck here, deliberately: the pinned image is built
+    # FROM scratch (verified in the v5.37.0 Dockerfile) — there is no shell,
+    # wget or curl inside it, so `wget -qO- http://127.0.0.1:8080/health`
+    # cannot run. Gatus's /health is probed every 60 s by the heartbeat
+    # sidecar below instead, whose own healthcheck turns unhealthy when that
+    # probe stops succeeding — and whose Healthchecks.io ping alerts from
+    # outside Hetzner.
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    networks:
+      - dokploy-network
+
+  heartbeat:
+    image: alpine:3.20
+    restart: unless-stopped
+    command: ["sh", "/heartbeat.sh"]
+    environment:
+      HC_GATUS_URL: ${HC_GATUS_URL:?HC_GATUS_URL is required -- without it nobody hears that Gatus died}
+      GATUS_HEALTH_URL: http://gatus:8080/health
+      HEARTBEAT_INTERVAL: ${HEARTBEAT_INTERVAL:-60}
+    volumes:
+      - ./heartbeat.sh:/heartbeat.sh:ro
+    depends_on:
+      - gatus
+    healthcheck:
+      # heartbeat.sh touches /tmp/heartbeat.ok after every successful Gatus
+      # /health probe and removes it on a failed one.
+      test: ["CMD-SHELL", "test -n \"$$(find /tmp/heartbeat.ok -mmin -3 2>/dev/null)\""]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.1"
+          memory: 32M
+    networks:
+      - dokploy-network
+
+volumes:
+  gatus-data:
+
+networks:
+  dokploy-network:
+    external: true
