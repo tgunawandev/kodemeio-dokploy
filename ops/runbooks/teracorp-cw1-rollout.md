@@ -195,6 +195,61 @@ just a `kido-chat`/`kido-chat-worker` restart to pick up the new value.
 not reuse a real staff member's own login for this (rotating it must not
 lock a human out of their own account).
 
+## Payment codes on the sale-orders API resource — and the ONE gate that keeps them out (CW1 Task 7)
+
+`api_sale` exposes sale-orders with a **code-declared** field list that
+configuration cannot widen (`api.exposed.model` may add resources, never fields
+to a code-sourced one). The payment follow-up needs PAY1's payment request, so
+the addon `sale_payment_request_api` (kodemeio-odoo,
+`src/private/sale-extension/`) adds seven fields to that resource read-only:
+
+```
+payment_request_state, midtrans_payment_type, midtrans_qr_string,
+midtrans_qr_url, midtrans_va_number, midtrans_va_bank, midtrans_payment_expires_at
+```
+
+`midtrans_qr_string` / `midtrans_va_number` **are payment codes** — financial
+data the customer chat service sends to its own customer and nobody else needs.
+
+**The trap this closes.** `field_policy` is fail-open for a credential that has
+none: `api_base.services.field_policy.restricted_fields()` returns the empty set
+without a policy. So the obvious rule — deny the fields in every OTHER
+credential's policy — protects nothing: any credential that declares
+sale-orders and carries no policy, or a policy written before the addon existed,
+reads a live VA number silently. The seven fields are therefore declared
+**policy-required** (`_api_sensitive_fields`, enforced in
+`ApiOperationExecutor._restricted()` by `api_base/services/sensitive_fields.py`):
+a marked field is withheld **unless the credential's own field policy carries an
+explicit `allow` naming it** (the resource entry or the `"*"` wildcard), across
+reads, sparse fieldsets, filters, sort, aggregate and writes. A `deny` still
+withholds; the HR privacy floor is untouched. The mechanism only ever withholds
+more.
+
+**Founder gate — do this at M6, before the staging smoke, and re-check after any
+MCP-key or profile change:**
+
+1. Every credential that must read them **names them explicitly**. In this stack
+   that is exactly one: the `kido-chat` profile, whose `sale-orders` allow-list
+   the slice setup writes (`bin/teracorp-slice-setup` on `teracorp_slice`;
+   `KIDO_CHAT_FIELD_POLICY`). Confirm by re-running it — it prints
+   `KIDO_CHAT_FIELD_POLICY_SET=allow-list on ['partners', 'products', 'sale-orders']`
+   — or by reading the profile's Field Policy in the MCP Gateway UI.
+2. **If that allow-list loses a field, the payment follow-up loses it too** —
+   `kido_chat/payments.py` asks for `payment_request_state` and the six Midtrans
+   fields by name, and a withheld field comes back as a refusal, not as null, so
+   the cron logs `payment follow-up failed` and the customer never gets their
+   instructions. This is the failure to watch for after a policy edit.
+3. **Any other MCP key whose profile declares sale-orders** simply does not see
+   the seven fields (default withhold) — no action needed, and the MCP
+   `describe sale-orders` call reports them under `restricted_fields` so an
+   operator can see why a field is missing rather than guessing.
+4. Ordinary Odoo users are unaffected: this is the API/MCP surface only.
+
+**If a credential does need them later**: add the field names to that profile's
+`sale-orders` `allow` entry (or `"*"`) — never by removing the marking from the
+addon, which is what keeps a *new* credential from inheriting the codes by
+accident.
+
 ## Per-tenant bot secret, token and bot_id (rulings R5/R8)
 
 Chatwoot's `AgentBot` is **account-scoped**: its signing secret and access
