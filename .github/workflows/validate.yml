@@ -12,16 +12,42 @@ permissions:
 jobs:
   repository:
     runs-on: ubuntu-latest
+    env:
+      # Read-only token for the sibling checkout below. The founder must add
+      # the CONTRACTS_READ_TOKEN secret with contents:read on
+      # tgunawandev/kodemeio-dsh too (it already covers kodemeio-dokploy for
+      # kodemeio-hatchet's CI). Until then this job FAILS loudly on purpose:
+      # test_friday_broker_repos refuses to skip when CI=true and
+      # CI_GATES_REQUIRED_SIBLINGS names kodemeio-dsh.
+      CONTRACTS_READ_TOKEN: ${{ secrets.CONTRACTS_READ_TOKEN }}
+    defaults:
+      run:
+        # Sibling layout, as on a workstation: this repo and kodemeio-dsh sit
+        # side by side under $GITHUB_WORKSPACE, so the tests' WORKSPACE_ROOT
+        # (this repo's parent directory) finds ../kodemeio-dsh.
+        working-directory: kodemeio-dokploy
     steps:
       - uses: actions/checkout@v4
         with:
+          path: kodemeio-dokploy
           # Full history: the contracts backward-compatibility check compares
           # against the merge-base with origin/main (or HEAD~1), never HEAD.
           fetch-depth: 0
 
+      # deploys/tests/test_friday_broker_repos.py reads
+      # ../kodemeio-dsh/.env.example to check friday.yaml repos against
+      # DSH_BROKER_REPOS.
+      - uses: actions/checkout@v4
+        if: env.CONTRACTS_READ_TOKEN != ''
+        with:
+          repository: tgunawandev/kodemeio-dsh
+          token: ${{ secrets.CONTRACTS_READ_TOKEN }}
+          path: kodemeio-dsh
+
       - uses: astral-sh/setup-uv@v6
         with:
           enable-cache: true
+          cache-dependency-glob: kodemeio-dokploy/uv.lock
 
       - name: Install Python dependencies
         run: uv sync --locked
@@ -31,6 +57,8 @@ jobs:
           # PRs compare contracts against the PR base; pushes fall back to
           # contracts_base_ref()'s merge-base / HEAD~1 logic.
           CONTRACTS_BASE_REF: ${{ github.event.pull_request.base.sha }}
+          # Siblings that must be present: a missing one fails, never skips.
+          CI_GATES_REQUIRED_SIBLINGS: kodemeio-dsh
         run: uv run pytest deploys/tests -q
 
       - name: Python lint

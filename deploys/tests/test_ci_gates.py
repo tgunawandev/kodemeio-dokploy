@@ -1,10 +1,10 @@
 """Static checker for Teracorp SW1 / FRIDAY's CI gates (plan task 5).
 
 FRIDAY opens draft PRs against sibling repos in this workspace
-(``contracts/agents/friday.yaml``'s ``repos:`` plus ``kodemeio-llmlite``,
-which got its own PR gate in this task but is deliberately absent from
-``friday.yaml`` -- it is not yet on the broker's repo allowlist, see that
-file's own comment). Before FRIDAY exists, "a PR gate runs" is just a
+(``contracts/agents/friday.yaml``'s ``repos:``; ``kodemeio-llmlite`` and
+``kodemeio-hatchet`` joined that list and the broker allowlist by ruling R3,
+and ``GATE_WORKFLOW`` below covers the repos whose PR gate this plan task
+added or edited). Before FRIDAY exists, "a PR gate runs" is just a
 workflow file; this module is the thing that actually reads each sibling's
 PR-triggered workflow(s) and asserts four rules mechanically, the same way
 the plan's Global Constraints describe a real gate:
@@ -67,8 +67,8 @@ REQUIRED_IN_CI = {name.strip() for name in os.environ.get("CI_GATES_REQUIRED_SIB
 # pre-existing, out of this task's scope, and nobody's asked this checker to
 # audit. "The repos FRIDAY will open PRs against" (task-5-brief.md) names A
 # gate per repo -- this mapping is it. Not read from
-# contracts/agents/friday.yaml's `repos:` list either -- see the module
-# docstring for why llmlite is here despite not being on that list, and
+# contracts/agents/friday.yaml's `repos:` list either (kodemeio-dokploy and
+# kodemeio-hatchet are on it but their gates are not this task's), and
 # "keep it simple" argues against wiring a second contract's schema into a
 # test that has nothing to do with dev tasks or agent profiles.
 GATE_WORKFLOW = {
