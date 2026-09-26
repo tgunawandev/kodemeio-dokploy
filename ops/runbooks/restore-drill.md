@@ -74,9 +74,29 @@ differs from `default-authentication-flow` (e.g. enforced MFA), pass
 
 ## Record the result
 
-1. Add one row per run to `ops/drills/results/README.md` from the JSON
-   (date, target, RPO, per-step seconds, RTO, status, results file) — never
-   hand-typed numbers, never a local test run.
+1. Add one row per run to `ops/drills/results/README.md` from the JSON — never
+   hand-typed numbers, never a local test run. That file's column list and its
+   "taken straight from a run's results.json" note are written for an **Odoo**
+   run; an Authentik run's steps are named differently, so map them explicitly
+   rather than leaving a cell half-meaning:
+
+   | README column | Odoo (`drill-odoo.sh`) | Authentik (`drill-authentik.sh`) |
+   |---|---|---|
+   | backup age (RPO) | `rpo_seconds` | `rpo_seconds` |
+   | fetch | `fetch_dump` | `fetch_dump` + `fetch_media` |
+   | restore db | `restore_db` | `restore_db` |
+   | filestore | `restore_filestore` | `restore_media` |
+   | boot | `boot_odoo` | `boot` |
+   | validate | `validate` | `validate` |
+   | RTO total | `rto_seconds` | `rto_seconds` |
+
+   Each drill has one step with no column — `neutralise` (Odoo, the SQL that
+   deactivates mail servers and crons before boot) and `set_drill_password`
+   (Authentik) — so name it in the status cell instead: `ok`, or
+   `failed at neutralise`. `target` is `target_db` for Odoo and `target` for
+   Authentik. If a run's own step names still do not fit the table, the JSON is
+   the authority — widen the table in that commit rather than forcing a number
+   into the wrong column.
 2. `git add ops/drills/results/<file>.json ops/drills/results/README.md` and
    commit (`docs(ops): restore drill <target> <date>`).
 3. Update the roadmap row **0.6** in
