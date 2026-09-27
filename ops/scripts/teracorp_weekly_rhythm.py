@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 _MAX_INPUT_BYTES = 1_048_576
+_MAX_INTEGER_TOKEN_CHARS = 20
 _MAX_AGE_DAYS = {"g2": 14, "g3": 10, "g4": 45}
 _ID = re.compile(r"^[a-z][a-z0-9_-]{0,63}$")
 _DECIMAL = re.compile(r"^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$")
@@ -65,6 +66,16 @@ def _json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
+def _json_integer(token: str) -> int:
+    """Reject oversized integer tokens before Python's int conversion."""
+    if len(token.lstrip("-")) > _MAX_INTEGER_TOKEN_CHARS:
+        raise InputError("JSON integer token exceeds the supported bound")
+    try:
+        return int(token)
+    except ValueError as exc:
+        raise InputError("JSON integer token is invalid or exceeds the runtime bound") from exc
+
+
 def _read_json(path: Path, where: str) -> Any:
     if path.suffix.lower() != ".json":
         raise InputError(f"{where} must name an explicit .json file")
@@ -87,7 +98,11 @@ def _read_json(path: Path, where: str) -> Any:
     if len(chunks) > _MAX_INPUT_BYTES:
         raise InputError(f"{where} must not exceed {_MAX_INPUT_BYTES} bytes")
     try:
-        return json.loads(chunks.decode("utf-8"), object_pairs_hook=_json_object)
+        return json.loads(
+            chunks.decode("utf-8"),
+            object_pairs_hook=_json_object,
+            parse_int=_json_integer,
+        )
     except (UnicodeDecodeError, json.JSONDecodeError, RecursionError) as exc:
         raise InputError(f"{where} is not valid bounded UTF-8 JSON") from exc
 
