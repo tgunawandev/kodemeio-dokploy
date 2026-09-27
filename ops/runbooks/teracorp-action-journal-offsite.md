@@ -12,6 +12,9 @@ Do not assume the existing general backup mirror key is immutable: Backblaze `wr
 the `hide_file` operation, and the existing backup bucket lifecycle is not an Object Lock policy.
 The read-only key must not write or change retention. The writer must be bucket/prefix-scoped and
 must not have `deleteFiles`, `bypassGovernance`, `writeBucketRetentions`, or bucket administration.
+If using per-object retention at upload time, grant only the file-retention capability required by
+the selected client (`writeFileRetentions` in the B2 Native API capability model), and test that it
+cannot shorten a compliance lock; do not grant governance-bypass.
 
 For a genuinely protected copy, ask the founder and counsel to choose a retention period consistent
 with the audit/data-retention policy, then use a dedicated bucket with Object Lock **compliance**
