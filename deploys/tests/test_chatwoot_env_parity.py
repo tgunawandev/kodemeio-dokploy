@@ -113,6 +113,22 @@ def missing_required_violations(dokploy_text: str, compose_text: str) -> list[st
     return sorted(compose_required_keys(compose_text) - keys)
 
 
+def order_violations(dokploy_text: str, chatwoot_text: str) -> list[str]:
+    """The two examples' KEY SEQUENCES must match, not just their sets: the
+    header's claim is "identical except for values", and a reordered block is
+    how a hand-merged key ends up in the wrong section (or duplicated in one).
+    Comments may differ -- only KEY= lines are compared."""
+    dokploy = env_keys(dokploy_text)
+    chatwoot = env_keys(chatwoot_text)
+    if set(dokploy) != set(chatwoot):
+        return []  # the set check already reports this; don't pile on
+    return [
+        f"position {index}: dokploy {found!r} vs chatwoot {expected!r}"
+        for index, (found, expected) in enumerate(zip(dokploy, chatwoot))
+        if found != expected
+    ]
+
+
 def _require_sibling() -> None:
     """Skip/fail when the kodemeio-chatwoot sibling is not checked out, per
     test_ci_gates' own sibling-repo convention."""
@@ -170,6 +186,14 @@ def test_key_sets_of_the_two_env_examples_are_identical():
     _require_sibling()
     violations = parity_violations(DOKPLOY_EXAMPLE.read_text(), CHATWOOT_EXAMPLE.read_text())
     assert not violations, f"{DOKPLOY_EXAMPLE.name} and {SIBLING_REPO}/.env.example have drifted: {violations}"
+
+
+def test_key_order_of_the_two_env_examples_is_identical():
+    """The same keys in the same order -- "identical except for values" is a
+    claim about the whole shape of the file, not just its key set."""
+    _require_sibling()
+    violations = order_violations(DOKPLOY_EXAMPLE.read_text(), CHATWOOT_EXAMPLE.read_text())
+    assert not violations, f"the two env examples list their keys in different orders: {violations}"
 
 
 def test_no_duplicate_keys_in_the_chatwoot_example():
@@ -238,3 +262,19 @@ def test_mutation_a_placeholder_safe_fetch_value_is_rejected():
 def test_mutation_a_duplicate_key_is_caught():
     text = DOKPLOY_EXAMPLE.read_text() + "\nDOMAIN=change-me\n"
     assert duplicate_keys(text) == ["DOMAIN"]
+
+
+def test_mutation_a_reordered_key_is_caught():
+    """Prove the order check has teeth: move one key to the end and it fails
+    (a hand merge that drops a key back into the wrong block looks exactly
+    like this)."""
+    if not CHATWOOT_EXAMPLE.is_file():
+        pytest.skip("needs the kodemeio-chatwoot sibling to reorder against")
+    dokploy = DOKPLOY_EXAMPLE.read_text()
+    lines = dokploy.splitlines()
+    moved = next(line for line in lines if line.strip().startswith("SMTP_DOMAIN="))
+    mutated = "\n".join([line for line in lines if line != moved] + [moved])
+    assert order_violations(mutated, CHATWOOT_EXAMPLE.read_text()), "moving a key must fail the order check"
+    # ...and the set check must stay silent about it (the two are complements,
+    # not duplicates): same keys, different order.
+    assert parity_violations(mutated, CHATWOOT_EXAMPLE.read_text()) == []
