@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 from pathlib import Path
 
 import pytest
@@ -126,6 +127,50 @@ def test_complete_synthetic_joiner_evidence_is_contract_valid_not_provisioned() 
         "events_validated": 1,
         "result": "evidence_contract_valid_only",
     }
+
+
+@pytest.mark.parametrize("action", [None, 1, [], {}], ids=["null", "number", "list", "object"])
+def test_non_string_action_refuses_cleanly(action: object) -> None:
+    data = bundle()
+    data["events"][0]["action"] = action
+
+    with pytest.raises(G5.InputError, match=r"events\[0\]\.action must be joiner, mover, or leaver"):
+        G5.validate_bundle(data)
+
+
+@pytest.mark.parametrize(
+    "bad_surface",
+    ["unexpected-scalar", "unexpected-list", "unexpected-key", "non-empty-value"],
+)
+def test_non_leaver_requires_exact_empty_revocation_surface(bad_surface: str) -> None:
+    data = bundle()
+    revocation = data["events"][0]["revocation"]
+    if bad_surface == "unexpected-scalar":
+        revocation["authentik"] = "unexpected"
+    elif bad_surface == "unexpected-list":
+        revocation["authentik"] = []
+    elif bad_surface == "unexpected-key":
+        revocation["authentik"]["comment"] = None
+    else:
+        revocation["authentik"]["status"] = "revoked"
+
+    with pytest.raises(G5.InputError, match="revocation must be empty"):
+        G5.validate_bundle(data)
+
+
+@pytest.mark.parametrize("action", [None, [], {}], ids=["null", "list", "object"])
+def test_cli_non_string_action_refuses_without_traceback(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], action: object
+) -> None:
+    data = bundle()
+    data["events"][0]["action"] = action
+    payload = tmp_path / "non-string-action.json"
+    payload.write_text(json.dumps(data), encoding="utf-8")
+
+    assert G5.main([str(payload)]) == 2
+    error = capsys.readouterr().err
+    assert "action must be joiner, mover, or leaver" in error
+    assert "Traceback" not in error
 
 
 @pytest.mark.parametrize(

@@ -190,3 +190,20 @@ def test_cli_sanitizes_huge_json_integer_without_traceback(tmp_path: Path, capsy
     assert "input JSON exceeds parser safety limits" in error
     assert "Traceback" not in error
     assert "ValueError" not in error
+
+
+def test_cli_duplicate_key_error_does_not_echo_untrusted_key_or_controls(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    payload = tmp_path / "duplicate-control-key.json"
+    untrusted_key = "\x1b[2JSECRET"
+    encoded_key = json.dumps(untrusted_key)
+    payload.write_text("{" + encoded_key + ":1," + encoded_key + ":2}", encoding="utf-8")
+
+    assert G5.main([str(payload)]) == 2
+    error = capsys.readouterr().err
+    assert "duplicate JSON key" in error
+    assert untrusted_key not in error
+    assert "SECRET" not in error
+    assert "\x1b" not in error
+    assert "Traceback" not in error

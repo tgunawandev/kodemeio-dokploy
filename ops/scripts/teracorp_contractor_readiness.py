@@ -149,7 +149,8 @@ def _event(value: Any, index: int) -> None:
             "revocation",
         },
     )
-    if event["action"] not in {"joiner", "mover", "leaver"}:
+    action = event["action"]
+    if not isinstance(action, str) or action not in {"joiner", "mover", "leaver"}:
         raise InputError(f"{where}.action must be joiner, mover, or leaver")
     for key in ("event_id", "subject_ref", "operator_ref", "approver_ref", "verifier_ref"):
         _ref(event[key], f"{where}.{key}")
@@ -242,10 +243,22 @@ def _event(value: Any, index: int) -> None:
             else:
                 raise InputError(f"{where}.revocation.{surface} must prove revoked or evidence-backed not_applicable")
         _ref(revocation["evidence_ref"], f"{where}.revocation.evidence_ref")
-    elif revocation["evidence_ref"] is not None or any(
-        any(surface.values()) for surface in revocation.values() if type(surface) is dict
-    ):
-        raise InputError(f"{where}.revocation must be empty except for leaver events")
+    else:
+        empty_surface = {
+            "status": None,
+            "completed_at_utc": None,
+            "evidence_ref": None,
+            "not_applicable_reason_ref": None,
+        }
+        expected_empty = {
+            "authentik": empty_surface,
+            "mattermost_sessions": empty_surface,
+            "mattermost_memberships": empty_surface,
+            "owned_tokens": empty_surface,
+            "evidence_ref": None,
+        }
+        if revocation != expected_empty:
+            raise InputError(f"{where}.revocation must be empty except for leaver events")
 
 
 def validate_bundle(payload: Any) -> dict[str, Any]:
@@ -280,7 +293,7 @@ def _pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
-            raise InputError(f"duplicate JSON key: {key}")
+            raise InputError("duplicate JSON key")
         result[key] = value
     return result
 
