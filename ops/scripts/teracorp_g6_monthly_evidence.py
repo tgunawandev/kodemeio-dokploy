@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 MAX_INPUT_BYTES = 262_144
+MAX_JSON_DEPTH = 64
 TOPICS = (
     "pdp_data_protection",
     "ojk_regulatory_boundary",
@@ -41,6 +42,30 @@ def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 
 def _reject_constant(_: str) -> None:
     raise InputError("invalid_json_constant")
+
+
+def _enforce_json_depth(text: str) -> None:
+    """Bound container nesting before parsing, ignoring bracket characters in strings."""
+    depth = 0
+    in_string = False
+    escaped = False
+    for character in text:
+        if in_string:
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == '"':
+                in_string = False
+            continue
+        if character == '"':
+            in_string = True
+        elif character in "[{":
+            depth += 1
+            if depth > MAX_JSON_DEPTH:
+                raise InputError("json_nesting_too_deep")
+        elif character in "]}" and depth:
+            depth -= 1
 
 
 def _load_schema() -> dict[str, Any]:
@@ -235,6 +260,7 @@ def load_document(path: Path) -> Any:
         if len(raw) > MAX_INPUT_BYTES:
             raise InputError("input_too_large")
         text = raw.decode("utf-8")
+        _enforce_json_depth(text)
         return json.loads(
             text,
             object_pairs_hook=_unique_object,

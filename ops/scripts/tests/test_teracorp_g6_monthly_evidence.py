@@ -10,7 +10,8 @@ import pytest
 from jsonschema import Draft202012Validator, FormatChecker
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from teracorp_g6_monthly_evidence import InputError, evaluate, load_document  # noqa: E402
+import teracorp_g6_monthly_evidence as g6  # noqa: E402
+from teracorp_g6_monthly_evidence import MAX_JSON_DEPTH, InputError, evaluate, load_document  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = ROOT / "contracts" / "teracorp_g6_monthly_evidence.v1.schema.json"
@@ -156,6 +157,36 @@ def test_malformed_json_is_rejected_without_echo(tmp_path: Path) -> None:
     path.write_text('{"secret-marker":"synthetic-no-echo",}', encoding="utf-8")
     with pytest.raises(InputError, match="input_unreadable_or_invalid_json"):
         load_document(path)
+
+
+def test_excessive_json_container_nesting_is_rejected_before_parse(tmp_path: Path) -> None:
+    path = tmp_path / "deeply-nested.json"
+    nesting = MAX_JSON_DEPTH + 1
+    path.write_text("[" * nesting + "0" + "]" * nesting, encoding="utf-8")
+    with pytest.raises(InputError, match="json_nesting_too_deep"):
+        load_document(path)
+
+
+def test_bracket_heavy_json_string_does_not_count_toward_nesting_limit(tmp_path: Path) -> None:
+    path = tmp_path / "brackets-in-string.json"
+    bracket_text = "[]{}" * (MAX_JSON_DEPTH + 1)
+    path.write_text(json.dumps({"marker": bracket_text}), encoding="utf-8")
+    assert load_document(path) == {"marker": bracket_text}
+
+
+def test_parser_recursion_error_is_normalized_to_sanitized_input_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "recursion-error.json"
+    path.write_text("{}", encoding="utf-8")
+
+    def raise_recursion_error(*args: object, **kwargs: object) -> None:
+        raise RecursionError("untrusted parser detail")
+
+    monkeypatch.setattr(g6.json, "loads", raise_recursion_error)
+    with pytest.raises(InputError, match="input_unreadable_or_invalid_json") as error:
+        load_document(path)
+    assert "untrusted parser detail" not in str(error.value)
 
 
 def test_output_is_deterministic_and_never_reports_approval() -> None:
