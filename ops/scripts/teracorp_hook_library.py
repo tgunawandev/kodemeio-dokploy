@@ -187,6 +187,8 @@ def validate_library(payload: Any) -> dict[str, Any]:
         start = _date(item["window_start"], f"{where}.window_start")
         end = _date(item["window_end"], f"{where}.window_end")
         observed = _date(item["observed_on"], f"{where}.observed_on")
+        if start < hook["created_on"]:
+            raise InputError(f"{where} measurement window predates the hook version")
         if end < start or (end - start).days + 1 > MAX_WINDOW_DAYS:
             raise InputError(f"{where} date window is invalid or exceeds 90 days")
         if end > as_of or observed < end or observed > as_of:
@@ -307,23 +309,31 @@ def validate_library(payload: Any) -> dict[str, Any]:
             raise InputError(f"{where} threshold approval evidence postdates the decision")
 
         support = sorted(by_hook.get(key, []), key=lambda row: row["window_end"])
-        fresh = [row for row in support if (as_of - row["window_end"]).days <= MAX_AGE_DAYS]
-        if decision == "retire":
-            if hook["lifecycle"] != "active":
-                raise InputError(f"{where} can retire only an active hook version")
-            if len(fresh) < minimum_windows:
-                raise InputError(f"{where} lacks the minimum number of fresh performance windows")
-            qualifying = [
-                row
-                for row in fresh
-                if row["provenance"] == "real"
-                and row["impressions"] >= min_impressions
-                and Decimal(row["conversions"]) / Decimal(row["impressions"]) <= max_rate
-            ]
-            if len(qualifying) < minimum_windows:
-                raise InputError(
-                    f"{where} lacks enough qualifying real windows; synthetic or stale data cannot qualify"
-                )
+        fresh = [
+            row
+            for row in support
+            if row["window_end"] <= decided_on
+            and row["observed_on"] <= decided_on
+            and evidence[row["evidence_ref_id"]]["observed_on"] <= decided_on
+            and 0 <= (decided_on - row["window_end"]).days <= MAX_AGE_DAYS
+            and (as_of - row["window_end"]).days <= MAX_AGE_DAYS
+        ]
+        if len(fresh) < minimum_windows:
+            raise InputError(f"{where} lacks enough fresh performance windows available by decision date")
+        qualifying = [
+            row
+            for row in fresh
+            if row["provenance"] == "real"
+            and row["impressions"] >= min_impressions
+            and row["impressions"] > 0
+            and (
+                Decimal(row["conversions"]) / Decimal(row["impressions"]) <= max_rate
+                if decision == "retire"
+                else Decimal(row["conversions"]) / Decimal(row["impressions"]) > max_rate
+            )
+        ]
+        if len(qualifying) < minimum_windows:
+            raise InputError(f"{where} lacks enough qualifying real windows for the explicit decision")
         decisions.append(
             {
                 "hook_id": hook_id,
@@ -339,14 +349,7 @@ def validate_library(payload: Any) -> dict[str, Any]:
                     "maximum_conversion_rate": rate_text,
                     "threshold_evidence_ref": threshold_ref_id,
                 },
-                "qualifying_real_window_ids": sorted(
-                    row["window_id"]
-                    for row in fresh
-                    if row["provenance"] == "real"
-                    and row["impressions"] >= min_impressions
-                    and row["impressions"] > 0
-                    and Decimal(row["conversions"]) / Decimal(row["impressions"]) <= max_rate
-                ),
+                "qualifying_real_window_ids": sorted(row["window_id"] for row in qualifying),
             }
         )
 

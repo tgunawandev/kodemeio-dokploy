@@ -215,11 +215,58 @@ def test_explicit_founder_approved_retirement_record_validates_without_mutating_
     assert result["hooks"][0]["lifecycle"] == "active"
 
 
+def test_explicit_retain_requires_fresh_real_windows_above_threshold():
+    payload = base_payload()
+    decision = retirement_decision()
+    decision["decision"] = "retain"
+    payload["retirement_decisions"] = [decision]
+
+    with pytest.raises(InputError, match="fresh performance windows"):
+        validate_library({**payload, "performance_windows": []})
+
+    for window in payload["performance_windows"]:
+        window["engagements"] = 25
+        window["conversions"] = 20
+    result = validate_library(payload)
+    assert result["retirement_decisions"][0]["decision"] == "retain"
+    assert result["retirement_decisions"][0]["qualifying_real_window_ids"] == [
+        "window-one",
+        "window-two",
+    ]
+
+
+def test_retain_refuses_windows_below_the_approved_performance_threshold():
+    payload = base_payload()
+    decision = retirement_decision()
+    decision["decision"] = "retain"
+    payload["retirement_decisions"] = [decision]
+    with pytest.raises(InputError, match="qualifying real windows"):
+        validate_library(payload)
+
+
+def test_decision_cannot_use_windows_or_evidence_dated_after_the_decision():
+    payload = base_payload()
+    decision = retirement_decision()
+    decision["decided_on"] = "2026-09-20"
+    payload["evidence_refs"][2]["observed_on"] = "2026-09-15"
+    payload["evidence_refs"][3]["observed_on"] = "2026-09-15"
+    payload["retirement_decisions"] = [decision]
+    with pytest.raises(InputError, match="fresh performance windows"):
+        validate_library(payload)
+
+
+def test_performance_window_cannot_predate_hook_version_creation():
+    payload = base_payload()
+    payload["hooks"][0]["created_on"] = "2026-09-10"
+    with pytest.raises(InputError, match="predates the hook version"):
+        validate_library(payload)
+
+
 def test_missing_windows_fail_closed_for_retirement():
     payload = base_payload()
     payload["performance_windows"] = []
     payload["retirement_decisions"] = [retirement_decision()]
-    with pytest.raises(InputError, match="minimum number of fresh"):
+    with pytest.raises(InputError, match="fresh performance windows"):
         validate_library(payload)
 
 
@@ -227,7 +274,7 @@ def test_stale_windows_fail_closed_for_retirement():
     payload = base_payload()
     payload["as_of_date"] = "2026-11-01"
     payload["retirement_decisions"] = [retirement_decision()]
-    with pytest.raises(InputError, match="minimum number of fresh"):
+    with pytest.raises(InputError, match="fresh performance windows"):
         validate_library(payload)
 
 
@@ -236,7 +283,7 @@ def test_synthetic_samples_never_qualify_as_real_retirement_outcomes():
     for window in payload["performance_windows"]:
         window["provenance"] = "synthetic"
     payload["retirement_decisions"] = [retirement_decision()]
-    with pytest.raises(InputError, match="synthetic or stale data cannot qualify"):
+    with pytest.raises(InputError, match="qualifying real windows"):
         validate_library(payload)
     result = validate_library({**payload, "retirement_decisions": []})
     assert {row["outcome_classification"] for row in result["performance_windows"]} == {
