@@ -244,6 +244,58 @@ def test_retain_refuses_windows_below_the_approved_performance_threshold():
         validate_library(payload)
 
 
+def test_retain_refuses_windows_exactly_at_the_approved_performance_threshold():
+    payload = base_payload()
+    decision = retirement_decision()
+    decision["decision"] = "retain"
+    payload["retirement_decisions"] = [decision]
+    for window in payload["performance_windows"]:
+        window["engagements"] = 20
+        window["conversions"] = 10
+    with pytest.raises(InputError, match="qualifying real windows"):
+        validate_library(payload)
+
+
+def test_retirement_accepts_exact_threshold_and_rejects_above_threshold():
+    payload = base_payload()
+    for window in payload["performance_windows"]:
+        window["engagements"] = 20
+        window["conversions"] = 10
+    payload["retirement_decisions"] = [retirement_decision()]
+    result = validate_library(payload)
+    assert result["retirement_decisions"][0]["decision"] == "retire"
+
+    for window in payload["performance_windows"]:
+        window["conversions"] = 11
+    with pytest.raises(InputError, match="qualifying real windows"):
+        validate_library(payload)
+
+
+@pytest.mark.parametrize(
+    "evidence_ref_id",
+    ["approval", "threshold-approval"],
+)
+def test_decision_approval_evidence_cannot_predate_hook_creation(evidence_ref_id):
+    payload = base_payload()
+    payload["hooks"][0]["created_on"] = "2026-09-08"
+    next(item for item in payload["evidence_refs"] if item["evidence_ref_id"] == evidence_ref_id)["observed_on"] = (
+        "2026-09-07"
+    )
+    payload["retirement_decisions"] = [retirement_decision()]
+    with pytest.raises(InputError, match="predates the hook version"):
+        validate_library(payload)
+
+
+@pytest.mark.parametrize("evidence_ref_id", ["approval", "threshold-approval"])
+def test_decision_approval_evidence_cannot_postdate_decision(evidence_ref_id):
+    payload = base_payload()
+    item = next(item for item in payload["evidence_refs"] if item["evidence_ref_id"] == evidence_ref_id)
+    item["observed_on"] = "2026-09-26"
+    payload["retirement_decisions"] = [retirement_decision()]
+    with pytest.raises(InputError, match="postdates the decision"):
+        validate_library(payload)
+
+
 def test_decision_cannot_use_windows_or_evidence_dated_after_the_decision():
     payload = base_payload()
     decision = retirement_decision()

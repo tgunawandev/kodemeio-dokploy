@@ -271,6 +271,8 @@ def validate_library(payload: Any) -> dict[str, Any]:
             raise InputError(f"{where} requires verified same-brand founder approval evidence")
         if approval_ref["observed_on"] > decided_on:
             raise InputError(f"{where} approval evidence postdates the decision")
+        if approval_ref["observed_on"] < hook["created_on"]:
+            raise InputError(f"{where} approval evidence predates the hook version")
         thresholds = _obj(
             item["thresholds"],
             f"{where}.thresholds",
@@ -307,6 +309,8 @@ def validate_library(payload: Any) -> dict[str, Any]:
             raise InputError(f"{where} requires verified same-brand threshold approval evidence")
         if threshold_ref["observed_on"] > decided_on:
             raise InputError(f"{where} threshold approval evidence postdates the decision")
+        if threshold_ref["observed_on"] < hook["created_on"]:
+            raise InputError(f"{where} threshold approval evidence predates the hook version")
 
         support = sorted(by_hook.get(key, []), key=lambda row: row["window_end"])
         fresh = [
