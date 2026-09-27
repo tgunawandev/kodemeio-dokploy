@@ -17,6 +17,7 @@ BRANDS = {"terakod", "terakidz", "terafin", "terakon"}
 HOOK_TYPES = {"problem", "benefit", "curiosity", "social_proof", "offer", "story"}
 EVIDENCE_KINDS = {"performance_source", "threshold_approval", "founder_approval"}
 MAX_INPUT_BYTES = 2_000_000
+MAX_JSON_DEPTH = 64
 MAX_HOOKS = 200
 MAX_EVIDENCE = 4_000
 MAX_WINDOWS = 2_000
@@ -414,9 +415,42 @@ def _load_input(path: Path) -> Any:
         raise InputError("cannot read input file") from exc
     if len(data) > MAX_INPUT_BYTES:
         raise InputError("input exceeds the 2000000-byte limit")
+
     try:
-        return json.loads(data)
-    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise InputError("input must be UTF-8 JSON") from exc
+    depth = 0
+    in_string = False
+    escaped = False
+    for char in text:
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+        elif char == '"':
+            in_string = True
+        elif char in "[{":
+            depth += 1
+            if depth > MAX_JSON_DEPTH:
+                raise InputError("input exceeds the 64-level JSON nesting limit")
+        elif char in "]}":
+            depth -= 1
+
+    def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        for key, value in pairs:
+            if key in result:
+                raise InputError("input contains a duplicate object key")
+            result[key] = value
+        return result
+
+    try:
+        return json.loads(text, object_pairs_hook=unique_object)
+    except (json.JSONDecodeError, RecursionError) as exc:
         raise InputError("input must be UTF-8 JSON") from exc
 
 

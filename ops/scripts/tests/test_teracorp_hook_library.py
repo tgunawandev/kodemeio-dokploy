@@ -9,7 +9,7 @@ import pytest
 from jsonschema.validators import Draft202012Validator
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from teracorp_hook_library import InputError, validate_library  # noqa: E402
+from teracorp_hook_library import InputError, _load_input, validate_library  # noqa: E402
 
 
 def base_payload() -> dict:
@@ -269,3 +269,17 @@ def test_unsupported_schema_and_funnel_values_refuse():
     payload["performance_windows"][0]["conversions"] = 11
     with pytest.raises(InputError, match="funnel ordering"):
         validate_library(payload)
+
+
+def test_cli_json_parser_refuses_duplicate_keys(tmp_path):
+    path = tmp_path / "duplicate.json"
+    path.write_text('{"schema_version":1,"schema_version":1}', encoding="utf-8")
+    with pytest.raises(InputError, match="duplicate object key"):
+        _load_input(path)
+
+
+def test_cli_json_parser_normalizes_excessive_nesting(tmp_path):
+    path = tmp_path / "deep.json"
+    path.write_text("[" * 65 + "0" + "]" * 65, encoding="utf-8")
+    with pytest.raises(InputError, match="64-level JSON nesting"):
+        _load_input(path)
