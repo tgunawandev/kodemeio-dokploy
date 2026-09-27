@@ -286,8 +286,12 @@ def reconcile(events: Any, orders: Any, payouts: Any) -> dict[str, Any]:
                     )
                 elif kind == "payment.refunded":
                     refunded += amount
+                    if refunded > _MAX_MINOR:
+                        raise InputError("cumulative refunded amount exceeds the supported safe-integer bound")
                 else:
                     chargeback += amount
+                    if chargeback > _MAX_MINOR:
+                        raise InputError("cumulative chargeback amount exceeds the supported safe-integer bound")
                 if captured_amount is not None and refunded + chargeback > captured_amount:
                     conflicts.append(
                         _conflict(
@@ -365,6 +369,8 @@ def reconcile(events: Any, orders: Any, payouts: Any) -> dict[str, Any]:
                 )
                 payout_has_conflict = True
             total_allocated = allocated_by_payment.get(payment["payment_ref"], 0) + allocation["amount_minor"]
+            if total_allocated > _MAX_MINOR:
+                raise InputError("cumulative payout allocation exceeds the supported safe-integer bound")
             if total_allocated > payment["net_minor"]:
                 conflicts.append(
                     _conflict(
@@ -408,6 +414,16 @@ def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
+def _bounded_json_int(token: str) -> int:
+    digits = token[1:] if token.startswith("-") else token
+    if len(digits) > len(str(_MAX_MINOR)):
+        raise InputError("JSON integer token exceeds the supported safe-integer bound")
+    value = int(token)
+    if value > _MAX_MINOR or value < -_MAX_MINOR:
+        raise InputError("JSON integer token exceeds the supported safe-integer bound")
+    return value
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("input", type=Path, help="explicit path to an offline synthetic reconciliation JSON file")
@@ -417,7 +433,11 @@ def main(argv: list[str] | None = None) -> int:
             raw = stream.read(_MAX_INPUT_BYTES + 1)
         if len(raw) > _MAX_INPUT_BYTES:
             raise InputError(f"input file must not exceed {_MAX_INPUT_BYTES} bytes")
-        payload = json.loads(raw.decode("utf-8"), object_pairs_hook=_reject_duplicate_keys)
+        payload = json.loads(
+            raw.decode("utf-8"),
+            object_pairs_hook=_reject_duplicate_keys,
+            parse_int=_bounded_json_int,
+        )
         root = _exact_object(payload, "input", {"contract_version", "events", "orders", "payouts"})
         if root["contract_version"] != "merchant_reconciliation_input.v1":
             raise InputError("input.contract_version must be merchant_reconciliation_input.v1")

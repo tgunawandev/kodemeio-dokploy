@@ -44,7 +44,9 @@ def test_contract_is_strict_and_requires_unverified_state() -> None:
         {**valid, "verification": {"status": "verified", "adapter": "none"}},
         {**valid, "verification": {"status": "unverified", "adapter": "none", "verified": True}},
         {**valid, "amount_minor": 1.5},
+        {**valid, "amount_minor": 0},
         {**valid, "currency": "usd"},
+        {**valid, "payment_ref": "https://example.test/payment"},
         {**valid, "extra": "refused"},
     ):
         assert not validator.is_valid(invalid)
@@ -121,6 +123,29 @@ def test_refunds_and_chargebacks_are_cumulative_and_bounded_by_capture() -> None
     overdraw = MOR.reconcile(events + [event("refund-2", "payment.refunded", "10:03", amount=1)], [order()], [])
     assert overdraw["outcome"] == "conflict"
     assert "reversal_exceeds_capture" in {item["code"] for item in overdraw["conflicts"]}
+
+
+def test_aggregate_refund_output_stays_within_safe_integer_bound() -> None:
+    maximum = MOR._MAX_MINOR
+    events = [
+        event("capture", "payment.captured", "10:00", amount=maximum),
+        event("refund-1", "payment.refunded", "10:01", amount=maximum),
+        event("refund-2", "payment.refunded", "10:02", amount=maximum),
+    ]
+    with pytest.raises(MOR.InputError, match="cumulative refunded amount exceeds"):
+        MOR.reconcile(events, [order(amount=maximum)], [])
+
+
+def test_cumulative_payout_output_stays_within_safe_integer_bound() -> None:
+    maximum = MOR._MAX_MINOR
+    capture = event("capture", "payment.captured", "10:00", amount=maximum)
+    allocation = {"payment_ref": "payment:synthetic-1", "order_ref": "order:synthetic-1", "amount_minor": maximum}
+    payouts = [
+        {"payout_ref": "p1", "currency": "USD", "amount_minor": maximum, "allocations": [allocation]},
+        {"payout_ref": "p2", "currency": "USD", "amount_minor": maximum, "allocations": [allocation]},
+    ]
+    with pytest.raises(MOR.InputError, match="cumulative payout allocation exceeds"):
+        MOR.reconcile([capture], [order(amount=maximum)], payouts)
 
 
 def test_zero_value_capture_or_reversal_is_refused() -> None:
@@ -276,4 +301,17 @@ def test_cli_duplicate_json_keys_fail_without_traceback(tmp_path, capsys) -> Non
     assert MOR.main([str(path)]) == 2
     captured = capsys.readouterr()
     assert "duplicate JSON key" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_cli_oversized_integer_fails_without_traceback(tmp_path, capsys) -> None:
+    path = tmp_path / "oversized-integer.json"
+    path.write_text(
+        '{"contract_version":"merchant_reconciliation_input.v1","events":[],"orders":[{"order_ref":"o1","amount_minor":'
+        + "9" * 5000
+        + ',"currency":"USD"}],"payouts":[]}'
+    )
+    assert MOR.main([str(path)]) == 2
+    captured = capsys.readouterr()
+    assert "safe-integer bound" in captured.err
     assert "Traceback" not in captured.err

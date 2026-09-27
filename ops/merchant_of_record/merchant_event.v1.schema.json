@@ -19,8 +19,8 @@
   ],
   "properties": {
     "contract_version": { "const": "merchant_event.v1" },
-    "event_id": { "type": "string", "pattern": "^[a-zA-Z0-9][a-zA-Z0-9:._/-]{0,127}$" },
-    "provider_event_ref": { "type": "string", "pattern": "^[a-zA-Z0-9][a-zA-Z0-9:._/-]{0,127}$" },
+    "event_id": { "type": "string", "pattern": "^(?!.*://)[a-zA-Z0-9][a-zA-Z0-9:._/-]{0,127}$" },
+    "provider_event_ref": { "type": "string", "pattern": "^(?!.*://)[a-zA-Z0-9][a-zA-Z0-9:._/-]{0,127}$" },
     "event_type": {
       "enum": [
         "payment.pending",
@@ -33,8 +33,8 @@
       ]
     },
     "occurred_at": { "type": "string", "format": "date-time", "pattern": "Z$" },
-    "order_ref": { "type": "string", "pattern": "^[a-zA-Z0-9][a-zA-Z0-9:._/-]{0,127}$" },
-    "payment_ref": { "type": "string", "pattern": "^[a-zA-Z0-9][a-zA-Z0-9:._/-]{0,127}$" },
+    "order_ref": { "type": "string", "pattern": "^(?!.*://)[a-zA-Z0-9][a-zA-Z0-9:._/-]{0,127}$" },
+    "payment_ref": { "type": "string", "pattern": "^(?!.*://)[a-zA-Z0-9][a-zA-Z0-9:._/-]{0,127}$" },
     "amount_minor": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
     "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
     "verification": {
@@ -46,5 +46,17 @@
         "adapter": { "const": "none" }
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "event_type": {
+            "enum": ["payment.authorized", "payment.captured", "payment.refunded", "payment.chargeback"]
+          }
+        }
+      },
+      "then": { "properties": { "amount_minor": { "minimum": 1 } } }
+    }
+  ]
 }
