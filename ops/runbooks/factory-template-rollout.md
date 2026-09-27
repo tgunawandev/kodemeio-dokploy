@@ -18,7 +18,7 @@ amendment** (a layout is never a program). Roadmap row: **F3** (TPL1).
 | # | Fact | How it was read |
 |---|---|---|
 | 1 | The two templates and the contract are committed: `templates/terakidz-learning-pack/{template.yaml,layout.html}`, `templates/terakon-planner/{template.yaml,layout.yaml}`, `contracts/templates/template.v1.schema.json` (`kodemeio-dokploy` **1ca1052**) — 27 contract tests green, 0 errors | `uv run pytest deploys/tests -k contracts -q`; `git show --stat 1ca1052` |
-| 2 | The module `factory_template` is committed on `18.0` (`kodemeio-odoo` **31abc3607** T2, **2f02ce6b2** T3, **ca6cf7cf3** T4) — **130 tests, 0 failed**; `factory_base` 140 and `factory_landing` 48 stay green on the same test DB | `TEST_DB=odoo_test_factory_tpl ./odoo.sh dev t factory_template` |
+| 2 | The module `factory_template` is committed on `18.0` (`kodemeio-odoo` **31abc3607** T2, **2f02ce6b2** T3, **ca6cf7cf3** T4, **7ce2ddb5e** + **51c9f14f3** final-review fix wave) — **140 tests, 0 failed**; `factory_base` 140 and `factory_landing` 48 stay green on the same test DB | `TEST_DB=odoo_test_factory_tpl ./odoo.sh dev t factory_template` |
 | 3 | Bundle group `templates` exists in `install/private-factory.yaml` (depends `core`, one module); `bin/validate-bundles` reports **0 errors** | `bin/validate-bundles install` |
 | 4 | 🔴 **The `typst` Python package is NOT in the image** — `python3 -c "import typst"` → `ModuleNotFoundError`. The renderer ships implemented and **refuses with the named error `typst not installed`** at materialise time. It renders the same closed block vocabulary as `wkhtml` (`image` and `spacer` included) and refuses a block it cannot render **by name**, but it does **not** interpret the `.html` layout sidecar — it builds its document from the blocks, the kit's tokens and the page box | `docker exec <odoo> python3 -c "import typst"` (dev image, 2026-09-27); `factory_template/tests/test_formats.py` |
 | 5 | `wkhtmltopdf 0.12.6.1`, `openpyxl 3.1.2` and `pypdf 6.18.1` ARE in the image; `wkhtmltox.deb` is installed in the **base** image (`docker/Dockerfile.base:222`), and Python deps come from `requirements-oca.txt` (`docker/Dockerfile.base:116`) | same image; `docker/Dockerfile.base` |
@@ -249,11 +249,27 @@ artefact, hashes, options) and the **artefact's bytes**: `artefact_sha256` is wh
 path re-reads, and a released render's attachment can no longer be written, repointed, re-created
 or deleted. A tampered artefact refuses the next submit/release by name.
 
+### 🔴 Two deliberate boundaries (so a later slice does not trip on them)
+
+- **A new attachment cannot be linked to a released render.** The module's `ir.attachment` guard
+  refuses `create` against a released render as well as `write`/`unlink`, on purpose: the artefact
+  slot is frozen, so anything added beside it could only be a lookalike. A later feature that needs
+  to hang another file on a released render (a signed copy, a delivery receipt, a thumbnail) must
+  attach it to a record of its own — the refusal is named, not an oversight.
+- **The style-context refusal covers the QUOTED shapes.** `_ft_check_style_contexts` scans the
+  bodies of `<style>`/`<script>` elements and quoted `style="…"`/`style='…'` attributes; an
+  **unquoted** `style={{var.x}}` (HTML allows one) is not matched, so the module's law — a
+  `{{var.*}}` never reaches a style context — is one shape stronger than the check enforcing it.
+  The impact is the finding it closes (cosmetic CSS in a document that can neither script nor
+  fetch), and widening the pattern is a one-line follow-up; until then write style values from the
+  kit's tokens (`{{theme.*}}`), never from a variable. The module `CLAUDE.md` and `README.md` say
+  the same, so the law and the check read alike.
+
 ---
 
 ## M6 — Smoke test on the running instance (M)
 
-The local acceptance suite (T1–T8, 130 tests) is the evidence for the rules; this is the
+The local acceptance suite (T1–T8, 140 tests) is the evidence for the rules; this is the
 instance-level smoke test:
 
 ```bash
@@ -299,7 +315,10 @@ verified `font` asset.
 
 - **No delivery.** Entitlements, product pages and R2 upload of the artefacts are R6/DIG1. This
   slice stops at a released render with its `ir.attachment` and the licence-checked asset URLs
-  recorded on the row.
+  recorded on the row. 🔴 R6/DIG1 must **re-read `artefact_sha256` and compare it with the bytes
+  it is about to ship** before delivering a released document: the immutability guard is ORM-level,
+  so the hash is what makes a tamper that reached the database some other way visible at delivery
+  time (the same re-read the submit and release paths already do).
 - **No Typst by default.** The renderer ships implemented and refuses by name until the image
   carries the package (M1b). Turning it on is founder-gated because it is a base-image rebuild.
 - **No MCP tools for templates** — the `mcp_base` conflict is unresolved (spec section 7).
