@@ -102,13 +102,40 @@ def sha1_of_file(path: Path) -> str | None:
         return None
 
 
+def env_int_or_default(name: str, default: int) -> int:
+    """An int from the environment that tolerates an UNSET or EMPTY value.
+
+    `int(os.environ.get("EXPECTED_ORDERS", "-1"))` raised ValueError on the
+    EMPTY string -- which is exactly what a drill on a database without the
+    sales module produced, because the SQL count came back empty. A good
+    restore then reported `status: failed, failed_step: validate` (Wave 0
+    final review I4). An empty value means "no cross-check"; a non-empty
+    value that is not an integer is still an error, never silently ignored.
+    """
+    raw = (os.environ.get(name) or "").strip()
+    if raw == "":
+        return default
+    return int(raw)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--url", default=os.environ.get("ODOO_URL", "http://odoo:8069"))
     parser.add_argument("--db", default=os.environ.get("ODOO_DB"), required=os.environ.get("ODOO_DB") is None)
     parser.add_argument("--user", default=os.environ.get("DRILL_USER", "drill_validator"))
     parser.add_argument("--password", default=os.environ.get("DRILL_PASS"))
-    parser.add_argument("--expected-orders", type=int, default=int(os.environ.get("EXPECTED_ORDERS", "-1")))
+    parser.add_argument(
+        "--expected-orders",
+        type=int,
+        default=env_int_or_default("EXPECTED_ORDERS", -1),
+        help="expected --orders-model row count; -1/empty = cross-check SKIPPED "
+        "(the model's module is not installed in this database)",
+    )
+    parser.add_argument(
+        "--orders-model",
+        default=os.environ.get("ORDERS_MODEL", "sale.order"),
+        help="the model the expected/actual row counts are taken on (the drill's --orders-model)",
+    )
     parser.add_argument("--sample", type=int, default=int(os.environ.get("SAMPLE", "20")))
     parser.add_argument("--filestore-root", default=os.environ.get("FILESTORE_ROOT", "/var/lib/odoo"))
     parser.add_argument(
@@ -144,15 +171,32 @@ def main() -> int:
             if result["health"] != "ok":
                 result["errors"].append("GET /web/health did not return 200")
 
-            actual_orders = rpc_call(client, "sale.order", "search_count", [[]])
-            orders_ok = args.expected_orders < 0 or actual_orders == args.expected_orders
-            result["orders"] = {
-                "expected": args.expected_orders,
-                "actual": actual_orders,
-                "ok": orders_ok,
-            }
-            if not orders_ok:
-                result["errors"].append(f"sale.order count {actual_orders} != expected {args.expected_orders}")
+            # Row-count cross-check on --orders-model (default sale.order).
+            # OPTIONAL by design (Wave 0 final review I4): a database whose
+            # installed modules do not include the model -- kod_odoo_hrms and
+            # kod_odoo_desk carry no `sale` -- must not fail an otherwise good
+            # restore. When it is not checked, the JSON says so explicitly
+            # (orders.skipped) instead of claiming an "ok" it did not verify.
+            orders: dict = {"model": args.orders_model, "expected": args.expected_orders}
+            if args.expected_orders < 0:
+                orders["skipped"] = "no expected count for this database (model not installed, or --no-orders)"
+                orders["ok"] = True
+                result["orders"] = orders
+            else:
+                try:
+                    actual_orders = rpc_call(client, args.orders_model, "search_count", [[]])
+                except ValidationError as exc:
+                    orders["ok"] = False
+                    result["orders"] = orders
+                    result["errors"].append(f"{args.orders_model} search_count failed: {exc}")
+                else:
+                    orders_ok = actual_orders == args.expected_orders
+                    orders.update({"actual": actual_orders, "ok": orders_ok})
+                    result["orders"] = orders
+                    if not orders_ok:
+                        result["errors"].append(
+                            f"{args.orders_model} count {actual_orders} != expected {args.expected_orders}"
+                        )
 
             # Full filestore listing: every attachment with a store_fname,
             # (id, store_fname, checksum) — reused below both for the "N

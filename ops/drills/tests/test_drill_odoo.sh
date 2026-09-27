@@ -48,6 +48,53 @@ assert() {
 }
 
 # ---------------------------------------------------------------------------
+# Static hygiene + validator-parsing guards. These assert properties of the
+# FILES, so they run before (and independently of) the Docker availability
+# check below.
+# ---------------------------------------------------------------------------
+
+# I1 (Wave 0 final review): no drill may pass a credential as a docker
+# ARGUMENT. `-e VAR=value` puts the value in the docker CLI's argv
+# (world-readable in /proc, and kept in the container's Config.Cmd for as long
+# as it lives); `--auth-key access,secret` likewise. Credentials travel BY
+# NAME (`-e VAR`) out of the shell's exported environment -- the pattern
+# lib/s3-local.sh establishes -- and this guard is what stops the hygiene
+# rotting back. Comments are exempt (the rationale mentions --auth-key).
+ARGV_SECRETS="$(grep -rnE -- '(^|[[:space:]])(-e|--env)[[:space:]]+[A-Za-z_][A-Za-z0-9_]*(KEY|SECRET|TOKEN|PASSWORD|PASSWD|PASS|CRED)[A-Za-z0-9_]*=' "${DRILLS_DIR}" || true)"
+assert "no drill passes a credential as '-e VAR=value' on a docker argv" \
+    "$([ -z "${ARGV_SECRETS}" ] && echo true || echo false)"
+[ -z "${ARGV_SECRETS}" ] || log "${ARGV_SECRETS}"
+# The needle is assembled from two pieces on purpose: written whole, this
+# guard's own text would match itself and the suite would fail on itself.
+AUTHKEY_NEEDLE='--auth''-key'
+AUTH_KEY_ARGV="$(grep -rn -- "${AUTHKEY_NEEDLE}" "${DRILLS_DIR}" | grep -vE ':[0-9]+:[[:space:]]*#' || true)"
+assert "no drill puts the S3 key pair on a docker argv (rclone's auth flag)" \
+    "$([ -z "${AUTH_KEY_ARGV}" ] && echo true || echo false)"
+[ -z "${AUTH_KEY_ARGV}" ] || log "${AUTH_KEY_ARGV}"
+
+# I4 (Wave 0 final review): validate_odoo.py must tolerate an empty
+# EXPECTED_ORDERS -- a drill on a database without the sales module leaves it
+# empty, and `int("")` used to abort the parser and fail a good restore. The
+# stub httpx keeps this an import/parse check with no Odoo and no network.
+# (Its own mktemp: the harness's WORKDIR is not created until after the Docker
+# check below.)
+VALIDATOR_STUB="$(mktemp -d)"
+: > "${VALIDATOR_STUB}/httpx.py"
+if EXPECTED_ORDERS= ORDERS_MODEL=sale.order PYTHONPATH="${VALIDATOR_STUB}" \
+    python3 "${ODOO_DIR}/validate_odoo.py" --help >/dev/null 2>&1; then
+    assert "validate_odoo.py parses with an EMPTY EXPECTED_ORDERS (I4)" true
+else
+    assert "validate_odoo.py parses with an EMPTY EXPECTED_ORDERS (I4)" false
+fi
+if EXPECTED_ORDERS=5 PYTHONPATH="${VALIDATOR_STUB}" \
+    python3 "${ODOO_DIR}/validate_odoo.py" --help >/dev/null 2>&1; then
+    assert "validate_odoo.py parses with a numeric EXPECTED_ORDERS" true
+else
+    assert "validate_odoo.py parses with a numeric EXPECTED_ORDERS" false
+fi
+rm -rf "${VALIDATOR_STUB}"
+
+# ---------------------------------------------------------------------------
 # Docker availability
 # ---------------------------------------------------------------------------
 if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
@@ -125,10 +172,15 @@ run_drill() {
     # legitimate 4th store_fname attachment, which a real drill's
     # exhaustive filestore check correctly counts but this fixture-specific
     # assertion does not care about.
+    #
+    # --orders-model is passed explicitly (it is also the default) so this
+    # positive run exercises the override path the runbook tells the founder
+    # to use for hrms/desk (Wave 0 final review I4).
     DRILL_PROJECT="$project" ATTACHMENTS_RES_MODEL="sale.order" \
         bash "${ODOO_DIR}/drill-odoo.sh" \
         --db-name "$db_name" --dump "$dump_arg" --restic-repo "$restic_repo" \
-        --snapshot "$snapshot" --odoo-image "$ODOO_IMAGE" --sample 20 --out "$out"
+        --snapshot "$snapshot" --odoo-image "$ODOO_IMAGE" --sample 20 \
+        --orders-model sale.order --out "$out"
 }
 
 # ---------------------------------------------------------------------------
@@ -188,12 +240,21 @@ r = json.load(open('${POS_OUT}'))
 print('true' if r.get('validation', {}).get('egress_blocked') is True else 'false')
 " 2>/dev/null || echo false)"
         assert "validation.egress_blocked == true" "$EGRESS_OK"
+
+        ORDERS_OK="$(python3 -c "
+import json
+r = json.load(open('${POS_OUT}'))
+o = r.get('validation', {}).get('orders', {})
+print('true' if o.get('model') == 'sale.order' and o.get('ok') is True and o.get('actual') == o.get('expected') else 'false')
+" 2>/dev/null || echo false)"
+        assert "validation.orders == sale.order cross-check on the --orders-model path" "$ORDERS_OK"
     else
         assert "results.json status == ok" false
         assert "every step has a 'seconds' timing" false
         assert "rpo_seconds >= 0" false
         assert "validation.attachments_ok == 3" false
         assert "validation.egress_blocked == true" false
+        assert "validation.orders == sale.order cross-check on the --orders-model path" false
     fi
 fi
 

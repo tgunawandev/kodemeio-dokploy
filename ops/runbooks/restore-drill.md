@@ -50,7 +50,8 @@ signing, and the drill deliberately proves a restore works with a fresh key
 cd kodemeio-dokploy
 D=$(date -u +%F)
 
-# Odoo erp (DB + filestore pair). Repeat for kod_odoo_hrms / kod_odoo_desk.
+# Odoo erp (DB + filestore pair). Repeat for kod_odoo_hrms / kod_odoo_desk
+# (see "which databases" below: they need --no-orders).
 ops/drills/odoo/drill-odoo.sh --db-name kod_odoo_erp \
   --dump src:kod-prod-backup/kodemeio-postgres-backup/kod_odoo_erp/latest \
   --restic-repo "s3:${RCLONE_CONFIG_SRC_ENDPOINT}/kod-prod-backup/kodemeio-odoo-filestore/kod-odoo-erp" \
@@ -65,6 +66,36 @@ ops/drills/authentik/drill-authentik.sh \
   --docker-host ssh://root@<drill-host> \
   --out "ops/drills/results/${D}-authentik.json"
 ```
+
+### Which databases can be drilled, and with which override
+
+The validate step cross-checks ONE model's row count against the SQL count taken
+at restore time (`--orders-model`, default `sale.order`) — the check that proves
+the restored database is the one the dump describes, not an empty skeleton:
+
+| Database | Sales module? | How to call it |
+|---|---|---|
+| `kod_odoo_erp` | yes | default (`--orders-model sale.order`); nothing to pass |
+| `kod_odoo_hrms` | no | `--no-orders`, or `--orders-model res.partner` to keep a cross-check |
+| `kod_odoo_desk` | no | same as hrms |
+
+- `--orders-model` takes a plain dotted Odoo model name (`res.partner` and
+  `sale.order` are the two this runbook names; `res.partner` is in `base`, so it
+  exists in every database). The drill derives the table from it, checks the
+  table exists, and:
+  - **table absent** ⇒ the cross-check is **skipped**, loudly, and the JSON
+    records `validation.orders.skipped` with the reason. Not a failure — and not
+    a pass either; the other checks (health, attachments, filestore, egress)
+    still have to pass.
+  - **table present, count unreadable** ⇒ the run **fails**
+    (`failed_step: restore_db`). That is a real finding.
+- `--no-orders` turns the cross-check off explicitly when no suitable model is
+  known. Prefer `--orders-model res.partner`: a skipped check is a check you no
+  longer have.
+- The results JSON carries `validation.orders.model`, `.expected`, `.actual`
+  when it ran, and `.skipped` when it did not — record that in the results
+  table's status cell rather than leaving it ambiguous.
+
 
 Exit 0 = `status: ok`. On failure the JSON still holds `status: failed`,
 `failed_step` and every timing up to it; `--keep` leaves the stack up for

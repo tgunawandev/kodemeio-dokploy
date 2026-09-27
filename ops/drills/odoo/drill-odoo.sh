@@ -6,7 +6,16 @@
 #   drill-odoo.sh --db-name kod_odoo_erp --dump <remote:path|latest> \
 #       --restic-repo <s3:...> --snapshot <id|latest> \
 #       --odoo-image <ghcr...:tag> [--docker-host ssh://...] \
-#       [--sample 20] [--keep] --out <results.json>
+#       [--sample 20] [--orders-model sale.order|--no-orders] [--keep] \
+#       --out <results.json>
+#
+# The row-count cross-check in the validate step is taken on --orders-model
+# (default sale.order) and is SKIPPED, loudly and in the JSON, when that
+# model's module is not installed in the restored database (kod_odoo_hrms and
+# kod_odoo_desk carry no `sale`) or when --no-orders is given. Before this,
+# the hard-coded sale.order made the drill report `status: failed,
+# failed_step: validate` for a restore that was fine (Wave 0 final review
+# I4).
 #
 # Required env:
 #   RESTIC_PASSWORD                  restic repository password
@@ -54,6 +63,11 @@ DOCKER_HOST_ARG=""
 SAMPLE=20
 KEEP=false
 OUT=""
+# Row-count cross-check target (final review I4): the Odoo model whose row
+# count is compared against the restored database, and the escape hatch for
+# databases where even that model is not installed.
+ORDERS_MODEL="${ORDERS_MODEL:-sale.order}"
+NO_ORDERS=false
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -64,6 +78,8 @@ while [ $# -gt 0 ]; do
         --odoo-image) ODOO_IMAGE="$2"; shift 2 ;;
         --docker-host) DOCKER_HOST_ARG="$2"; shift 2 ;;
         --sample) SAMPLE="$2"; shift 2 ;;
+        --orders-model) ORDERS_MODEL="$2"; shift 2 ;;
+        --no-orders) NO_ORDERS=true; shift ;;
         --keep) KEEP=true; shift ;;
         --out) OUT="$2"; shift 2 ;;
         *) die "unknown argument: $1" ;;
@@ -75,6 +91,14 @@ done
 [ -n "$RESTIC_REPO" ] || die "--restic-repo is required"
 [ -n "$ODOO_IMAGE" ] || die "--odoo-image is required"
 [ -n "$OUT" ] || die "--out is required"
+
+# The model name becomes a table name in a psql query below, so it is
+# validated here rather than trusted: a plain dotted Odoo model name, nothing
+# else (never a value that could carry SQL).
+if [ "$NO_ORDERS" != "true" ]; then
+    [[ "$ORDERS_MODEL" =~ ^[a-z_][a-z0-9_]*(\.[a-z_][a-z0-9_]*)?$ ]] \
+        || die "--orders-model must be a plain dotted Odoo model name (e.g. sale.order), got '${ORDERS_MODEL}'"
+fi
 
 : "${RESTIC_PASSWORD:?RESTIC_PASSWORD must be set}"
 : "${AWS_ACCESS_KEY_ID:?AWS_ACCESS_KEY_ID must be set}"
@@ -317,8 +341,41 @@ if [ "$STATUS" = "ok" ]; then
             sleep 2
         done
         if [ "$restored" = "true" ]; then
-            EXPECTED_ORDERS="$(docker exec "$DB_CID" psql -U odoo -d "$DB_NAME" -tAc "SELECT count(*) FROM sale_order;" | tr -d ' \r\n')"
-            t_end restore_db ok
+            # Row-count cross-check (final review I4). The old hard-coded
+            # `SELECT count(*) FROM sale_order` returned an EMPTY STRING on a
+            # database without the sales module, and the validator then died
+            # parsing it -- a good restore reported failed/validate on exactly
+            # the databases the runbook steers the founder into drilling.
+            # Now: the table's absence is a skip (recorded in the JSON), a
+            # present table whose count cannot be read is a real failure.
+            order_check_err=false
+            ORDERS_SKIP_REASON=""
+            if [ "$NO_ORDERS" = "true" ]; then
+                EXPECTED_ORDERS=""
+                ORDERS_SKIP_REASON="--no-orders"
+            else
+                ORDERS_TABLE="${ORDERS_MODEL//./_}"
+                orders_present="$(docker exec "$DB_CID" psql -U odoo -d "$DB_NAME" -tAc \
+                    "SELECT to_regclass('public.${ORDERS_TABLE}') IS NOT NULL" | tr -d ' \r\n')"
+                if [ "$orders_present" = "t" ]; then
+                    EXPECTED_ORDERS="$(docker exec "$DB_CID" psql -U odoo -d "$DB_NAME" -tAc \
+                        "SELECT count(*) FROM ${ORDERS_TABLE};" | tr -d ' \r\n')"
+                    case "$EXPECTED_ORDERS" in
+                        ''|*[!0-9]*) order_check_err=true ;;
+                    esac
+                else
+                    EXPECTED_ORDERS=""
+                    ORDERS_SKIP_REASON="model ${ORDERS_MODEL} is not installed in this database"
+                    log "order cross-check SKIPPED: ${ORDERS_MODEL} (table public.${ORDERS_TABLE}) does not exist in ${DB_NAME} -- no such module installed; this is not a failure"
+                fi
+            fi
+            if [ "$order_check_err" = "true" ]; then
+                log "FATAL: could not read a count from ${ORDERS_MODEL} (table public.${ORDERS_TABLE}) in ${DB_NAME} -- the table exists, so this is a real problem"
+                t_end restore_db failed
+                fail_step restore_db
+            else
+                t_end restore_db ok
+            fi
         else
             t_end restore_db failed
             fail_step restore_db
@@ -448,9 +505,13 @@ if [ "$STATUS" = "ok" ]; then
     # drill) — forwarded only when the caller (test_drill_odoo.sh) set it.
     VALIDATE_EXTRA_FLAGS=()
     [ -n "${ATTACHMENTS_RES_MODEL:-}" ] && VALIDATE_EXTRA_FLAGS+=(-e ATTACHMENTS_RES_MODEL)
+    # EXPECTED_ORDERS travels empty when the cross-check was skipped (see the
+    # restore_db step); the validator reads that as "no cross-check", never as
+    # zero. ORDERS_MODEL names the model in the JSON either way.
     VALIDATE_JSON="$("${COMPOSE[@]}" run --rm \
-        -e ODOO_DB="$DB_NAME" -e DRILL_USER=drill_validator -e DRILL_PASS="$DRILL_PASS" \
-        -e EXPECTED_ORDERS="$EXPECTED_ORDERS" -e SAMPLE="$SAMPLE" \
+        -e ODOO_DB="$DB_NAME" -e DRILL_USER=drill_validator -e DRILL_PASS \
+        -e EXPECTED_ORDERS="$EXPECTED_ORDERS" -e ORDERS_MODEL="$ORDERS_MODEL" \
+        -e SAMPLE="$SAMPLE" \
         "${VALIDATE_EXTRA_FLAGS[@]}" \
         validator 2>/dev/null)"
     VALIDATE_EXIT=$?

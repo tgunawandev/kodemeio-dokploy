@@ -47,6 +47,13 @@ Server B. Fields 3 and 4 were read off Task 0's live `compose get` evidence
 (`deploys/tenants/kod.yaml`, the comment above the erp entry) and are a fact
 to confirm, not a decision to make.
 
+**Why fields 3 and 4 carry no `# founder:` comment in their manifests** (final
+review M10): those two files are generated and the header says DO NOT EDIT —
+a hand-added comment is lost on the next `deploys/generate.py` run, so the
+reasoning deliberately lives one level up, in `deploys/tenants/kod.yaml`'s
+comment above the erp entry, and is restated in the table above. Every
+non-generated `server:` (fields 1 and 2) carries its own `# founder:` comment.
+
 - Verify: `kctl-dokploy -p kodemeio servers list` shows each chosen name
   (this is a read), then `kctl-dokploy -p kodemeio deploy validate -f
   deploys/instances/production/kod-infra-kctl.yaml` → `OK` (same for
@@ -125,9 +132,16 @@ In the B2 console (master key, laptop only):
 
 ## G4 — Toolbox image, deploy, schedules (row 0.5)
 
-Preconditions (R8): G2 passed; `kod_odoo_hrms` dump fresh again (Task 0: one
-dump, 223 h old — fix kod postgres `BACKUP_DATABASES`/cron first); erp/hrms
-restic repos exist (G5). Until all three hold, the schedules stay `enabled: false`.
+Preconditions (R8, extended by final review I5): **all five** must hold before
+the three schedules are flipped to `enabled: true` — G2 passed; the
+`kod_odoo_hrms` dump fresh again (Task 0: one dump, 223 h old — fix kod
+postgres `BACKUP_DATABASES`/cron first); erp/hrms restic repos exist (G5);
+**G5 + G6 have actually deployed the backups the freshness jobs check** (the
+erp/hrms filestore jobs and the `kodemeio-authentik-backup` bucket + sidecar);
+and **the Mattermost `mm-files-backup` sidecar is deployed** (the Mattermost
+redeploy). Until all of them hold, the schedules stay `enabled: false` — the
+same list is in `kod-infra-kctl.yaml`'s comment and is pinned by
+`deploys/tests/test_kod_schedule_gates.py`.
 
 1. Merge kodemeio-skills to `main` (image builds on `docker/**` changes); read the
    new `sha-<short>` tag from GHCR and replace `sha-PENDING` in
@@ -136,8 +150,11 @@ restic repos exist (G5). Until all three hold, the schedules stay `enabled: fals
    ```bash
    DEPLOY_CHECK=1 bash tests/test_toolbox_kod.sh      # must end ALL PASS (fails while sha-PENDING)
    ```
-   Also add `bash tests/test_toolbox_kod.sh` (without `DEPLOY_CHECK`) to
-   kodemeio-skills CI next to `test_kod_jobs.sh`.
+   Also add a CI job that runs the shell suites —
+   `test_jobrun.sh`, `test_kod_jobs.sh`, `test_b2_generalised.sh`,
+   `test_toolbox_kod.sh` (and `test_b2_mirror.sh`) — next to the existing
+   checks: `.github/workflows/ci.yml` runs no shell suite at all today, so
+   nothing there would catch a broken job script (final review M4).
 3. Fill `deploys/env/production/.env.kod-infra-kctl` from the example (1Password), then
    ```bash
    kctl-dokploy -p kodemeio deploy apply -f deploys/instances/production/kod-infra-kctl.yaml --dry-run
@@ -160,15 +177,31 @@ restic repos exist (G5). Until all three hold, the schedules stay `enabled: fals
    kctl-dokploy -p kodemeio schedules history <schedule-id>   # the RESULT= / SUMMARY lines
    kctl-dokploy -p kodemeio compose service-logs <compose-id> # the same lines live
    ```
-   The first mirror runs are an initial seed: a `partial` run (600 s budget
-   reached, resumes next run) sends **no ping on purpose** — the Healthchecks
-   grace alarm is expected until every source has finished.
-5. Only once G2 + the two preconditions above hold, flip `enabled: true` on the
+   **Expected on this first run — do not treat these as defects** (final review
+   I5; they are the correct alarm for something not deployed yet, and they
+   clear by themselves as G5/G6 land):
+
+   | Symptom | Cause at this point | Clears when |
+   |---|---|---|
+   | mirror `RESULT src=kodemeio-authentik-backup status=FAILED reason=cannot-list-source` | the `kodemeio-authentik-backup` bucket does not exist yet | G6 provisions it |
+   | mirror `partial=N` and **no Healthchecks ping at all** | initial seed still catching up (600 s budget per run, resumes next) | the seed finishes — a withheld ping is the design, not a failure |
+   | freshness `STALE` for `kodemeio-postgres-backup/kod_odoo_hrms/` | the hrms dump is still stale (precondition above) | the kod postgres dump is fixed |
+   | freshness `STALE` for `kodemeio-odoo-filestore/kod-odoo-{erp,hrms}/snapshots/` | those filestore jobs are not deployed yet | G5 |
+   | freshness `STALE` for `kodemeio-authentik-backup/media/`, `kodemeio-mattermost-backup/mattermost/files/` | those sidecars are not deployed yet | G6 / the Mattermost redeploy |
+   | P1 (below) cannot pass yet | most prefixes are still empty | G5 + G6 |
+
+   The general rule for this slice: **read `reason=`/`RESULT=` in the output and
+   match it against the table before changing anything.** A red you cannot find
+   in this table is a real finding.
+5. Only once the five preconditions above hold, flip `enabled: true` on the
    three schedules in the manifest, commit, re-apply, and confirm Dokploy agrees:
    `kctl-dokploy -p kodemeio deploy schedules-diff -f …kod-infra-kctl.yaml` → no diff.
+   `deploys/tests/test_kod_schedule_gates.py` fails by design on that flip until
+   the enabled name is added to its `ENABLED_BY_EXCEPTION` with the evidence —
+   that is the review trail, not a test to delete.
 
-- Verify — **P1** every inventory prefix has objects on B2 (with the read-only
-  key, from the laptop):
+- Verify — **P1** (run **after G5 and G6 have deployed**, not at G4) every
+  inventory prefix has objects on B2 (with the read-only key, from the laptop):
   ```bash
   R lsf b2:kod-prod-backup/kodemeio-postgres-backup/kod_odoo_erp/
   R lsf b2:kod-prod-backup/kodemeio-odoo-filestore/kod-odoo-erp/snapshots/
@@ -219,13 +252,42 @@ Keep autoDeploy OFF for these two — a regenerated manifest must not ship itsel
    bucket to `kod-offsite-mirror.sh` + the inventory instead, and the sidecar's
    `media_in_s3` skip is expected. `file` ⇒ the sidecar is the backup.
 2. Provision bucket **`kodemeio-authentik-backup`** (`kctl-hz -p kodemeio s3 mb kodemeio-authentik-backup`) and its S3 key in the Authentik compose env.
+   **Ordering (final review I3):** these four `S3_BACKUP_*` values did not exist
+   before this step, so `docker-compose.prod.yml` renders them as `${…:-}` — a
+   redeploy of the LIVE SSO stack for any other reason cannot fail at
+   compose-render time. The price is that an unset pair means the sidecar
+   refuses to run: `backup.sh` logs
+   `FATAL: refusing to run -- required setting(s) empty: S3_BUCKET …` and exits
+   **78**. Seeing that line in the Authentik logs before this step is expected;
+   seeing it AFTER the values are set is a real defect. Same for
+   `kodemeio-mattermost-backup`'s sidecars.
 3. Redeploy Authentik (kodemeio-authentik `docker-compose.prod.yml`, which carries the
    `backup` service); check the first `RESULT=ok` in its log.
-- Verify: `kctl-hz -p kodemeio s3 freshness kodemeio-authentik-backup --prefix media/ --max-age-hours 30` exit 0.
+4. **Mattermost files — confirm the premise this backup rests on** (final review
+   I2). The `mm-files-backup` sidecar tars the `mm-data` Docker volume, which is
+   only the attachment store if Mattermost's file driver is `local`; Task 0
+   could not read the live value and the compose default is `amazons3`.
+   Name + value of that one variable only, never a full env dump:
+   ```bash
+   kctl-dokploy --json -p kodemeio compose env list <mm-compose-id> \
+     | jq '{MM_FILESETTINGS_DRIVERNAME, MM_FILESETTINGS_AMAZONS3BUCKET}'
+   ```
+   - `local` (or unset with the volume in use) ⇒ the volume IS the attachment
+     store; continue below.
+   - `amazons3` ⇒ `mm-data` holds nothing: the sidecar refuses and logs
+     `RESULT=FAILED files=<n>` (`FILES_MIN_FILES` floor) instead of uploading an
+     empty tar, **and the real bucket must be added to the offsite mirror
+     instead** — add a `b2_sync` line for it and an inventory item, exactly the
+     `authentik-media` branch above. Do not "fix" this by removing the floor.
+5. **Mattermost files — deploy the sidecar and set the real floor.** Redeploy
+   mattermost so `mm-files-backup` starts; read the first
+   `RESULT=ok files=N`, then set `FILES_MIN_FILES` to 90 % of N in the compose
+   env (it ships as a seed of 1, exactly like the odoo filestore `min_files`) and
+   redeploy. `kod-hz-fresh`/`kod-offsite-fresh` alarm on
+   `kodemeio-mattermost-backup/mattermost/files/` until the first upload lands.
+- Verify: `kctl-hz -p kodemeio s3 freshness kodemeio-authentik-backup --prefix media/ --max-age-hours 30` exit 0,
+  and the same for `kodemeio-mattermost-backup --prefix mattermost/files/ --max-age-hours 30`.
 - Rollback: remove the `backup` service env / scale it to 0; SSO is unaffected.
-
-The Mattermost `mm-data` volume backup is already live via the Task 6 sidecar
-(`kodemeio-mattermost-backup/mattermost/files/`) — confirm freshness the same way.
 
 ## G7 — Gatus + forced outage (row 0.7)
 
@@ -342,7 +404,14 @@ bash ops/drills/odoo/drill-odoo.sh --db-name kod_odoo_erp \
     --restic-repo "s3:${RCLONE_CONFIG_SRC_ENDPOINT}/kod-prod-backup/kodemeio-odoo-filestore/kod-odoo-erp" \
     --snapshot latest --odoo-image "$ODOO_IMAGE" \
     --docker-host ssh://root@<drill-host> --out "ops/drills/results/${D}-kod_odoo_erp.json"
-# …then kod_odoo_hrms, kod_odoo_desk, and:
+# …then kod_odoo_hrms, kod_odoo_desk — those two have no Sales module, so the
+# row-count cross-check must be pointed at a model they DO have:
+#   --orders-model res.partner   (in `base`, so always present; keeps a check)
+#   --no-orders                  (turns the check off; a skipped check is one
+#                                 you no longer have — prefer the line above)
+# Without either, the drill now SKIPS the check itself and says so in
+# validation.orders.skipped instead of failing the run (final review I4); see
+# restore-drill.md's "which databases" table. And:
 bash ops/drills/authentik/drill-authentik.sh \
     --dump src:kod-prod-backup/kodemeio-postgres-backup/authentik/latest \
     --media src:kod-prod-backup/kodemeio-authentik-backup/media/latest \
