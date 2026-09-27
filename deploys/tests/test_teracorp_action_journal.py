@@ -4,7 +4,7 @@ import importlib.util
 import json
 import os
 import stat
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
@@ -30,6 +30,10 @@ def event(event_id: str = "evt-001") -> dict:
         "approval_ref": None,
         "payload_sha256": "a" * 64,
     }
+
+
+def _append_in_process(path: str, number: int) -> int:
+    return JOURNAL.append_event(Path(path), event(f"proc-{number:03}"))["sequence"]
 
 
 def test_append_builds_verifiable_chain_and_external_head_anchor(tmp_path) -> None:
@@ -138,6 +142,14 @@ def test_concurrent_appends_are_serialized_and_leave_a_valid_chain(tmp_path) -> 
         records = list(pool.map(lambda number: JOURNAL.append_event(path, event(f"evt-{number:03}")), range(1, 17)))
     assert sorted(record["sequence"] for record in records) == list(range(1, 17))
     assert JOURNAL.verify_journal(path)["record_count"] == 16
+
+
+def test_cross_process_appends_are_serialized_and_leave_a_valid_chain(tmp_path) -> None:
+    path = str(tmp_path / "process-actions.jsonl")
+    with ProcessPoolExecutor(max_workers=4) as pool:
+        sequences = list(pool.map(_append_in_process, [path] * 12, range(1, 13)))
+    assert sorted(sequences) == list(range(1, 13))
+    assert JOURNAL.verify_journal(Path(path))["record_count"] == 12
 
 
 def test_script_has_no_network_or_database_dependencies() -> None:
