@@ -41,3 +41,37 @@ truncation/symlink refusal, strict event schemas, permissions, and the absence o
 dependencies. This is local component evidence only. Production integration, authenticated event
 producers, an immutable offsite anchor, and a restore/tamper drill are required before P8 is
 operational or production-ready.
+
+## B2 Object Lock export candidate (offline code only)
+
+`ops/scripts/teracorp_action_journal_export.py` is a separate, explicit one-shot export candidate.
+It locks the existing journal against cooperating appenders while verifying and reading a bounded
+snapshot, then requests COMPLIANCE retention for a snapshot and canonical manifest under a random
+run prefix. It verifies each `put-object` response, `head-object` size and
+`get-object-retention` result. Tests use only an injected fake AWS CLI runner; no bucket, credential,
+production data, scheduled job, or deployment is configured here.
+
+The command requires a pre-existing bucket and an explicit B2 endpoint/prefix/retention duration.
+The two credentials must be injected into the process environment under dedicated names; it does
+not read local AWS files or general `AWS_*` credential variables:
+
+```bash
+python3 ops/scripts/teracorp_action_journal_export.py /var/lib/teracorp/actions.jsonl \
+  --bucket <founder-provisioned-bucket> \
+  --prefix <dedicated-safe-prefix> \
+  --endpoint https://s3.us-west-004.backblazeb2.com \
+  --retention-days <approved-1-to-3000>
+```
+
+Required environment names: `TERACORP_B2_ACCESS_KEY_ID` and
+`TERACORP_B2_SECRET_ACCESS_KEY`. Do not paste credentials into the command line or commit them.
+The child process receives only a sanitized environment with those explicit credentials and fixed
+AWS CLI settings; output and error streams from AWS are never printed. The key must be scoped by the
+founder to this bucket/prefix and must lack delete and bucket-administration capabilities. The
+bucket must already have Object Lock enabled; this candidate never creates or changes bucket
+settings.
+
+**Offline candidate only—not operational or production-ready.** The founder must provision and
+review the compliance bucket/key and retention/legal implications, then authorize a synthetic
+upload and complete readback, tamper-detection and restore drills with captured evidence. No such
+live action is part of this implementation.
