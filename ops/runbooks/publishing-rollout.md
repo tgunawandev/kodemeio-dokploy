@@ -41,7 +41,7 @@ Install the bundle group only in a disposable/local Odoo test or founder-approve
 
 ```sh
 TEST_DB=odoo_test_factory_f10 ./odoo.sh dev testdb factory_publish
-./odoo.sh dev t factory_publish
+TEST_DB=odoo_test_factory_f10 ./odoo.sh dev t factory_publish
 ```
 
 The `private-factory:publishing` group depends on the F8 `content` group and the publication
