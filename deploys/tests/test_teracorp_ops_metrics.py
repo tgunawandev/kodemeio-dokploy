@@ -192,6 +192,35 @@ def test_cli_rejects_oversized_input_before_json_parsing(tmp_path, capsys) -> No
     assert "must not exceed" in capsys.readouterr().err
 
 
+def test_cli_rejects_excessive_json_nesting_before_parsing(tmp_path, capsys) -> None:
+    path = tmp_path / "deeply-nested.json"
+    nesting = METRICS._MAX_JSON_DEPTH + 1
+    path.write_text("[" * nesting + "0" + "]" * nesting, encoding="utf-8")
+    assert METRICS.main(["hours-trend", str(path)]) == 2
+    assert f"{METRICS._MAX_JSON_DEPTH}-level JSON nesting limit" in capsys.readouterr().err
+
+
+def test_json_brackets_inside_strings_do_not_count_toward_nesting_limit() -> None:
+    bracket_text = "[]{}" * (METRICS._MAX_JSON_DEPTH + 1)
+    raw = json.dumps({"marker": bracket_text})
+    METRICS._enforce_json_depth(raw)
+    assert json.loads(raw)["marker"] == bracket_text
+
+
+def test_cli_normalizes_parser_recursion_error_to_sanitized_input_error(tmp_path, capsys, monkeypatch) -> None:
+    path = tmp_path / "hours.json"
+    path.write_text("{}", encoding="utf-8")
+
+    def raise_recursion_error(*args, **kwargs):
+        raise RecursionError("untrusted parser detail")
+
+    monkeypatch.setattr(METRICS.json, "loads", raise_recursion_error)
+    assert METRICS.main(["hours-trend", str(path)]) == 2
+    error = capsys.readouterr().err
+    assert "input must be valid bounded UTF-8 JSON" in error
+    assert "untrusted parser detail" not in error
+
+
 def test_cli_reads_explicit_input_and_emits_json_without_writing_files(tmp_path, capsys) -> None:
     path = tmp_path / "hours.json"
     path.write_text(json.dumps(hours("2026-01-05")), encoding="utf-8")

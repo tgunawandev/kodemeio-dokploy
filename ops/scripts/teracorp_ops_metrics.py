@@ -25,6 +25,7 @@ _MAX_PRODUCTS = 100
 _MAX_METRICS = 50
 _MAX_WEEKS = 104
 _MAX_INPUT_BYTES = 1_048_576
+_MAX_JSON_DEPTH = 64
 _MAX_DECIMAL_CHARS = 64
 
 
@@ -280,6 +281,30 @@ def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
+def _enforce_json_depth(text: str) -> None:
+    """Bound JSON container nesting, ignoring bracket characters inside strings."""
+    depth = 0
+    in_string = False
+    escaped = False
+    for character in text:
+        if in_string:
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == '"':
+                in_string = False
+            continue
+        if character == '"':
+            in_string = True
+        elif character in "[{":
+            depth += 1
+            if depth > _MAX_JSON_DEPTH:
+                raise InputError(f"input exceeds the {_MAX_JSON_DEPTH}-level JSON nesting limit")
+        elif character in "]}" and depth:
+            depth -= 1
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -295,12 +320,16 @@ def main(argv: list[str] | None = None) -> int:
             raw_bytes = stream.read(_MAX_INPUT_BYTES + 1)
         if len(raw_bytes) > _MAX_INPUT_BYTES:
             raise InputError(f"input file must not exceed {_MAX_INPUT_BYTES} bytes")
-        raw = raw_bytes.decode("utf-8")
-        payload = json.loads(raw, object_pairs_hook=_reject_duplicate_keys)
+        try:
+            raw = raw_bytes.decode("utf-8")
+            _enforce_json_depth(raw)
+            payload = json.loads(raw, object_pairs_hook=_reject_duplicate_keys)
+        except (UnicodeDecodeError, json.JSONDecodeError, RecursionError) as exc:
+            raise InputError("input must be valid bounded UTF-8 JSON") from exc
         result = (
             evaluate_scorecards(payload) if args.command == "validate-scorecards" else summarize_founder_hours(payload)
         )
-    except (OSError, UnicodeDecodeError, json.JSONDecodeError, InputError) as exc:
+    except (OSError, InputError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     print(json.dumps(result, sort_keys=True, separators=(",", ":")))
