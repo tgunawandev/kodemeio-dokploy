@@ -107,7 +107,7 @@ def manifest(tmp_path: Path, *, as_of_date: str = "2026-09-28") -> dict:
             "path": path.name,
             "max_age_days": limits[name],
             "evidence_status": "unverified",
-            "provenance_note": "synthetic fixture only",
+            "provenance_note": "synthetic_fixture",
         }
     return {"schema_version": 1, "as_of_date": as_of_date, "components": components}
 
@@ -253,6 +253,47 @@ def test_unknown_summary_fields_refuse_possible_unsanitized_content(tmp_path: Pa
         RHYTHM.build_packet(data, base_dir=tmp_path)
 
 
+@pytest.mark.parametrize("evidence_ref", ["customer:jane.doe/order-123", "evidence:jane-doe"])
+def test_evidence_reference_rejects_customer_names_and_nonopaque_labels(tmp_path: Path, evidence_ref: str) -> None:
+    data = manifest(tmp_path)
+    path = tmp_path / data["components"]["g2"]["path"]
+    summary = json.loads(path.read_text(encoding="utf-8"))
+    summary["products"][0]["checkpoints"][0]["evidence_ref"] = evidence_ref
+    path.write_text(json.dumps(summary), encoding="utf-8")
+    with pytest.raises(RHYTHM.InputError, match="opaque label"):
+        RHYTHM.build_packet(data, base_dir=tmp_path)
+
+
+def test_provenance_note_is_a_fixed_nonfreeform_label(tmp_path: Path) -> None:
+    data = manifest(tmp_path)
+    data["components"]["g2"]["provenance_note"] = "Jane Doe jane@example.com"
+    with pytest.raises(RHYTHM.InputError, match="approved label"):
+        RHYTHM.build_packet(data, base_dir=tmp_path)
+
+
+@pytest.mark.parametrize("period", ["0000-01", "9999-12"])
+def test_g4_invalid_calendar_boundary_refuses_cleanly(tmp_path: Path, period: str) -> None:
+    data = manifest(tmp_path)
+    path = tmp_path / data["components"]["g4"]["path"]
+    summary = json.loads(path.read_text(encoding="utf-8"))
+    summary["period"] = period
+    path.write_text(json.dumps(summary), encoding="utf-8")
+    if period == "9999-12":
+        # This period is valid; the packet should classify it as future.
+        packet = RHYTHM.build_packet(data, base_dir=tmp_path)
+        assert packet["inputs"]["g4"]["freshness_status"] == "future"
+    else:
+        with pytest.raises(RHYTHM.InputError, match="valid calendar month"):
+            RHYTHM.build_packet(data, base_dir=tmp_path)
+
+
+def test_g2_checkpoint_date_overflow_refuses_as_input_error() -> None:
+    summary = summaries()["g2"]
+    summary["products"][0]["launch_date"] = "9999-12-31"
+    with pytest.raises(RHYTHM.InputError, match="checkpoint range"):
+        RHYTHM._validate_g2(summary)
+
+
 def test_summary_symlink_is_refused(tmp_path: Path) -> None:
     data = manifest(tmp_path)
     target = tmp_path / "target.json"
@@ -280,7 +321,7 @@ def test_cli_duplicate_keys_and_oversize_fail_cleanly(tmp_path: Path, capsys) ->
     path = tmp_path / "manifest.json"
     path.write_text('{"schema_version":1,"schema_version":1}', encoding="utf-8")
     assert RHYTHM.main([str(path)]) == 2
-    assert "duplicate JSON key" in capsys.readouterr().err
+    assert "duplicate JSON object key" in capsys.readouterr().err
     path.write_bytes(b" " * (RHYTHM._MAX_INPUT_BYTES + 1))
     assert RHYTHM.main([str(path)]) == 2
     assert "must not exceed" in capsys.readouterr().err
@@ -308,3 +349,10 @@ def test_script_has_no_network_database_or_process_dependencies() -> None:
         if isinstance(node, ast.ImportFrom) and node.module
     }
     assert imported.isdisjoint({"http", "httpx", "requests", "socket", "subprocess", "sqlite3", "psycopg2"})
+
+
+def test_unknown_key_error_cannot_inject_terminal_controls() -> None:
+    hostile_key = "\x1b[2J"
+    with pytest.raises(RHYTHM.InputError) as error:
+        RHYTHM._object({hostile_key: "value"}, "manifest", {"schema_version"})
+    assert "\x1b" not in str(error.value)

@@ -19,7 +19,8 @@ _MAX_INTEGER_TOKEN_CHARS = 20
 _MAX_AGE_DAYS = {"g2": 14, "g3": 10, "g4": 45}
 _ID = re.compile(r"^[a-z][a-z0-9_-]{0,63}$")
 _DECIMAL = re.compile(r"^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$")
-_EVIDENCE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9:._/-]{0,127}$")
+_EVIDENCE = re.compile(r"^(?:synthetic:(?:60d|day-60)|evidence:[0-9a-f]{32})$")
+_PROVENANCE_NOTES = {"synthetic_fixture", "founder_supplied", "system_export", "unspecified"}
 _RHYTHM = {
     "monday_priorities": "Founder writes priorities manually; no priority is inferred.",
     "daily_approval_batch_minutes": {"minimum": 20, "maximum": 30},
@@ -40,8 +41,7 @@ def _object(value: Any, where: str, keys: set[str]) -> dict[str, Any]:
     if type(value) is not dict:
         raise InputError(f"{where} must be an object")
     if set(value) != keys:
-        missing, unknown = sorted(keys - set(value)), sorted(set(value) - keys)
-        raise InputError(f"{where} keys invalid (missing={missing}, unknown={unknown})")
+        raise InputError(f"{where} keys invalid")
     return value
 
 
@@ -61,7 +61,7 @@ def _json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
-            raise InputError(f"duplicate JSON key: {key}")
+            raise InputError("duplicate JSON object key")
         result[key] = value
     return result
 
@@ -136,7 +136,7 @@ def _validate_g2(summary: Any) -> date:
         if product_id in seen:
             raise InputError("g2 summary product_id values must be unique")
         seen.add(product_id)
-        _date(product["launch_date"], f"{where}.launch_date")
+        launch_date = _date(product["launch_date"], f"{where}.launch_date")
         if not isinstance(product["currency"], str) or not re.fullmatch(r"[A-Z]{3}", product["currency"]):
             raise InputError(f"{where}.currency must be a three-letter uppercase code")
         checkpoints = product["checkpoints"]
@@ -150,16 +150,18 @@ def _validate_g2(summary: Any) -> date:
                 raise InputError(f"{cp_where}.day must uniquely be 60 and 90")
             days.add(cp["day"])
             due = _date(cp["due_date"], f"{cp_where}.due_date")
-            if due != _date(product["launch_date"], f"{where}.launch_date") + timedelta(days=cp["day"]):
+            try:
+                expected_due = launch_date + timedelta(days=cp["day"])
+            except OverflowError as exc:
+                raise InputError(f"{where}.launch_date is outside the supported checkpoint range") from exc
+            if due != expected_due:
                 raise InputError(f"{cp_where}.due_date does not match launch date plus checkpoint day")
             if cp["observed_on"] is not None:
                 observed_on = _date(cp["observed_on"], f"{cp_where}.observed_on")
                 if observed_on < due or observed_on > as_of:
                     raise InputError(f"{cp_where}.observed_on must be from its due date through g2 as_of_date")
             if cp["evidence_ref"] is not None and (
-                not isinstance(cp["evidence_ref"], str)
-                or not _EVIDENCE.fullmatch(cp["evidence_ref"])
-                or "://" in cp["evidence_ref"]
+                not isinstance(cp["evidence_ref"], str) or not _EVIDENCE.fullmatch(cp["evidence_ref"])
             ):
                 raise InputError(f"{cp_where}.evidence_ref must be an opaque label")
             has_observed = False
@@ -353,7 +355,10 @@ def _validate_g4(summary: Any) -> date:
         raise InputError("g4 summary.unallocated_amount must be zero in a valid G4 summary")
     if (root["invoice_count"] == 0) != (reported_invoices == 0):
         raise InputError("g4 summary invoice_count does not match its invoice total")
-    return date.fromisoformat(f"{period}-01")
+    try:
+        return date.fromisoformat(f"{period}-01")
+    except ValueError as exc:
+        raise InputError("g4 summary.period must be a valid calendar month") from exc
 
 
 def _manifest(payload: Any) -> tuple[date, dict[str, Any]]:
@@ -386,8 +391,8 @@ def _manifest(payload: Any) -> tuple[date, dict[str, Any]]:
         }:
             raise InputError(f"manifest.components.{name}.evidence_status must be unverified or founder_attested")
         note = component["provenance_note"]
-        if not isinstance(note, str) or len(note) > 120 or any(ord(char) < 32 for char in note):
-            raise InputError(f"manifest.components.{name}.provenance_note must be a short single-line label")
+        if not isinstance(note, str) or note not in _PROVENANCE_NOTES:
+            raise InputError(f"manifest.components.{name}.provenance_note must be an approved label")
     return as_of, components
 
 
