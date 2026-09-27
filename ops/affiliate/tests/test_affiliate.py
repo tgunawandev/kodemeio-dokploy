@@ -11,6 +11,7 @@ from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
+import affiliate  # noqa: E402
 from affiliate import InputError, evaluate, load_document, reconcile  # noqa: E402
 
 SCHEMA = ROOT / "contracts" / "affiliate.v1.schema.json"
@@ -152,3 +153,31 @@ def test_cli_emits_synthetic_evidence_and_duplicate_json_is_rejected(tmp_path: P
     duplicate.write_text('{"schema_version":1,"schema_version":1}', encoding="utf-8")
     with pytest.raises(InputError, match="duplicate_json_key"):
         load_document(duplicate)
+
+
+def test_loader_rejects_json_nesting_beyond_configured_depth(tmp_path: Path) -> None:
+    too_deep = tmp_path / "too-deep.json"
+    too_deep.write_text("[" * (affiliate.MAX_JSON_DEPTH + 1) + "0" + "]" * (affiliate.MAX_JSON_DEPTH + 1))
+
+    with pytest.raises(InputError, match="input_too_deep"):
+        load_document(too_deep)
+
+
+def test_loader_ignores_brackets_inside_json_strings(tmp_path: Path) -> None:
+    bracket_heavy = tmp_path / "bracket-heavy-string.json"
+    value = "[]{}" * (affiliate.MAX_JSON_DEPTH * 4)
+    bracket_heavy.write_text(json.dumps({"value": value}), encoding="utf-8")
+
+    assert load_document(bracket_heavy) == {"value": value}
+
+
+def test_loader_normalizes_recursion_error_to_sanitized_input_error(tmp_path: Path, monkeypatch) -> None:
+    document = tmp_path / "document.json"
+    document.write_text("{}", encoding="utf-8")
+
+    def raise_recursion_error(*args, **kwargs):
+        raise RecursionError("untrusted implementation detail")
+
+    monkeypatch.setattr(affiliate.json, "loads", raise_recursion_error)
+    with pytest.raises(InputError, match="^input_unreadable_or_invalid_json$"):
+        load_document(document)

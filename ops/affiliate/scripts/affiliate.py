@@ -19,6 +19,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_PATH = ROOT / "contracts" / "affiliate.v1.schema.json"
 MAX_INPUT_BYTES = 1_000_000
+MAX_JSON_DEPTH = 32
 PLACEHOLDER_PREFIXES = ("todo", "replace", "tbd")
 
 
@@ -35,14 +36,40 @@ def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
+def _validate_json_depth(text: str) -> None:
+    """Bound structural nesting before parsing, ignoring delimiters in strings."""
+    stack: list[str] = []
+    in_string = False
+    escaped = False
+    closing_for = {"}": "{", "]": "["}
+    for char in text:
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+        elif char == '"':
+            in_string = True
+        elif char in "[{":
+            stack.append(char)
+            if len(stack) > MAX_JSON_DEPTH:
+                raise InputError("input_too_deep")
+        elif char in closing_for and stack and stack[-1] == closing_for[char]:
+            stack.pop()
+
+
 def load_document(path: Path) -> Any:
     try:
         if path.stat().st_size > MAX_INPUT_BYTES:
             raise InputError("input_too_large")
-        return json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_unique_object)
+        text = path.read_text(encoding="utf-8")
+        _validate_json_depth(text)
+        return json.loads(text, object_pairs_hook=_unique_object)
     except InputError:
         raise
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+    except (OSError, UnicodeError, json.JSONDecodeError, RecursionError) as exc:
         raise InputError("input_unreadable_or_invalid_json") from exc
 
 
