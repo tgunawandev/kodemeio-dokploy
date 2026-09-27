@@ -1,9 +1,9 @@
 # P8 — protected offsite action-journal rollout (founder-gated)
 
 **Current state: do not schedule or claim P8 operational.** The repository has a local JSONL hash-chain
-primitive only. It has no authenticated Odoo/Hatchet/Hermes event producers, no snapshot/export job,
-no production target, and no restore/tamper drill. This runbook prepares the founder gates; it does
-not perform them.
+primitive and a one-shot exporter candidate. There is no scheduled production export job, no
+authenticated Odoo/Hatchet/Hermes event producer, no approved production target, and no
+restore/tamper drill. This runbook prepares the founder gates; it does not perform them.
 
 ## Required design decision
 
@@ -39,24 +39,36 @@ retention. Review these primary sources at execution time:
 2. Provision the dedicated bucket, encryption, compliance retention, and narrow writer/reader keys
    in the approved secrets manager. Do not put keys in Dokploy YAML, this repo, shell history, or an
    agent transcript.
-3. Confirm the chosen client supports per-object compliance retention and protected unique object
-   names. An upload that silently omits retention must fail acceptance.
-4. Implement and review the scheduled exporter. It must first run the local full-chain verifier,
-   export a consistent snapshot and trusted head metadata, upload content-addressed/new-only object
-   names, verify remote size/checksum/retention metadata, and alert on any failed step. No such job
-   currently exists, so do not register a schedule yet.
-5. Keep local journal and offsite keys separate. The runtime writer must not administer buckets,
-   shorten retention, bypass governance, or delete versions. The restore verifier uses a
-   read-only key from a separate trust boundary.
+3. Store the current expected journal head independently from the snapshot in a separately
+   protected source (for example, a restricted audit control record). Supply that value as the
+   exporter's `--expected-head`; never calculate the expected value from the snapshot being checked
+   or accept a value copied from the same untrusted journal storage. A valid rebuilt hash chain
+   must still fail when its head differs from this independent anchor.
+4. The one-shot exporter uses conditional single-object writes (`If-None-Match: *`) and has no
+   overwrite fallback. Before relying on it, the founder must prove the selected B2 S3 endpoint
+   accepts the conditional request and refuses an existing object key. If B2 rejects or ignores
+   the condition, export fails closed; do not remove the condition or fall back to an unconditional
+   PUT. Record this provider-acceptance test as a founder drill gate.
+5. The exporter reads each uploaded object back into a private bounded temporary file and compares
+   exact byte count and SHA-256 (the snapshot digest is recorded in the manifest), in addition to
+   checking retention metadata. Supply separate writer credentials and read-only credentials via
+   `TERACORP_B2_ACCESS_KEY_ID`, `TERACORP_B2_SECRET_ACCESS_KEY`,
+   `TERACORP_B2_READ_ACCESS_KEY_ID`, and `TERACORP_B2_READ_SECRET_ACCESS_KEY`. The read key must
+   actually be provisioned read-only and from a separately governed trust boundary; distinct
+   environment variables alone do not prove its capabilities.
+6. Keep local journal and offsite keys separate. The runtime writer must not administer buckets,
+   shorten retention, bypass governance, or delete versions. A scheduled production exporter,
+   alerting, authenticated event producers, and operational ownership are still unimplemented;
+   do not register a schedule yet.
 
 ## Synthetic acceptance before scheduling
 
 Run the local tests from `kodemeio-dokploy`:
 
 ```sh
-uv run pytest -q deploys/tests/test_teracorp_action_journal.py
-uv run ruff check ops/scripts/teracorp_action_journal.py deploys/tests/test_teracorp_action_journal.py
-uv run ruff format --check ops/scripts/teracorp_action_journal.py deploys/tests/test_teracorp_action_journal.py
+uv run pytest -q deploys/tests/test_teracorp_action_journal_export.py
+uv run ruff check ops/scripts/teracorp_action_journal_export.py deploys/tests/test_teracorp_action_journal_export.py
+uv run ruff format --check ops/scripts/teracorp_action_journal_export.py deploys/tests/test_teracorp_action_journal_export.py
 ```
 
 These prove only the local component. Once a founder provisions a dedicated test bucket and

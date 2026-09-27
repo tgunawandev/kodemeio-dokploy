@@ -12,10 +12,12 @@ import hashlib
 import json
 import os
 import re
+import selectors
 import stat
 import subprocess
 import sys
 import tempfile
+import time
 import uuid
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
@@ -32,6 +34,8 @@ MAX_CREDENTIAL_BYTES = 1024
 AWS_REGION = "us-east-1"
 ACCESS_KEY_ENV = "TERACORP_B2_ACCESS_KEY_ID"
 SECRET_KEY_ENV = "TERACORP_B2_SECRET_ACCESS_KEY"
+READ_ACCESS_KEY_ENV = "TERACORP_B2_READ_ACCESS_KEY_ID"
+READ_SECRET_KEY_ENV = "TERACORP_B2_READ_SECRET_ACCESS_KEY"
 _BUCKET = re.compile(r"^[a-z0-9][a-z0-9-]{4,48}[a-z0-9]$")
 _PREFIX_SEGMENT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._=-]{0,62}$")
 _ENDPOINT_HOST = re.compile(r"^s3\.[a-z0-9]+-[a-z0-9]+-[0-9]{3}\.backblazeb2\.com$")
@@ -162,17 +166,79 @@ def _child_environment(access_key: str, secret_key: str, home: Path) -> dict[str
 
 
 def _default_runner(argv: Sequence[str], env: Mapping[str, str], timeout: float) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        list(argv),
-        stdin=subprocess.DEVNULL,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        env=dict(env),
-        timeout=timeout,
-        shell=False,
-        check=False,
+    command = list(argv)
+    try:
+        process = subprocess.Popen(
+            command,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=dict(env),
+            shell=False,
+            bufsize=0,
+        )
+    except OSError:
+        raise RuntimeError("provider process could not be started") from None
+
+    captured = {"stdout": bytearray(), "stderr": bytearray()}
+    deadline = time.monotonic() + timeout
+    download_path = Path(command[-1]) if "s3api" in command and "get-object" in command else None
+    download_limit = MAX_SNAPSHOT_BYTES + MAX_PROVIDER_OUTPUT_BYTES
+
+    def stop_child() -> None:
+        if process.poll() is None:
+            process.terminate()
+            try:
+                process.wait(timeout=1.0)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
+
+    try:
+        with selectors.DefaultSelector() as selector:
+            for name in ("stdout", "stderr"):
+                stream = getattr(process, name)
+                assert stream is not None
+                selector.register(stream, selectors.EVENT_READ, name)
+            while selector.get_map():
+                remaining_time = deadline - time.monotonic()
+                if remaining_time <= 0:
+                    stop_child()
+                    raise subprocess.TimeoutExpired(command, timeout)
+                if (
+                    download_path is not None
+                    and download_path.exists()
+                    and download_path.stat().st_size > download_limit
+                ):
+                    stop_child()
+                    raise RuntimeError("provider download exceeded its size limit")
+                for key, _ in selector.select(min(remaining_time, 0.1)):
+                    name = key.data
+                    remaining_bytes = MAX_PROVIDER_OUTPUT_BYTES - len(captured[name])
+                    chunk = os.read(key.fd, min(8192, remaining_bytes + 1))
+                    if not chunk:
+                        selector.unregister(key.fileobj)
+                        continue
+                    if len(chunk) > remaining_bytes:
+                        stop_child()
+                        raise RuntimeError("provider output limit exceeded")
+                    captured[name].extend(chunk)
+        returncode = process.wait(timeout=max(0.0, deadline - time.monotonic()))
+    except subprocess.TimeoutExpired:
+        stop_child()
+        raise
+    finally:
+        for name in ("stdout", "stderr"):
+            stream = getattr(process, name)
+            if stream is not None:
+                stream.close()
+    if download_path is not None and download_path.exists() and download_path.stat().st_size > download_limit:
+        raise RuntimeError("provider download exceeded its size limit")
+    return subprocess.CompletedProcess(
+        command,
+        returncode,
+        captured["stdout"].decode("utf-8", errors="replace"),
+        captured["stderr"].decode("utf-8", errors="replace"),
     )
 
 
@@ -235,7 +301,9 @@ def _upload_and_verify(
     endpoint: str,
     retain_until: str,
     env: Mapping[str, str],
+    read_env: Mapping[str, str],
     runner: Runner,
+    expected_sha256: str,
 ) -> None:
     put = _aws_call(
         "put-object",
@@ -246,6 +314,8 @@ def _upload_and_verify(
             key,
             "--body",
             str(path),
+            "--if-none-match",
+            "*",
             "--object-lock-mode",
             "COMPLIANCE",
             "--object-lock-retain-until-date",
@@ -271,6 +341,44 @@ def _upload_and_verify(
         raise ExportError("B2 retention verification response was invalid")
     _assert_retention(value.get("Mode"), value.get("RetainUntilDate"), retain_until)
 
+    download_path = path.parent / f"readback-{uuid.uuid4().hex}.bin"
+    _aws_call(
+        "get-object",
+        ["--bucket", bucket, "--key", key, str(download_path)],
+        endpoint,
+        read_env,
+        runner,
+    )
+    try:
+        info = download_path.lstat()
+        if not stat.S_ISREG(info.st_mode) or info.st_size > MAX_SNAPSHOT_BYTES + MAX_PROVIDER_OUTPUT_BYTES:
+            raise ExportError("B2 readback exceeded its size limit")
+        os.chmod(download_path, 0o600)
+        digest = hashlib.sha256()
+        size = 0
+        readback_fd = os.open(download_path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        try:
+            opened = os.fstat(readback_fd)
+            if not stat.S_ISREG(opened.st_mode) or opened.st_size > MAX_SNAPSHOT_BYTES + MAX_PROVIDER_OUTPUT_BYTES:
+                raise ExportError("B2 readback exceeded its size limit")
+            remote = os.fdopen(readback_fd, "rb")
+            readback_fd = -1
+            with remote:
+                while chunk := remote.read(1024 * 1024):
+                    size += len(chunk)
+                    if size > path.stat().st_size:
+                        raise ExportError("B2 readback verification failed")
+                    digest.update(chunk)
+        finally:
+            if readback_fd >= 0:
+                os.close(readback_fd)
+        if size != path.stat().st_size or digest.hexdigest() != expected_sha256:
+            raise ExportError("B2 readback verification failed")
+    except OSError:
+        raise ExportError("B2 readback verification failed") from None
+    finally:
+        download_path.unlink(missing_ok=True)
+
 
 def export_snapshot(
     *,
@@ -281,11 +389,18 @@ def export_snapshot(
     retention_days: int,
     access_key: str,
     secret_key: str,
+    read_access_key: str,
+    read_secret_key: str,
+    expected_head: str,
     runner: Runner = _default_runner,
     clock: Clock = lambda: datetime.now(UTC),
     run_id_factory: RunIdFactory = lambda: uuid.uuid4().hex,
 ) -> dict[str, Any]:
     validate_destination(bucket, prefix, endpoint, retention_days)
+    if not isinstance(expected_head, str) or not re.fullmatch(r"[0-9a-f]{64}", expected_head):
+        raise ExportError("expected journal head must be a lowercase SHA-256 digest")
+    if (access_key, secret_key) == (read_access_key, read_secret_key):
+        raise ExportError("B2 writer and read-only credentials must be distinct")
     if not isinstance(journal_path, Path):
         journal_path = Path(journal_path)
     run_id = run_id_factory()
@@ -321,6 +436,8 @@ def export_snapshot(
             raise ExportError("private snapshot verification failed")
         if stat.S_IMODE(snapshot_path.stat().st_mode) & 0o077:
             raise ExportError("private snapshot permissions are invalid")
+        if state["head_hash"] != expected_head:
+            raise ExportError("journal head does not match independent expected journal head")
 
         manifest = {
             "schema_version": 1,
@@ -339,6 +456,7 @@ def export_snapshot(
         manifest_bytes = journal._canonical(manifest) + b"\n"
         manifest_path = _private_temp_file(temp_dir, "manifest.json", manifest_bytes)
         child_env = _child_environment(access_key, secret_key, temp_dir)
+        read_child_env = _child_environment(read_access_key, read_secret_key, temp_dir)
 
         _upload_and_verify(
             path=snapshot_path,
@@ -347,7 +465,9 @@ def export_snapshot(
             endpoint=endpoint,
             retain_until=retain_until,
             env=child_env,
+            read_env=read_child_env,
             runner=runner,
+            expected_sha256=manifest["snapshot_sha256"],
         )
         _upload_and_verify(
             path=manifest_path,
@@ -356,7 +476,9 @@ def export_snapshot(
             endpoint=endpoint,
             retain_until=retain_until,
             env=child_env,
+            read_env=read_child_env,
             runner=runner,
+            expected_sha256=hashlib.sha256(manifest_bytes).hexdigest(),
         )
     return {
         "status": "verified",
@@ -379,10 +501,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--prefix", required=True)
     parser.add_argument("--endpoint", required=True, help="HTTPS B2 S3 endpoint URL")
     parser.add_argument("--retention-days", required=True, type=int)
+    parser.add_argument("--expected-head", required=True, help="independent protected journal head SHA-256")
     args = parser.parse_args(argv)
     try:
         access_key = os.environ.get(ACCESS_KEY_ENV, "")
         secret_key = os.environ.get(SECRET_KEY_ENV, "")
+        read_access_key = os.environ.get(READ_ACCESS_KEY_ENV, "")
+        read_secret_key = os.environ.get(READ_SECRET_KEY_ENV, "")
         result = export_snapshot(
             journal_path=args.journal,
             bucket=args.bucket,
@@ -391,6 +516,9 @@ def main(argv: list[str] | None = None) -> int:
             retention_days=args.retention_days,
             access_key=access_key,
             secret_key=secret_key,
+            read_access_key=read_access_key,
+            read_secret_key=read_secret_key,
+            expected_head=args.expected_head,
         )
     except (ExportError, OSError) as exc:
         # Messages are deliberately generic; no AWS output, local journal content, or credential data.

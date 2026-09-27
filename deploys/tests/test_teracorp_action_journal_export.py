@@ -4,6 +4,7 @@ import fcntl
 import importlib.util
 import json
 import os
+import subprocess
 import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -48,6 +49,8 @@ def fixed_clock() -> datetime:
 def runner_for(*, fail_operation: str | None = None, retention_mode: str = "COMPLIANCE"):
     calls: list[tuple[list[str], dict[str, str]]] = []
     temp_paths: list[Path] = []
+    remote_objects: dict[tuple[str, str], bytes] = {}
+    put_envs: list[dict[str, str]] = []
 
     def runner(argv, env, timeout):
         assert isinstance(argv, list)
@@ -61,8 +64,11 @@ def runner_for(*, fail_operation: str | None = None, retention_mode: str = "COMP
         assert bucket == "teracorp-backup"
         assert key.startswith("journal/offsite/run-")
         if operation == "put-object":
+            put_envs.append(dict(env))
             file_path = Path(argv[argv.index("--body") + 1])
             temp_paths.append(file_path)
+            assert argv[argv.index("--if-none-match") + 1] == "*"
+            remote_objects[(bucket, key)] = file_path.read_bytes()
             assert os.stat(file_path.parent).st_mode & 0o777 == 0o700
             assert os.stat(file_path).st_mode & 0o777 == 0o600
             assert argv[argv.index("--object-lock-mode") + 1] == "COMPLIANCE"
@@ -95,6 +101,13 @@ def runner_for(*, fail_operation: str | None = None, retention_mode: str = "COMP
                 ),
                 stderr="",
             )
+        if operation == "get-object":
+            assert env["AWS_ACCESS_KEY_ID"] == "dedicated-read-access-key"
+            assert env["AWS_SECRET_ACCESS_KEY"] == "dedicated-read-secret-key"
+            assert env != put_envs[-1]
+            destination = Path(argv[-1])
+            destination.write_bytes(remote_objects[(bucket, key)])
+            return SimpleNamespace(returncode=0, stdout="{}", stderr="")
         raise AssertionError(f"unexpected operation {operation}")
 
     return runner, calls, temp_paths
@@ -113,6 +126,9 @@ def export(path: Path, runner, **overrides):
         "retention_days": 1096,
         "access_key": "dedicated-access-key",
         "secret_key": "dedicated-secret-key",
+        "read_access_key": "dedicated-read-access-key",
+        "read_secret_key": "dedicated-read-secret-key",
+        "expected_head": None,
         "runner": runner,
         "clock": fixed_clock,
         **overrides,
@@ -139,7 +155,32 @@ def test_invalid_or_tampered_journal_makes_zero_provider_calls(tmp_path, tamper)
         path.chmod(0o600)
     runner, calls, _ = runner_for()
     with pytest.raises(EXPORTER.ExportError, match="journal snapshot validation failed"):
-        export(path, runner)
+        export(path, runner, expected_head="a" * 64)
+    assert calls == []
+
+
+def test_rebuilt_chain_tamper_does_not_match_independent_expected_head(tmp_path) -> None:
+    path = tmp_path / "actions.jsonl"
+    seed_journal(path)
+    expected = JOURNAL.verify_journal(path)["head_hash"]
+    record = json.loads(path.read_text())
+    record["event"]["actor_id"] = "other-agent"
+    record["entry_hash"] = JOURNAL._hash(record["sequence"], record["event"], record["previous_hash"])
+    path.write_bytes(JOURNAL._canonical(record) + b"\n")
+    path.chmod(0o600)
+    runner, calls, _ = runner_for()
+    with pytest.raises(EXPORTER.ExportError, match="expected journal head"):
+        export(path, runner, expected_head=expected)
+    assert calls == []
+
+
+@pytest.mark.parametrize("expected_head", [None, "x" * 64, "A" * 64])
+def test_invalid_expected_head_refuses_before_provider_calls(tmp_path, expected_head) -> None:
+    path = tmp_path / "actions.jsonl"
+    seed_journal(path)
+    runner, calls, _ = runner_for()
+    with pytest.raises(EXPORTER.ExportError, match="expected journal head"):
+        export(path, runner, expected_head=expected_head)
     assert calls == []
 
 
@@ -165,7 +206,15 @@ def test_invalid_destination_refuses_before_provider_calls(tmp_path, bucket, pre
     seed_journal(path)
     runner, calls, _ = runner_for()
     with pytest.raises(EXPORTER.ExportError):
-        export(path, runner, bucket=bucket, prefix=prefix, endpoint=endpoint, retention_days=days)
+        export(
+            path,
+            runner,
+            expected_head="a" * 64,
+            bucket=bucket,
+            prefix=prefix,
+            endpoint=endpoint,
+            retention_days=days,
+        )
     assert calls == []
 
 
@@ -175,7 +224,7 @@ def test_oversized_snapshot_refuses_before_provider_calls(tmp_path, monkeypatch)
     monkeypatch.setattr(EXPORTER, "MAX_SNAPSHOT_BYTES", 10)
     runner, calls, _ = runner_for()
     with pytest.raises(EXPORTER.ExportError, match="journal snapshot validation failed"):
-        export(path, runner)
+        export(path, runner, expected_head="a" * 64)
     assert calls == []
 
 
@@ -186,26 +235,33 @@ def test_verified_export_uses_fixed_argv_child_only_credentials_and_private_temp
     monkeypatch.setenv("AWS_PROFILE", "ambient-profile-must-not-pass")
     monkeypatch.setenv("AWS_ENDPOINT_URL", "https://attacker.invalid")
     runner, calls, temp_paths = runner_for()
-    result = export(path, runner)
+    expected_head = JOURNAL.verify_journal(path)["head_hash"]
+    result = export(path, runner, expected_head=expected_head)
 
     assert result["status"] == "verified"
     assert result["record_count"] == 1
     assert result["retain_until"] == "2029-09-28T01:02:04Z"
-    assert len(calls) == 6
+    assert len(calls) == 8
     assert [argv[argv.index("s3api") + 1] for argv, _ in calls] == [
         "put-object",
         "head-object",
         "get-object-retention",
+        "get-object",
         "put-object",
         "head-object",
         "get-object-retention",
+        "get-object",
     ]
     for argv, child_env in calls:
         assert argv[0] == "aws"
         assert "--endpoint-url" in argv
         assert "shell" not in child_env
-        assert child_env["AWS_ACCESS_KEY_ID"] == "dedicated-access-key"
-        assert child_env["AWS_SECRET_ACCESS_KEY"] == "dedicated-secret-key"
+        operation = argv[argv.index("s3api") + 1]
+        read_only = operation == "get-object"
+        assert child_env["AWS_ACCESS_KEY_ID"] == ("dedicated-read-access-key" if read_only else "dedicated-access-key")
+        assert child_env["AWS_SECRET_ACCESS_KEY"] == (
+            "dedicated-read-secret-key" if read_only else "dedicated-secret-key"
+        )
         assert child_env["AWS_CONFIG_FILE"] == "/dev/null"
         assert child_env["AWS_SHARED_CREDENTIALS_FILE"] == "/dev/null"
         assert child_env["AWS_EC2_METADATA_DISABLED"] == "true"
@@ -229,7 +285,7 @@ def test_uploaded_snapshot_is_exact_verified_chain_and_manifest_is_canonical_met
             uploaded.append(Path(argv[argv.index("--body") + 1]).read_bytes())
         return delegate(argv, env, timeout)
 
-    result = export(path, runner)
+    result = export(path, runner, expected_head=JOURNAL.verify_journal(path)["head_hash"])
     manifest_bytes = uploaded[1]
     manifest = json.loads(manifest_bytes)
     assert uploaded[0] == original
@@ -243,6 +299,7 @@ def test_uploaded_snapshot_is_exact_verified_chain_and_manifest_is_canonical_met
 def test_snapshot_waits_for_the_existing_journal_process_lock(tmp_path) -> None:
     path = tmp_path / "actions.jsonl"
     seed_journal(path)
+    expected_head = JOURNAL.verify_journal(path)["head_hash"]
     lock_fd = os.open(f"{path}.lock", os.O_RDONLY)
     fcntl.flock(lock_fd, fcntl.LOCK_EX)
     runner, calls, _ = runner_for()
@@ -250,7 +307,7 @@ def test_snapshot_waits_for_the_existing_journal_process_lock(tmp_path) -> None:
 
     def invoke():
         started.set()
-        return export(path, runner)
+        return export(path, runner, expected_head=expected_head)
 
     pool = ThreadPoolExecutor(max_workers=1)
     future = pool.submit(invoke)
@@ -268,19 +325,19 @@ def test_snapshot_waits_for_the_existing_journal_process_lock(tmp_path) -> None:
     finally:
         pool.shutdown(wait=True)
     assert result["status"] == "verified"
-    assert len(calls) == 6
+    assert len(calls) == 8
 
 
-@pytest.mark.parametrize("operation", ["put-object", "head-object", "get-object-retention"])
+@pytest.mark.parametrize("operation", ["put-object", "head-object", "get-object-retention", "get-object"])
 def test_provider_failures_are_sanitized_and_fail_closed(tmp_path, operation, capsys) -> None:
     path = tmp_path / "actions.jsonl"
     seed_journal(path)
     runner, calls, temp_paths = runner_for(fail_operation=operation)
     with pytest.raises(EXPORTER.ExportError) as error:
-        export(path, runner)
+        export(path, runner, expected_head=JOURNAL.verify_journal(path)["head_hash"])
     assert "PRIVATE_PROVIDER_ERROR" not in str(error.value)
     assert "secret-value" not in str(error.value)
-    assert len(calls) <= 3
+    assert len(calls) <= (4 if operation == "get-object" else 3)
     assert all(not item.exists() for item in temp_paths)
     output = capsys.readouterr()
     assert "secret-value" not in output.out + output.err
@@ -291,7 +348,7 @@ def test_retention_mismatch_or_size_mismatch_is_refused(tmp_path) -> None:
     seed_journal(path)
     runner, _, _ = runner_for(retention_mode="GOVERNANCE")
     with pytest.raises(EXPORTER.ExportError, match="retention"):
-        export(path, runner)
+        export(path, runner, expected_head=JOURNAL.verify_journal(path)["head_hash"])
 
     runner, calls, _ = runner_for()
     original = runner
@@ -303,8 +360,27 @@ def test_retention_mismatch_or_size_mismatch_is_refused(tmp_path) -> None:
         return result
 
     with pytest.raises(EXPORTER.ExportError, match="size verification"):
-        export(path, wrong_size)
+        export(path, wrong_size, expected_head=JOURNAL.verify_journal(path)["head_hash"])
     assert calls
+
+
+@pytest.mark.parametrize("corruption", ["short", "altered"])
+def test_remote_readback_must_match_exact_size_and_manifest_sha256(tmp_path, corruption) -> None:
+    path = tmp_path / "actions.jsonl"
+    seed_journal(path)
+    runner, calls, _ = runner_for()
+
+    def corrupting_runner(argv, env, timeout):
+        result = runner(argv, env, timeout)
+        if argv[argv.index("s3api") + 1] == "get-object":
+            destination = Path(argv[-1])
+            data = destination.read_bytes()
+            destination.write_bytes(data[:-1] if corruption == "short" else b"x" + data[1:])
+        return result
+
+    with pytest.raises(EXPORTER.ExportError, match="readback verification"):
+        export(path, corrupting_runner, expected_head=JOURNAL.verify_journal(path)["head_hash"])
+    assert [args[args.index("s3api") + 1] for args, _ in calls].count("get-object") == 1
 
 
 def test_repeated_exports_use_distinct_opaque_run_keys(tmp_path) -> None:
@@ -313,8 +389,9 @@ def test_repeated_exports_use_distinct_opaque_run_keys(tmp_path) -> None:
     ids = iter(["1" * 32, "2" * 32])
     first_runner, _, _ = runner_for()
     second_runner, _, _ = runner_for()
-    first = export(path, first_runner, run_id_factory=lambda: next(ids))
-    second = export(path, second_runner, run_id_factory=lambda: next(ids))
+    expected_head = JOURNAL.verify_journal(path)["head_hash"]
+    first = export(path, first_runner, expected_head=expected_head, run_id_factory=lambda: next(ids))
+    second = export(path, second_runner, expected_head=expected_head, run_id_factory=lambda: next(ids))
     assert first["snapshot_key"] != second["snapshot_key"]
     assert first["manifest_key"] != second["manifest_key"]
     assert first["run_id"] == "1" * 32
@@ -326,7 +403,22 @@ def test_missing_dedicated_credentials_refuse_before_provider_calls(tmp_path) ->
     seed_journal(path)
     runner, calls, _ = runner_for()
     with pytest.raises(EXPORTER.ExportError, match="credentials"):
-        export(path, runner, access_key="", secret_key="")
+        export(path, runner, expected_head=JOURNAL.verify_journal(path)["head_hash"], access_key="", secret_key="")
+    assert calls == []
+
+
+def test_missing_read_only_credentials_refuse_before_provider_calls(tmp_path) -> None:
+    path = tmp_path / "actions.jsonl"
+    seed_journal(path)
+    runner, calls, _ = runner_for()
+    with pytest.raises(EXPORTER.ExportError, match="credentials"):
+        export(
+            path,
+            runner,
+            expected_head=JOURNAL.verify_journal(path)["head_hash"],
+            read_access_key="",
+            read_secret_key="",
+        )
     assert calls == []
 
 
@@ -344,7 +436,7 @@ def test_upload_metadata_omission_refuses_without_followup_calls(tmp_path) -> No
         )
 
     with pytest.raises(EXPORTER.ExportError, match="omitted object metadata"):
-        export(path, runner)
+        export(path, runner, expected_head=JOURNAL.verify_journal(path)["head_hash"])
     assert len(calls) == 1
 
 
@@ -356,7 +448,7 @@ def test_runner_exception_is_sanitized(tmp_path) -> None:
         raise RuntimeError("credentials=secret-value provider leaked snapshot bytes")
 
     with pytest.raises(EXPORTER.ExportError, match="put-object operation failed") as error:
-        export(path, runner)
+        export(path, runner, expected_head=JOURNAL.verify_journal(path)["head_hash"])
     assert "secret-value" not in str(error.value)
     assert "snapshot bytes" not in str(error.value)
 
@@ -370,6 +462,8 @@ def test_cli_reads_only_dedicated_credential_environment_names(tmp_path, monkeyp
 
     monkeypatch.setenv(EXPORTER.ACCESS_KEY_ENV, "dedicated-cli-access")
     monkeypatch.setenv(EXPORTER.SECRET_KEY_ENV, "dedicated-cli-secret")
+    monkeypatch.setenv(EXPORTER.READ_ACCESS_KEY_ENV, "dedicated-cli-read-access")
+    monkeypatch.setenv(EXPORTER.READ_SECRET_KEY_ENV, "dedicated-cli-read-secret")
     monkeypatch.setenv("AWS_ACCESS_KEY_ID", "ambient-access-must-not-be-used")
     monkeypatch.setattr(EXPORTER, "export_snapshot", fake_export)
     result = EXPORTER.main(
@@ -383,39 +477,48 @@ def test_cli_reads_only_dedicated_credential_environment_names(tmp_path, monkeyp
             "https://s3.us-west-004.backblazeb2.com",
             "--retention-days",
             "365",
+            "--expected-head",
+            "a" * 64,
         ]
     )
     assert result == 0
     assert seen["access_key"] == "dedicated-cli-access"
     assert seen["secret_key"] == "dedicated-cli-secret"
+    assert seen["read_access_key"] == "dedicated-cli-read-access"
+    assert seen["read_secret_key"] == "dedicated-cli-read-secret"
+    assert seen["expected_head"] == "a" * 64
     output = capsys.readouterr()
     assert "dedicated-cli-access" not in output.out + output.err
     assert "dedicated-cli-secret" not in output.out + output.err
     assert "ambient-access-must-not-be-used" not in output.out + output.err
 
 
-def test_default_subprocess_runner_uses_shell_false_and_suppresses_provider_output(monkeypatch) -> None:
-    observed = {}
+@pytest.mark.parametrize("stream", ["stdout", "stderr"])
+def test_default_subprocess_runner_bounds_output_during_reading(stream) -> None:
+    source = f"import sys; sys.{stream}.write('x' * {EXPORTER.MAX_PROVIDER_OUTPUT_BYTES + 1}); sys.{stream}.flush()"
+    with pytest.raises(RuntimeError, match="output limit"):
+        EXPORTER._default_runner([sys.executable, "-c", source], {"PATH": "/bin"}, 5.0)
 
-    def fake_run(argv, **kwargs):
-        observed["argv"] = argv
-        observed.update(kwargs)
-        return SimpleNamespace(returncode=1, stdout="private", stderr="private")
 
-    monkeypatch.setattr(EXPORTER.subprocess, "run", fake_run)
-    result = EXPORTER._default_runner(["aws", "s3api"], {"PATH": "/bin"}, 2.0)
-    assert observed["shell"] is False
-    assert observed["check"] is False
-    assert observed["stdin"] == EXPORTER.subprocess.DEVNULL
-    assert observed["capture_output"] is True
-    assert result.stderr == "private"  # captured for the caller, never emitted by exporter
+def test_default_subprocess_runner_terminates_timed_out_process() -> None:
+    with pytest.raises(subprocess.TimeoutExpired):
+        EXPORTER._default_runner([sys.executable, "-c", "import time; time.sleep(5)"], {"PATH": "/bin"}, 0.05)
+
+
+def test_default_subprocess_runner_uses_bounded_shell_free_capture() -> None:
+    result = EXPORTER._default_runner(
+        [sys.executable, "-c", "import sys; sys.stdout.write('private')"], {"PATH": "/bin"}, 2.0
+    )
+    assert result.returncode == 0
+    assert result.stdout == "private"
+    assert result.stderr == ""
 
 
 def test_exporter_does_not_read_snapshot_content_to_terminal(tmp_path, capsys) -> None:
     path = tmp_path / "actions.jsonl"
     seed_journal(path)
     runner, _, _ = runner_for()
-    export(path, runner)
+    export(path, runner, expected_head=JOURNAL.verify_journal(path)["head_hash"])
     captured = capsys.readouterr()
     assert "evt-export" not in captured.out + captured.err
     assert "payload_sha256" not in captured.out + captured.err
