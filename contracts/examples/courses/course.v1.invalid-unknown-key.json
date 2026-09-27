@@ -1,0 +1,167 @@
+{
+  "id": "terakidz-komunikasi-dasar",
+  "version": 1,
+  "title": "Terakidz: Komunikasi Dasar di Rumah",
+  "level": "starter",
+  "locale": "id_ID",
+  "kind": "course",
+  "renderer": "html",
+  "sources": {
+    "m1-menemani": "m1-menemani.md",
+    "m1-menemani-slides": "m1-menemani-slides.md",
+    "m1-rutinitas": "m1-rutinitas.md",
+    "m1-rutinitas-slides": "m1-rutinitas-slides.md",
+    "m2-papan": "m2-papan.md",
+    "m2-papan-slides": "m2-papan-slides.md",
+    "m3-cerita": "m3-cerita.md",
+    "m3-cerita-slides": "m3-cerita-slides.md"
+  },
+  "modules": [
+    {
+      "id": "m1-memulai",
+      "title": "Memulai bersama anak",
+      "summary": "Tiga kebiasaan kecil yang membuat latihan komunikasi terasa aman: menemani tanpa tekanan, menunggu dengan sabar, dan menjaga rutinitas tetap singkat.",
+      "lessons": [
+        {
+          "id": "l1-menemani",
+          "title": "Menemani tanpa tekanan",
+          "summary": "Peran pendamping: hadir, menunggu, dan merayakan setiap percobaan.",
+          "reading": "m1-menemani",
+          "slides": "m1-menemani-slides",
+          "quiz": {
+            "pass_score": 70,
+            "questions": [
+              {
+                "id": "q1-menunggu",
+                "prompt": "Apa yang dilakukan pendamping setelah memberi satu pertanyaan?",
+                "options": [
+                  "Mengulang pertanyaan lebih keras",
+                  "Menunggu beberapa saat tanpa mengulang",
+                  "Menjawab sendiri agar cepat selesai"
+                ],
+                "answer": "Menunggu beberapa saat tanpa mengulang",
+                "explanation": "Anak membutuhkan waktu untuk memproses. Mengulang atau menjawab sendiri menghilangkan kesempatan anak mencoba."
+              },
+              {
+                "id": "q2-pujian",
+                "prompt": "Bentuk pujian yang dianjurkan pada latihan awal adalah...",
+                "options": [
+                  "Pujian singkat atas usaha yang terlihat",
+                  "Hadiah besar setiap kali berhasil",
+                  "Diam saja agar anak mandiri"
+                ],
+                "answer": "Pujian singkat atas usaha yang terlihat",
+                "explanation": "Pujian yang spesifik dan tenang menandai perilaku yang ingin diulang tanpa membuat latihan terasa seperti ujian."
+              }
+            ]
+          }
+        },
+        {
+          "id": "l2-rutinitas",
+          "title": "Rutinitas singkat setiap hari",
+          "summary": "Lima menit setiap hari jauh lebih berguna daripada satu jam setiap minggu.",
+          "reading": "m1-rutinitas",
+          "slides": "m1-rutinitas-slides",
+          "video": {
+            "asset": "asset:footage-terakidz-intro",
+            "caption": "Contoh sesi lima menit bersama pendamping"
+          }
+        }
+      ]
+    },
+    {
+      "id": "m2-komunikasi",
+      "title": "Papan komunikasi",
+      "summary": "Cara memperkenalkan papan komunikasi AAC di rumah, dan bagaimana menghubungkannya dengan tujuan terapi yang sedang dijalankan bersama tenaga profesional anak.",
+      "lessons": [
+        {
+          "id": "l3-papan",
+          "title": "Memperkenalkan papan komunikasi",
+          "summary": "Mulai dari tiga gambar yang paling sering dipakai anak.",
+          "reading": "m2-papan",
+          "slides": "m2-papan-slides",
+          "quiz": {
+            "pass_score": 70,
+            "questions": [
+              {
+                "id": "q3-tiga-gambar",
+                "prompt": "Berapa banyak gambar yang disarankan pada papan komunikasi awal?",
+                "options": [
+                  "Tiga gambar yang paling sering dipakai",
+                  "Seluruh gambar yang tersedia",
+                  "Satu gambar saja"
+                ],
+                "answer": "Tiga gambar yang paling sering dipakai",
+                "explanation": "Papan yang terlalu penuh menyulitkan anak memilih. Tiga gambar membuat pilihan tetap jelas dan mudah diperluas kemudian."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "m3-kemandirian",
+      "title": "Kemandirian bertahap",
+      "summary": "Mengurangi bantuan sedikit demi sedikit, dan memakai cerita sosial untuk menyiapkan anak menghadapi situasi baru.",
+      "lessons": [
+        {
+          "id": "l4-cerita-sosial",
+          "title": "Cerita sosial untuk situasi baru",
+          "summary": "Empat kalimat sederhana: apa yang terjadi, apa yang dilakukan, apa setelahnya.",
+          "reading": "m3-cerita",
+          "slides": "m3-cerita-slides"
+        }
+      ]
+    }
+  ],
+  "variables": [
+    {
+      "key": "age_band",
+      "type": "enum",
+      "enum": [
+        "3-5",
+        "6-7",
+        "8-9"
+      ],
+      "required": true,
+      "default": "3-5",
+      "description": "Age band the examples are pitched at (a variant axis)."
+    },
+    {
+      "key": "companion",
+      "type": "string",
+      "required": false,
+      "default": "pendamping",
+      "description": "What the course calls the adult who runs the session (a variant axis)."
+    },
+    {
+      "key": "session_date",
+      "type": "date",
+      "required": false,
+      "default": "2026-09-27",
+      "description": "The date printed on the course cover; formatted for the render's locale."
+    }
+  ],
+  "assets": {
+    "fonts": {
+      "heading": "asset:font-nunito",
+      "body": "asset:font-nunito"
+    },
+    "images": {
+      "cover": "asset:image-terakidz-learning-hero"
+    },
+    "footage": {
+      "intro": "asset:footage-terakidz-intro"
+    }
+  },
+  "outputs": [
+    "html"
+  ],
+  "brand": {
+    "kits": [
+      "terakidz",
+      "terakon"
+    ]
+  },
+  "notes": "free-form"
+}

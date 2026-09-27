@@ -81,4 +81,28 @@ Owners: this repo holds the schemas; each service repo implements them.
   `template.v1` vocabulary **shared by reference as a pinned copy**:
   `test_the_block_vocabulary_is_f3s_pinned_copy` fails the moment the two contracts disagree.
   The one shipped book is `ebooks/terakidz-example/`.
+- `courses/course.v1.schema.json` is a factory course (Teracorp course factory, F5): a committed
+  `courses/<id>/course.yaml` plus the Markdown sources it names in `sources` (a source KEY →
+  file name map). **A source is Markdown, never a program** — the file names are pinned to
+  `.md`, exactly as `template.v1` pins its layout sidecar, so a `.py`/`.html` source is refused
+  by the contract before any consumer reads it. It pins the course metadata (`title`, `level`,
+  `locale` — the human label is `title`, not `name`, which the shared PII denylist refuses),
+  the SLIDES `renderer` (`html` always available, `typst` refuses by name when the package is
+  absent — there is **no Marp and no Node toolchain** behind either: a source is Markdown, `---`
+  separates slides, and the renderer builds every tag itself), the module → lesson tree (each
+  lesson names its `reading` and `slides` source keys, an optional `video` `asset:<key>`
+  reference — F6 owns production — and an optional `quiz`), a **closed quiz shape**
+  (`pass_score`, questions with `options`, an `answer` that must be one of them and a required
+  `explanation` — JSON Schema states the shape, the consumer's quiz check refuses an answer no
+  option carries, by name), typed `variables`, licensed `assets` (`fonts` required, `images`
+  and `footage` role maps, every value an `asset:<key>` reference so a raw URL is never a
+  course value), `outputs` (`html` always, `pdf` when the renderer produces it) and the
+  `brand.kits` a course is approved to render under. A source's prose is literal text or a
+  placeholder: `{{var.<key>}}`, `{{theme.<token>}}`, `{{option.<locale|palette|page_size>}}`,
+  `{{kit.<disclaimers|ai_disclosure>}}`, `{{course.<title|level|locale>}}` and
+  `{{lesson.<title|id|module>}}`. The one shipped course is `courses/terakidz-komunikasi-dasar/`;
+  `deploys/tests/test_contracts_courses.py` checks the schema AND the semantics it cannot
+  express (every placeholder resolves, every lesson's source keys are declared and on disk, every
+  quiz answer is one of its options, and every source stays inside the closed Markdown
+  vocabulary the renderer implements).
 - Tests: `uv run pytest deploys/tests -k contracts`.

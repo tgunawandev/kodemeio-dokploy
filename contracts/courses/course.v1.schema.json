@@ -1,0 +1,333 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kodeme.io/contracts/courses/course.v1.schema.json",
+  "title": "Course v1",
+  "description": "A factory course (Teracorp course factory, F5/CRS1, spec D2): one committed course.yaml plus the Markdown sources it names, both under courses/<id>/ in this repo. The schema defines WHAT a course is -- level, locale, the slide renderer, modules of lessons, the quiz shape, typed variables and licensed asset references -- never the prose itself: every lesson's reading and slides are separate, separately reviewed Markdown files, and no course value is ever free-form HTML or code. 🔴 A SOURCE IS MARKDOWN, NEVER A PROGRAM: the `sources` file names are pinned to `.md`, so a `.py` (or `.html`) source is refused by the contract before any consumer reads it -- the same law F3's template.v1 states for its layout sidecars. Every string a course contributes is one of (a) literal text, (b) a placeholder {{var.<key>}} naming a declared variable, or (c) a token the renderer supplies: {{theme.<token>}}, {{option.<locale|palette>}}, {{kit.<disclaimers|ai_disclosure>}}, {{course.<title|level|locale>}} and {{lesson.<title|module>}}. Fonts are declared under assets.fonts only, images under assets.images, footage under assets.footage, and every asset value is an `asset:<key>` reference resolved by the consumer's asset library -- a raw URL is never a course value, because the licence lives with the asset and never with the document. The human label is `title`, not `name`: `name` is refused by the shared PII property-name denylist (deploys/tests/contracts_lib.py PII_NAMES), which every schema in this repo is checked against. The schema is deliberately SELF-CONTAINED (no $ref, not even to its own branches) so contracts_lib's schema walkers keep working on it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "version",
+    "title",
+    "level",
+    "locale",
+    "kind",
+    "renderer",
+    "sources",
+    "modules",
+    "variables",
+    "assets",
+    "outputs",
+    "brand"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{1,63}$",
+      "description": "Kebab slug; also the directory name under courses/ and the import key."
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Monotonic per id: a consumer refuses a lower or equal version (drift refusal)."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human label. Deliberately not `name` (see the schema description)."
+    },
+    "level": {
+      "enum": [
+        "starter",
+        "core",
+        "advanced"
+      ],
+      "description": "The course's depth, as the catalogue shows it. A level is a label, not a gate."
+    },
+    "locale": {
+      "enum": [
+        "id_ID",
+        "en_US"
+      ],
+      "description": "The language the shipped sources are written in (a variant axis: a render may override it)."
+    },
+    "kind": {
+      "const": "course",
+      "description": "The artefact family. Pinned, like template.v1's `kind`: a future family (a workshop, a cohort pack) is a new contract, not a new value here."
+    },
+    "renderer": {
+      "enum": [
+        "html",
+        "typst"
+      ],
+      "description": "The SLIDES renderer. `html` is always available and produces a self-contained deck per lesson; `typst` produces PDF slides and REFUSES by name (`typst not installed`) on an instance whose image does not carry the package -- never a silent fallback to html, and never a partial deck. There is no Marp and no Node toolchain behind either: a source is Markdown and the renderer builds the markup itself."
+    },
+    "sources": {
+      "type": "object",
+      "minProperties": 1,
+      "description": "The Markdown files this course ships, as a map of source KEY (what a lesson names) to FILE NAME (relative to the course directory). A source is Markdown, never a program: the file name is pinned to `.md`, so `.py`, `.html`, `.json` and every other extension are refused by the contract, and no consumer is ever handed a file it might execute.",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]{1,31}$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9_./-]*\\.md$"
+      }
+    },
+    "modules": {
+      "type": "array",
+      "minItems": 1,
+      "description": "The course, in reading order.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "lessons"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{1,31}$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "summary": {
+            "type": "string",
+            "description": "One or two sentences, shown in the outline. Plain text."
+          },
+          "lessons": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "id",
+                "title",
+                "reading",
+                "slides"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]{1,31}$"
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "summary": {
+                  "type": "string"
+                },
+                "reading": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]{1,31}$",
+                  "description": "The source KEY (not the file name) of the lesson's Markdown reading. Every key named here must exist in `sources`; the schema cannot express cross-key references, so the consumer's importer and this repo's contract test both refuse a key that is not declared."
+                },
+                "slides": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9-]{1,31}$",
+                  "description": "The source KEY of the lesson's Markdown slides (`---` separates one slide from the next)."
+                },
+                "video": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "asset"
+                  ],
+                  "description": "An optional video for the lesson. Video production is F6: today a lesson that names one is refused by name unless the referenced footage asset exists in the library, is verified, commercial and unexpired -- which is the honest state, never a silently dropped lesson.",
+                  "properties": {
+                    "asset": {
+                      "type": "string",
+                      "pattern": "^asset:[a-z0-9-]+$"
+                    },
+                    "caption": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "quiz": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "pass_score",
+                    "questions"
+                  ],
+                  "description": "The lesson's quiz, as DATA. There is no interactive player in this slice: the quiz is rendered with the course and its shape is enforced before release (`answer` must be one of `options`, and every question carries an explanation).",
+                  "properties": {
+                    "pass_score": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 100
+                    },
+                    "questions": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "id",
+                          "prompt",
+                          "options",
+                          "answer",
+                          "explanation"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9-]{0,31}$"
+                          },
+                          "prompt": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "options": {
+                            "type": "array",
+                            "minItems": 2,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "answer": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "The correct option, verbatim one of `options`. The schema cannot express membership, so the consumer's quiz-shape check refuses an answer no option carries, BY NAME."
+                          },
+                          "explanation": {
+                            "type": "string",
+                            "minLength": 1,
+                            "description": "Why the answer is right. Required: a quiz without an explanation teaches nothing, and the check refuses it by name."
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "variables": {
+      "type": "array",
+      "description": "Typed values a render supplies (the only free-text surface a course has). A variable a source names but does not declare is refused by name; a value carrying personal data is refused by the consumer's `course_variables` check.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "type"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{1,31}$"
+          },
+          "type": {
+            "enum": [
+              "string",
+              "int",
+              "date",
+              "enum"
+            ]
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "default": {},
+          "enum": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            },
+            "description": "The allowed values of an `enum` variable. Required when `type` is `enum` (the consumer refuses an enum with no values)."
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "assets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fonts"
+      ],
+      "description": "The licensed assets the course names, by role. Every value is an `asset:<key>` reference into the consumer's `factory.asset` library -- a raw URL is never a course value.",
+      "properties": {
+        "fonts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "heading",
+            "body"
+          ],
+          "properties": {
+            "heading": {
+              "type": "string",
+              "pattern": "^asset:[a-z0-9-]+$"
+            },
+            "body": {
+              "type": "string",
+              "pattern": "^asset:[a-z0-9-]+$"
+            }
+          }
+        },
+        "images": {
+          "type": "object",
+          "description": "Image roles the course places (a cover, a diagram). The role name is free-form, the value is not.",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^asset:[a-z0-9-]+$"
+          }
+        },
+        "footage": {
+          "type": "object",
+          "description": "Video roles a lesson's `video.asset` may name (F6 owns production; the reference is what this contract carries).",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^asset:[a-z0-9-]+$"
+          }
+        }
+      }
+    },
+    "outputs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "enum": [
+          "html",
+          "pdf"
+        ]
+      },
+      "description": "The formats the released course carries. `html` always ships (the pack and every deck), `pdf` is declared when the renderer produces it, so a consumer never promises a format it cannot render."
+    },
+    "brand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kits"
+      ],
+      "properties": {
+        "kits": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{1,63}$"
+          },
+          "description": "The brand kit codes this course is approved to render under: the kit supplies the palette, the fonts and the mandatory disclaimers. A kit not listed here refuses the render by name."
+        }
+      }
+    }
+  }
+}
