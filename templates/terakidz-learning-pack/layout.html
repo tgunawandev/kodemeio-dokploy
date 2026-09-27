@@ -7,19 +7,18 @@
   Every {{...}} placeholder is one of the five namespaces template.v1 defines; a placeholder
   the renderer cannot supply refuses the import, so a typo can never reach a released PDF.
 
-  Styling notes: wkhtmltopdf is the fleet's PDF engine (WebKit) -- no flexbox, no CSS grid,
-  page geometry through @page plus the kit's own tokens. Colours, radius and font families all
-  come from {{theme.*}}, which the consumer resolves from the kit's verified font assets.
+  Styling notes: wkhtmltopdf is the fleet's PDF engine (WebKit) -- no flexbox, no CSS grid.
+  Page geometry is deliberately NOT declared here: the engine ignores the CSS `@page { size }`
+  property, so the page box comes from the render options (template.v1 `page`, overridden by
+  `options.page_size`/`options.orientation`, passed to the engine as --page-size/--orientation/
+  --margin-*). Colours, radius and font families all come from {{theme.*}}, which the consumer
+  resolves from the kit's verified font assets.
 -->
 <html lang="{{option.locale}}">
 <head>
   <meta charset="utf-8"/>
   <title>{{var.pack_title}}</title>
   <style>
-    @page {
-      size: {{page.size}} {{page.orientation}};
-      margin: {{page.margin_top}}mm {{page.margin_right}}mm {{page.margin_bottom}}mm {{page.margin_left}}mm;
-    }
     html, body { margin: 0; padding: 0; }
     body {
       font-family: "{{theme.font_body}}", sans-serif;
