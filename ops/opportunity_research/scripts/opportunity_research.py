@@ -215,13 +215,13 @@ def evaluate(payload: Any) -> dict[str, Any]:
     if issues:
         return _report(issues)
 
-    reviews = [item["owner_review"]["status"] for item in payload["opportunities"]]
-    manual_review_required = any(status == "pending" for status in reviews)
     return {
         "status": "candidate-unverified",
         "issues": [],
         "source_assertions_verified": False,
-        "manual_review_required": manual_review_required,
+        # owner_review is caller-supplied metadata, not an authenticated attestation.
+        "manual_review_required": True,
+        "owner_review_authenticated": False,
         "external_access": False,
     }
 

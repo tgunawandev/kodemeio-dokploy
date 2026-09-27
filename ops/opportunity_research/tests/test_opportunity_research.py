@@ -34,6 +34,7 @@ def test_strict_contract_accepts_synthetic_claim_with_explicit_unverified_review
         "issues": [],
         "source_assertions_verified": False,
         "manual_review_required": True,
+        "owner_review_authenticated": False,
         "external_access": False,
     }
 
@@ -42,6 +43,12 @@ def test_claim_hash_must_bind_exact_captured_text() -> None:
     document = payload()
     document["opportunities"][0]["claim"]["sha256"] = "0" * 64
     assert "opportunities[0].claim:hash_mismatch" in evaluate(document)["issues"]
+
+
+def test_captured_evidence_hash_must_bind_exact_claim_text() -> None:
+    document = payload()
+    document["evidence"][0]["captured_claim"] += " changed"
+    assert "evidence[0].captured_claim:hash_mismatch" in evaluate(document)["issues"]
 
 
 def test_every_claim_must_bind_existing_evidence() -> None:
@@ -104,7 +111,29 @@ def test_owner_review_never_verifies_source_assertions() -> None:
     report = evaluate(document)
     assert report["status"] == "candidate-unverified"
     assert report["source_assertions_verified"] is False
-    assert report["manual_review_required"] is False
+    assert report["manual_review_required"] is True
+    assert report["owner_review_authenticated"] is False
+
+
+@pytest.mark.parametrize(
+    "review_status,reviewed_on,expected_issue",
+    [
+        ("pending", "2026-09-28", "opportunities[0].owner_review:pending_has_review_date"),
+        ("reviewed_unverified", None, "opportunities[0].owner_review:review_date_required"),
+        ("rejected", None, "opportunities[0].owner_review:review_date_required"),
+        ("reviewed_unverified", "2026-09-29", "opportunities[0].owner_review:after_as_of_date"),
+    ],
+)
+def test_owner_review_date_invariants(review_status, reviewed_on, expected_issue):
+    document = payload()
+    review = document["opportunities"][0]["owner_review"]
+    review.update(status=review_status, reviewed_on=reviewed_on)
+    document["opportunities"][0]["status"] = {
+        "pending": "unreviewed",
+        "reviewed_unverified": "reviewed_unverified",
+        "rejected": "rejected",
+    }[review_status]
+    assert expected_issue in evaluate(document)["issues"]
 
 
 def test_candidate_state_must_match_manual_review_state() -> None:
