@@ -47,9 +47,9 @@ def _parse_date(value: Any, where: str) -> date:
     return parsed
 
 
-def _int(value: Any, where: str, *, minimum: int) -> int:
-    if type(value) is not int or value < minimum:
-        raise InputError(f"{where} must be an integer >= {minimum}")
+def _int(value: Any, where: str, *, minimum: int, maximum: int = 1_000_000_000) -> int:
+    if type(value) is not int or value < minimum or value > maximum:
+        raise InputError(f"{where} must be an integer between {minimum} and {maximum}")
     return value
 
 
@@ -80,7 +80,8 @@ def _load_policy(path: Path = _POLICY) -> dict[str, Any]:
     try:
         import yaml
 
-        raw = path.read_bytes()
+        with path.open("rb") as stream:
+            raw = stream.read(65_537)
         if len(raw) > 65_536:
             raise InputError("approval policy exceeds 65536 bytes")
     except OSError as exc:
@@ -212,7 +213,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("evidence", type=Path, help="explicit local JSON evidence package")
     args = parser.parse_args(argv)
     try:
-        raw = args.evidence.read_bytes()
+        with args.evidence.open("rb") as stream:
+            raw = stream.read(_MAX_INPUT_BYTES + 1)
         if len(raw) > _MAX_INPUT_BYTES:
             raise InputError(f"evidence input exceeds {_MAX_INPUT_BYTES} bytes")
         evidence = json.loads(raw.decode("utf-8"), object_pairs_hook=_reject_duplicate_keys)
