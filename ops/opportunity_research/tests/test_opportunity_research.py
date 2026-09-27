@@ -143,6 +143,19 @@ def test_duplicate_json_keys_and_oversized_inputs_are_refused(tmp_path: Path) ->
         load_document(too_large)
 
 
+def test_deep_json_is_refused_but_brackets_in_strings_are_ordinary_text(
+    tmp_path: Path,
+) -> None:
+    too_deep = tmp_path / "too-deep.json"
+    too_deep.write_text("[" * 33 + "0" + "]" * 33, encoding="utf-8")
+    with pytest.raises(InputError, match="input_too_deep"):
+        load_document(too_deep)
+
+    quoted = tmp_path / "quoted-brackets.json"
+    quoted.write_text('{"text":"' + "[" * 64 + '"}', encoding="utf-8")
+    assert load_document(quoted) == {"text": "[" * 64}
+
+
 def test_cli_is_deterministic_and_never_marks_assertions_verified() -> None:
     command = [sys.executable, str(SCRIPT), "validate", str(EXAMPLE_PATH)]
     first = subprocess.run(command, check=False, capture_output=True, text=True)

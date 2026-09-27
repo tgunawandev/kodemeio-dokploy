@@ -17,6 +17,7 @@ from jsonschema import Draft202012Validator, FormatChecker
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_PATH = ROOT / "contracts" / "opportunity_research.v1.schema.json"
 MAX_INPUT_BYTES = 262_144
+MAX_JSON_DEPTH = 32
 EMAIL_RE = re.compile(r"\b[^\s@]+@[^\s@]+\.[^\s@]+\b", re.IGNORECASE)
 URL_RE = re.compile(r"(?:https?://|www\.)", re.IGNORECASE)
 PHONE_RE = re.compile(r"(?<![A-Za-z0-9])\+?\d[\d ()-]{6,}\d(?![A-Za-z0-9])")
@@ -48,10 +49,30 @@ def load_document(path: Path) -> Any:
         raw = path.read_bytes()
         if len(raw) > MAX_INPUT_BYTES:
             raise InputError("input_too_large")
-        return json.loads(raw.decode("utf-8"), object_pairs_hook=_unique_object)
+        text = raw.decode("utf-8")
+        depth = 0
+        in_string = False
+        escaped = False
+        for char in text:
+            if in_string:
+                if escaped:
+                    escaped = False
+                elif char == "\\":
+                    escaped = True
+                elif char == '"':
+                    in_string = False
+            elif char == '"':
+                in_string = True
+            elif char in "[{":
+                depth += 1
+                if depth > MAX_JSON_DEPTH:
+                    raise InputError("input_too_deep")
+            elif char in "]}":
+                depth -= 1
+        return json.loads(text, object_pairs_hook=_unique_object)
     except InputError:
         raise
-    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+    except (OSError, UnicodeError, json.JSONDecodeError, RecursionError) as exc:
         raise InputError("input_unreadable_or_invalid_json") from exc
 
 
