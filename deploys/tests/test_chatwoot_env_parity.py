@@ -122,9 +122,13 @@ def order_violations(dokploy_text: str, chatwoot_text: str) -> list[str]:
     chatwoot = env_keys(chatwoot_text)
     if set(dokploy) != set(chatwoot):
         return []  # the set check already reports this; don't pile on
+    if len(dokploy) != len(chatwoot):
+        # Same key set, different number of assignments: one file assigns a
+        # name twice (the duplicate check's own case, reported there too).
+        return [f"different assignment counts: dokploy {len(dokploy)}, chatwoot {len(chatwoot)}"]
     return [
         f"position {index}: dokploy {found!r} vs chatwoot {expected!r}"
-        for index, (found, expected) in enumerate(zip(dokploy, chatwoot))
+        for index, (found, expected) in enumerate(zip(dokploy, chatwoot, strict=True))
         if found != expected
     ]
 
