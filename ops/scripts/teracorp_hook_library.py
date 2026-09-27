@@ -5,7 +5,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+import stat
 import sys
 from datetime import date
 from decimal import Decimal, InvalidOperation
@@ -18,6 +20,7 @@ HOOK_TYPES = {"problem", "benefit", "curiosity", "social_proof", "offer", "story
 EVIDENCE_KINDS = {"performance_source", "threshold_approval", "founder_approval"}
 MAX_INPUT_BYTES = 2_000_000
 MAX_JSON_DEPTH = 64
+MAX_JSON_INTEGER_DIGITS = 20
 MAX_HOOKS = 200
 MAX_EVIDENCE = 4_000
 MAX_WINDOWS = 2_000
@@ -31,6 +34,16 @@ _RATE = re.compile(r"^(?:0(?:\.[0-9]{1,6})?|1(?:\.0{1,6})?)$")
 
 class InputError(ValueError):
     """Input is invalid or cannot safely support the supplied explicit record."""
+
+
+def _bounded_json_integer(token: str) -> int:
+    digits = token[1:] if token.startswith("-") else token
+    if len(digits) > MAX_JSON_INTEGER_DIGITS:
+        raise InputError("JSON integer exceeds supported bounds")
+    try:
+        return int(token)
+    except ValueError as exc:
+        raise InputError("JSON integer exceeds supported bounds") from exc
 
 
 def _obj(value: Any, where: str, keys: set[str]) -> dict[str, Any]:
@@ -417,9 +430,22 @@ def validate_library(payload: Any) -> dict[str, Any]:
 
 def _load_input(path: Path) -> Any:
     try:
-        data = path.read_bytes()
+        flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+        fd = os.open(path, flags)
+        try:
+            if not stat.S_ISREG(os.fstat(fd).st_mode):
+                raise InputError("input must be a regular file")
+            chunks = bytearray()
+            while len(chunks) <= MAX_INPUT_BYTES:
+                block = os.read(fd, min(65_536, MAX_INPUT_BYTES + 1 - len(chunks)))
+                if not block:
+                    break
+                chunks.extend(block)
+        finally:
+            os.close(fd)
     except OSError as exc:
         raise InputError("cannot read input file") from exc
+    data = bytes(chunks)
     if len(data) > MAX_INPUT_BYTES:
         raise InputError("input exceeds the 2000000-byte limit")
 
@@ -456,8 +482,10 @@ def _load_input(path: Path) -> Any:
         return result
 
     try:
-        return json.loads(text, object_pairs_hook=unique_object)
-    except (json.JSONDecodeError, RecursionError) as exc:
+        return json.loads(text, object_pairs_hook=unique_object, parse_int=_bounded_json_integer)
+    except InputError:
+        raise
+    except (json.JSONDecodeError, RecursionError, ValueError) as exc:
         raise InputError("input must be UTF-8 JSON") from exc
 
 

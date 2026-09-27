@@ -6,7 +6,9 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
+import stat
 import sys
 from datetime import date
 from pathlib import Path
@@ -18,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_PATH = ROOT / "contracts" / "opportunity_research.v1.schema.json"
 MAX_INPUT_BYTES = 262_144
 MAX_JSON_DEPTH = 32
+MAX_JSON_INTEGER_DIGITS = 20
 EMAIL_RE = re.compile(r"\b[^\s@]+@[^\s@]+\.[^\s@]+\b", re.IGNORECASE)
 URL_RE = re.compile(r"(?:https?://|www\.)", re.IGNORECASE)
 PHONE_RE = re.compile(r"(?<![A-Za-z0-9])\+?\d[\d ()-]{6,}\d(?![A-Za-z0-9])")
@@ -42,11 +45,32 @@ def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
+def _bounded_json_integer(token: str) -> int:
+    digits = token[1:] if token.startswith("-") else token
+    if len(digits) > MAX_JSON_INTEGER_DIGITS:
+        raise InputError("json_integer_out_of_range")
+    try:
+        return int(token)
+    except ValueError as exc:
+        raise InputError("json_integer_out_of_range") from exc
+
+
 def load_document(path: Path) -> Any:
     try:
-        if path.stat().st_size > MAX_INPUT_BYTES:
-            raise InputError("input_too_large")
-        raw = path.read_bytes()
+        flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+        fd = os.open(path, flags)
+        try:
+            if not stat.S_ISREG(os.fstat(fd).st_mode):
+                raise InputError("input_not_regular")
+            chunks = bytearray()
+            while len(chunks) <= MAX_INPUT_BYTES:
+                block = os.read(fd, min(65_536, MAX_INPUT_BYTES + 1 - len(chunks)))
+                if not block:
+                    break
+                chunks.extend(block)
+        finally:
+            os.close(fd)
+        raw = bytes(chunks)
         if len(raw) > MAX_INPUT_BYTES:
             raise InputError("input_too_large")
         text = raw.decode("utf-8")
@@ -69,10 +93,10 @@ def load_document(path: Path) -> Any:
                     raise InputError("input_too_deep")
             elif char in "]}":
                 depth -= 1
-        return json.loads(text, object_pairs_hook=_unique_object)
+        return json.loads(text, object_pairs_hook=_unique_object, parse_int=_bounded_json_integer)
     except InputError:
         raise
-    except (OSError, UnicodeError, json.JSONDecodeError, RecursionError) as exc:
+    except (OSError, UnicodeError, json.JSONDecodeError, RecursionError, ValueError) as exc:
         raise InputError("input_unreadable_or_invalid_json") from exc
 
 

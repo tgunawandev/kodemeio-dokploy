@@ -15,6 +15,7 @@ EXAMPLE_PATH = ROOT / "examples" / "opportunity_research.synthetic.v1.json"
 SCRIPT = ROOT / "scripts" / "opportunity_research.py"
 
 sys.path.insert(0, str(ROOT / "scripts"))
+import opportunity_research as research  # noqa: E402
 from opportunity_research import InputError, claim_sha256, evaluate, load_document  # noqa: E402
 
 
@@ -116,6 +117,26 @@ def test_owner_review_never_verifies_source_assertions() -> None:
 
 
 @pytest.mark.parametrize(
+    ("review_status", "candidate_status", "reviewed_on"),
+    [
+        ("pending", "unreviewed", None),
+        ("reviewed_unverified", "reviewed_unverified", "2026-09-28"),
+        ("rejected", "rejected", "2026-09-28"),
+    ],
+)
+def test_every_unauthenticated_owner_review_state_keeps_manual_review_required(
+    review_status: str, candidate_status: str, reviewed_on: str | None
+) -> None:
+    document = payload()
+    document["opportunities"][0]["owner_review"].update(status=review_status, reviewed_on=reviewed_on)
+    document["opportunities"][0]["status"] = candidate_status
+    report = evaluate(document)
+    assert report["manual_review_required"] is True
+    assert report["owner_review_authenticated"] is False
+    assert report["source_assertions_verified"] is False
+
+
+@pytest.mark.parametrize(
     "review_status,reviewed_on,expected_issue",
     [
         ("pending", "2026-09-28", "opportunities[0].owner_review:pending_has_review_date"),
@@ -170,6 +191,39 @@ def test_duplicate_json_keys_and_oversized_inputs_are_refused(tmp_path: Path) ->
     too_large.write_bytes(b" " * 262145)
     with pytest.raises(InputError, match="input_too_large"):
         load_document(too_large)
+
+
+def test_loader_is_bounded_and_huge_integer_cli_is_sanitized(tmp_path: Path, monkeypatch) -> None:
+    too_large = tmp_path / "too-large-bounded.json"
+    too_large.write_bytes(b" " * (research.MAX_INPUT_BYTES + 100))
+    original_read = research.os.read
+    read_sizes = []
+
+    def observed_read(fd, size):
+        read_sizes.append(size)
+        return original_read(fd, size)
+
+    monkeypatch.setattr(research.os, "read", observed_read)
+    with pytest.raises(InputError, match="input_too_large"):
+        load_document(too_large)
+    assert sum(read_sizes) == research.MAX_INPUT_BYTES + 1
+    monkeypatch.undo()
+    zero = Path("/dev/zero")
+    if zero.exists():
+        with pytest.raises(InputError, match="input_not_regular"):
+            load_document(zero)
+
+    huge_integer = tmp_path / "huge-integer.json"
+    huge_integer.write_text('{"schema_version":' + "9" * 5000 + "}", encoding="utf-8")
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT), "validate", str(huge_integer)],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 1
+    assert "Traceback" not in result.stderr
+    assert json.loads(result.stdout)["status"] == "blocked"
 
 
 def test_deep_json_is_refused_but_brackets_in_strings_are_ordinary_text(

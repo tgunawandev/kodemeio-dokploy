@@ -7,6 +7,8 @@ import argparse
 import hashlib
 import ipaddress
 import json
+import os
+import stat
 import sys
 from contextlib import suppress
 from datetime import date, datetime
@@ -72,14 +74,27 @@ def _validate_json_depth(text: str) -> None:
 
 def load_document(path: Path) -> Any:
     try:
-        if path.stat().st_size > MAX_INPUT_BYTES:
+        flags = os.O_RDONLY | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+        fd = os.open(path, flags)
+        try:
+            if not stat.S_ISREG(os.fstat(fd).st_mode):
+                raise InputError("input_not_regular")
+            chunks = bytearray()
+            while len(chunks) <= MAX_INPUT_BYTES:
+                block = os.read(fd, min(65_536, MAX_INPUT_BYTES + 1 - len(chunks)))
+                if not block:
+                    break
+                chunks.extend(block)
+        finally:
+            os.close(fd)
+        if len(chunks) > MAX_INPUT_BYTES:
             raise InputError("input_too_large")
-        text = path.read_text(encoding="utf-8")
+        text = chunks.decode("utf-8")
         _validate_json_depth(text)
         return json.loads(text, object_pairs_hook=_unique_object, parse_int=_bounded_json_integer)
     except InputError:
         raise
-    except (OSError, UnicodeError, json.JSONDecodeError, RecursionError) as exc:
+    except (OSError, UnicodeError, json.JSONDecodeError, RecursionError, ValueError) as exc:
         raise InputError("input_unreadable_or_invalid_json") from exc
 
 

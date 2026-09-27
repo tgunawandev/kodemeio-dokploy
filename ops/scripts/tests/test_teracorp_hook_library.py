@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -9,6 +10,7 @@ import pytest
 from jsonschema.validators import Draft202012Validator
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import teracorp_hook_library as hooks  # noqa: E402
 from teracorp_hook_library import InputError, _load_input, validate_library  # noqa: E402
 
 
@@ -125,10 +127,24 @@ def test_published_json_schemas_are_valid_and_synthetic_example_is_labelled():
         schema = json.loads((repo / "ops/contracts" / name).read_text())
         Draft202012Validator.check_schema(schema)
     example = json.loads((repo / "ops/examples/teracorp_hook_library.synthetic.v1.json").read_text())
+    Draft202012Validator(
+        json.loads((repo / "ops/contracts/teracorp_hook_library.v1.schema.json").read_text())
+    ).validate(example)
     result = validate_library(example)
     assert result["performance_windows"][0]["provenance"] == "synthetic"
     assert result["performance_windows"][0]["outcome_classification"] == "synthetic_sample_not_real_outcome"
     assert result["retirement_decisions"] == []
+
+
+def test_schema_and_runtime_both_reject_unverified_evidence():
+    repo = Path(__file__).resolve().parents[3]
+    schema = json.loads((repo / "ops/contracts/teracorp_hook_library.v1.schema.json").read_text())
+    validator = Draft202012Validator(schema)
+    payload = base_payload()
+    payload["evidence_refs"][0]["verification_status"] = "unverified"
+    assert list(validator.iter_errors(payload))
+    with pytest.raises(InputError, match="unverified evidence"):
+        validate_library(payload)
 
 
 def test_fresh_verified_aggregate_windows_validate_and_are_non_customer_data():
@@ -382,3 +398,33 @@ def test_cli_json_parser_normalizes_excessive_nesting(tmp_path):
     path.write_text("[" * 65 + "0" + "]" * 65, encoding="utf-8")
     with pytest.raises(InputError, match="64-level JSON nesting"):
         _load_input(path)
+
+
+def test_cli_reads_are_bounded_and_huge_integer_is_sanitized(tmp_path, monkeypatch):
+    oversized = tmp_path / "large.json"
+    oversized.write_bytes(b" " * (hooks.MAX_INPUT_BYTES + 100))
+    original_read = hooks.os.read
+    read_sizes = []
+
+    def observed_read(fd, size):
+        read_sizes.append(size)
+        return original_read(fd, size)
+
+    monkeypatch.setattr(hooks.os, "read", observed_read)
+    with pytest.raises(InputError, match="2000000-byte limit"):
+        _load_input(oversized)
+    assert sum(read_sizes) == hooks.MAX_INPUT_BYTES + 1
+    monkeypatch.undo()
+
+    huge_integer = tmp_path / "huge-integer.json"
+    huge_integer.write_text('{"schema_version":' + "9" * 5000 + "}", encoding="utf-8")
+    script = Path(__file__).resolve().parents[1] / "teracorp_hook_library.py"
+    result = subprocess.run(
+        [sys.executable, str(script), "--input", str(huge_integer)],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 2
+    assert "Traceback" not in result.stderr
+    assert "JSON integer exceeds supported bounds" in result.stderr

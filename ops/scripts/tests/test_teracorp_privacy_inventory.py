@@ -69,7 +69,7 @@ def test_unknown_or_asserted_states_are_not_promoted_to_complete() -> None:
     report = validate(data, AS_OF)
     assert report["unresolved_count"] >= 6
     assert report["verified"] is False and report["deletion_verified"] is False
-    assert "synthetic-product:inventory_status:unknown" in report["unresolved"]
+    assert "products[0]:inventory_status:unknown" in report["unresolved"]
 
 
 def test_none_declared_processor_inventory_is_distinct_and_unverified() -> None:
@@ -78,6 +78,24 @@ def test_none_declared_processor_inventory_is_distinct_and_unverified() -> None:
     data["products"][0].update(inventory_status="unknown", data_flows=[])
     report = validate(data, AS_OF)
     assert "processor_inventory_status:none_declared_unverified" in report["unresolved"]
+
+
+def test_linked_evidence_count_includes_processor_product_and_flow_claims() -> None:
+    data = payload()
+    report = validate(data, AS_OF)
+    expected = sum(len(processor["evidence_refs"]) for processor in data["processors"])
+    expected += sum(
+        len(product[field])
+        for product in data["products"]
+        for field in (
+            "consent_evidence_refs",
+            "retention_evidence_refs",
+            "deletion_evidence_refs",
+            "pia_evidence_refs",
+        )
+    )
+    expected += sum(len(flow["evidence_refs"]) for product in data["products"] for flow in product["data_flows"])
+    assert report["linked_evidence_reference_count"] == expected
 
 
 def test_identified_processor_requires_source_reference() -> None:
@@ -118,7 +136,7 @@ def test_failed_deletion_test_is_reported_and_evidence_cannot_predate_test() -> 
     data = payload()
     data["products"][0]["deletion_test_status"] = "failed"
     report = validate(data, AS_OF)
-    assert "synthetic-product:deletion_test_status:failed" in report["unresolved"]
+    assert "products[0]:deletion_test_status:failed" in report["unresolved"]
     data["evidence_refs"][4]["observed_on"] = "2026-09-23"
     with pytest.raises(InputError, match="predates"):
         validate(data, AS_OF)
@@ -132,6 +150,32 @@ def test_bad_shapes_never_crash_or_echo_untrusted_values() -> None:
     malformed = {"private-canary": "bad"}
     with pytest.raises(InputError):
         validate(malformed, AS_OF)
+
+
+def test_report_never_echoes_name_like_product_or_processor_identifiers() -> None:
+    data = payload()
+    marker = "person-jane-doe-private"
+    data["products"][0]["product_id"] = marker
+    for evidence in data["evidence_refs"]:
+        if evidence["product_id"] == "synthetic-product":
+            evidence["product_id"] = marker
+    for purpose in data["purpose_registry"]:
+        if purpose["product_id"] == "synthetic-product":
+            purpose["product_id"] = marker
+    data["products"][0]["inventory_status"] = "unknown"
+    data["processor_inventory_status"] = "unknown"
+    old_processor_id = data["processors"][0]["processor_id"]
+    data["processors"][0]["processor_id"] = marker
+    for product in data["products"]:
+        for flow in product["data_flows"]:
+            if flow["processor_id"] == old_processor_id:
+                flow["processor_id"] = marker
+    data["processors"][1]["inventory_status"] = "unknown"
+
+    report = validate(data, AS_OF)
+
+    assert "unknown" in json.dumps(report)
+    assert marker not in json.dumps(report)
 
 
 def test_cli_duplicate_keys_oversize_and_invalid_utf8_fail_closed(tmp_path: Path) -> None:
@@ -158,6 +202,20 @@ def test_cli_json_depth_is_bounded_but_string_brackets_are_ignored(tmp_path: Pat
     quoted = tmp_path / "quoted.json"
     quoted.write_text('{"note":"escaped \\" [ ] { } ' + "[" * 64 + '"}', encoding="utf-8")
     assert load(quoted) == {"note": 'escaped " [ ] { } ' + "[" * 64}
+
+
+def test_huge_json_integer_cli_refuses_without_traceback(tmp_path: Path) -> None:
+    document = tmp_path / "huge-integer.json"
+    document.write_text('{"schema_version":' + "9" * 5000 + "}", encoding="utf-8")
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "ops/scripts/teracorp_privacy_inventory.py"), "--as-of", AS_OF, str(document)],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 1
+    assert "Traceback" not in result.stderr
+    assert json.loads(result.stdout)["error"] == "json_integer_out_of_range"
 
 
 def test_purpose_registry_rejects_cross_product_and_dangling_product_references() -> None:

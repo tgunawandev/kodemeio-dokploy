@@ -16,6 +16,7 @@ from typing import Any
 
 MAX_INPUT_BYTES = 262_144
 MAX_JSON_DEPTH = 64
+MAX_JSON_INTEGER_DIGITS = 20
 TOPICS = (
     "pdp_data_protection",
     "ojk_regulatory_boundary",
@@ -38,6 +39,16 @@ def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
             raise InputError("duplicate_json_key")
         result[key] = value
     return result
+
+
+def _bounded_json_integer(token: str) -> int:
+    digits = token[1:] if token.startswith("-") else token
+    if len(digits) > MAX_JSON_INTEGER_DIGITS:
+        raise InputError("json_integer_out_of_range")
+    try:
+        return int(token)
+    except ValueError as exc:
+        raise InputError("json_integer_out_of_range") from exc
 
 
 def _reject_constant(_: str) -> None:
@@ -274,6 +285,7 @@ def load_document(path: Path) -> Any:
             text,
             object_pairs_hook=_unique_object,
             parse_constant=_reject_constant,
+            parse_int=_bounded_json_integer,
         )
     except InputError:
         raise

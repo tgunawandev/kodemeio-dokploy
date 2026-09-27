@@ -237,6 +237,21 @@ def test_cli_requires_explicit_as_of_and_reports_only_unverified_inventory_state
     assert "compliant" not in result.stdout.lower()
 
 
+def test_huge_json_integer_cli_refuses_without_traceback(tmp_path: Path) -> None:
+    document = tmp_path / "huge-integer.json"
+    document.write_text('{"schema_version":' + "9" * 5000 + "}", encoding="utf-8")
+    script = Path(__file__).resolve().parents[1] / "teracorp_g6_monthly_evidence.py"
+    result = subprocess.run(
+        [sys.executable, str(script), "--as-of", AS_OF, str(document)],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 1
+    assert "Traceback" not in result.stderr
+    assert json.loads(result.stdout)["issues"] == ["input:json_integer_out_of_range"]
+
+
 def test_unresolved_processor_inventory_is_not_treated_as_no_processors() -> None:
     payload = valid_payload()
     payload["change_inventory"]["processor_inventory_status"] = "unknown"

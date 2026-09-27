@@ -13,6 +13,7 @@ from typing import Any
 
 MAX_BYTES = 1_000_000
 MAX_JSON_DEPTH = 32
+MAX_JSON_INTEGER_DIGITS = 20
 ID = re.compile(r"^[a-z][a-z0-9_-]{0,63}$")
 SHA256 = re.compile(r"^[a-f0-9]{64}$")
 CATEGORIES = {
@@ -35,6 +36,16 @@ def _object(value: Any, where: str, keys: set[str]) -> dict[str, Any]:
     if type(value) is not dict or set(value) != keys:
         raise InputError(f"{where} has an invalid object shape")
     return value
+
+
+def _bounded_json_integer(token: str) -> int:
+    digits = token[1:] if token.startswith("-") else token
+    if len(digits) > MAX_JSON_INTEGER_DIGITS:
+        raise InputError("json_integer_out_of_range")
+    try:
+        return int(token)
+    except ValueError as exc:
+        raise InputError("json_integer_out_of_range") from exc
 
 
 def _id(value: Any, where: str) -> str:
@@ -100,6 +111,7 @@ def validate(payload: Any, as_of: str) -> dict[str, Any]:
     processors: dict[str, str] = {}
     evidence: dict[str, date] = {}
     evidence_product_scope: dict[str, str | None] = {}
+    linked_refs = 0
     for index, raw in enumerate(processors_in):
         where = f"processors[{index}]"
         item = _object(raw, where, {"processor_id", "inventory_status", "evidence_refs"})
@@ -136,6 +148,7 @@ def validate(payload: Any, as_of: str) -> dict[str, Any]:
         evidence_product_scope[key] = scope_product
     for index, item in enumerate(processors_in):
         refs = set(item["evidence_refs"])
+        linked_refs += len(refs)
         if not refs <= evidence.keys():
             raise InputError(f"processors[{index}] references missing evidence")
         if any(evidence_product_scope[ref] is not None for ref in refs):
@@ -155,7 +168,6 @@ def validate(payload: Any, as_of: str) -> dict[str, Any]:
     product_ids: set[str] = set()
     flow_ids: set[str] = set()
     unresolved: set[str] = set()
-    linked_refs = 0
     for index, raw in enumerate(products_in):
         where = f"products[{index}]"
         keys = {
@@ -188,7 +200,7 @@ def validate(payload: Any, as_of: str) -> dict[str, Any]:
             if not isinstance(item[field], str) or item[field] not in options:
                 raise InputError(f"{where}.{field} is invalid")
             if item[field] in {"unknown", "unresolved", "pending", "failed", "not_run"}:
-                unresolved.add(f"{product_id}:{field}:{item[field]}")
+                unresolved.add(f"products[{index}]:{field}:{item[field]}")
         refs_by_field = {
             "consent_evidence_refs": item["consent_evidence_refs"],
             "retention_evidence_refs": item["retention_evidence_refs"],
@@ -241,7 +253,7 @@ def validate(payload: Any, as_of: str) -> dict[str, Any]:
             if processor_id not in processors:
                 raise InputError(f"{flow_where} references an unknown processor")
             if processors[processor_id] == "unknown":
-                unresolved.add(f"{product_id}:processor:{processor_id}:unknown")
+                unresolved.add(f"{flow_where}:processor:unknown")
             purpose_id = _id(flow["purpose_id"], f"{flow_where}.purpose_id")
             if purpose_id not in purposes_by_product.get(product_id, set()):
                 raise InputError(f"{flow_where} references an unknown or cross-product purpose")
@@ -262,11 +274,11 @@ def validate(payload: Any, as_of: str) -> dict[str, Any]:
             if any(evidence_product_scope[ref] != product_id for ref in refs):
                 raise InputError(f"{flow_where}.evidence_refs references evidence outside this product scope")
         if item["inventory_status"] == "unknown":
-            unresolved.add(f"{product_id}:inventory_status:unknown")
+            unresolved.add(f"{where}:inventory_status:unknown")
         if item["consent_status"] == "not_applicable_asserted":
-            unresolved.add(f"{product_id}:consent_status:founder_asserted_unverified")
+            unresolved.add(f"{where}:consent_status:founder_asserted_unverified")
         if item["pia_status"] == "not_required_asserted":
-            unresolved.add(f"{product_id}:pia_status:founder_asserted_unverified")
+            unresolved.add(f"{where}:pia_status:founder_asserted_unverified")
     if not set(purposes_by_product) <= product_ids:
         raise InputError("purpose_registry references an unknown product")
     if not {scope for scope in evidence_product_scope.values() if scope is not None} <= product_ids:
@@ -333,8 +345,14 @@ def load(path: Path) -> Any:
     try:
         text = raw.decode("utf-8")
         _check_json_depth(text)
-        return json.loads(text, object_pairs_hook=_reject_duplicates)
-    except (UnicodeDecodeError, json.JSONDecodeError, RecursionError) as exc:
+        return json.loads(
+            text,
+            object_pairs_hook=_reject_duplicates,
+            parse_int=_bounded_json_integer,
+        )
+    except InputError:
+        raise
+    except (UnicodeDecodeError, json.JSONDecodeError, RecursionError, ValueError) as exc:
         raise InputError("input_unreadable_or_invalid_json") from exc
 
 

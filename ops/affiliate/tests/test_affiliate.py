@@ -226,6 +226,27 @@ def test_loader_rejects_oversized_integer_tokens_without_traceback(tmp_path: Pat
     assert json.loads(result.stdout)["manual_review_required"] is True
 
 
+def test_loader_reads_at_most_limit_plus_one_and_refuses_special_files(tmp_path: Path, monkeypatch):
+    document = tmp_path / "large.json"
+    document.write_bytes(b" " * (affiliate.MAX_INPUT_BYTES + 100))
+    original_read = affiliate.os.read
+    read_sizes = []
+
+    def observed_read(fd, size):
+        read_sizes.append(size)
+        return original_read(fd, size)
+
+    monkeypatch.setattr(affiliate.os, "read", observed_read)
+    with pytest.raises(InputError, match="input_too_large"):
+        load_document(document)
+    assert sum(read_sizes) == affiliate.MAX_INPUT_BYTES + 1
+
+    zero = Path("/dev/zero")
+    if zero.exists():
+        with pytest.raises(InputError, match="input_not_regular"):
+            load_document(zero)
+
+
 def test_amount_bounds_and_aggregate_total_fail_closed():
     document = payload()
     document["events"][1]["order_amount_minor"] = affiliate.MAX_AMOUNT_MINOR + 1

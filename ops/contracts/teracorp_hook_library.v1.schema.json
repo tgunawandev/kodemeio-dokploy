@@ -10,12 +10,33 @@
     "as_of_date": {"type": "string", "format": "date"},
     "hooks": {"type": "array", "minItems": 1, "maxItems": 200, "items": {"$ref": "#/$defs/hook"}},
     "evidence_refs": {"type": "array", "maxItems": 4000, "items": {"$ref": "#/$defs/evidence"}},
-    "performance_windows": {"type": "array", "maxItems": 2000, "items": {"$ref": "teracorp_hook_performance_window.v1.schema.json"}},
+    "performance_windows": {"type": "array", "maxItems": 2000, "items": {"$ref": "#/$defs/performance_window"}},
     "retirement_decisions": {"type": "array", "maxItems": 200, "items": {"$ref": "#/$defs/decision"}}
   },
   "$defs": {
     "brand": {"enum": ["terakod", "terakidz", "terafin", "terakon"]},
     "identifier": {"type": "string", "pattern": "^[a-z][a-z0-9_-]{0,63}$"},
+    "performance_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "window_id", "hook_id", "hook_version", "brand", "window_start", "window_end", "observed_on", "provenance", "source_id", "impressions", "engagements", "conversions", "evidence_ref_id"],
+      "properties": {
+        "schema_version": {"const": 1},
+        "window_id": {"$ref": "#/$defs/identifier"},
+        "hook_id": {"$ref": "#/$defs/identifier"},
+        "hook_version": {"type": "integer", "minimum": 1, "maximum": 2147483647},
+        "brand": {"$ref": "#/$defs/brand"},
+        "window_start": {"type": "string", "format": "date"},
+        "window_end": {"type": "string", "format": "date"},
+        "observed_on": {"type": "string", "format": "date"},
+        "provenance": {"enum": ["real", "synthetic"]},
+        "source_id": {"$ref": "#/$defs/identifier"},
+        "impressions": {"type": "integer", "minimum": 0, "maximum": 1000000000},
+        "engagements": {"type": "integer", "minimum": 0, "maximum": 1000000000},
+        "conversions": {"type": "integer", "minimum": 0, "maximum": 1000000000},
+        "evidence_ref_id": {"$ref": "#/$defs/identifier"}
+      }
+    },
     "hook": {
       "type": "object", "additionalProperties": false,
       "required": ["hook_id", "version", "brand", "hook_type", "variant_label", "created_on", "lifecycle"],
@@ -36,7 +57,7 @@
         "evidence_ref_id": {"$ref": "#/$defs/identifier"},
         "brand": {"$ref": "#/$defs/brand"},
         "evidence_kind": {"enum": ["performance_source", "threshold_approval", "founder_approval"]},
-        "verification_status": {"enum": ["verified", "unverified"]},
+        "verification_status": {"const": "verified"},
         "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
         "observed_on": {"type": "string", "format": "date"}
       }
