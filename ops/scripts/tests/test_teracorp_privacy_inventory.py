@@ -16,6 +16,9 @@ ROOT = Path(__file__).resolve().parents[3]
 SAMPLE = ROOT / "ops/examples/teracorp_privacy_inventory.synthetic.v1.json"
 SCHEMA = ROOT / "ops/contracts/teracorp_privacy_inventory.v1.schema.json"
 AS_OF = "2026-09-28"
+PRODUCT_ID = "prod_00000000000000000000000000000001"
+OTHER_PRODUCT_ID = "prod_00000000000000000000000000000002"
+UNKNOWN_PRODUCT_ID = "prod_ffffffffffffffffffffffffffffffff"
 
 
 def payload() -> dict:
@@ -37,6 +40,7 @@ def test_schema_rejects_basic_evidence_state_mismatches() -> None:
     schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
     validator = Draft202012Validator(schema, format_checker=FormatChecker())
     cases = [
+        lambda p: p["products"][0].update(product_id="jane-doe"),
         lambda p: p["processors"][0].update(evidence_refs=[]),
         lambda p: p["products"][0].update(consent_evidence_refs=[]),
         lambda p: p["products"][0].update(deletion_evidence_refs=[]),
@@ -45,6 +49,17 @@ def test_schema_rejects_basic_evidence_state_mismatches() -> None:
     for mutate in cases:
         data = payload()
         mutate(data)
+        assert list(validator.iter_errors(data))
+
+
+def test_schema_rejects_name_like_product_ids() -> None:
+    schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
+    validator = Draft202012Validator(schema, format_checker=FormatChecker())
+    for value in ("jane-doe", f"{PRODUCT_ID}\n"):
+        data = payload()
+        data["products"][0]["product_id"] = value
+        with pytest.raises(InputError, match="opaque generated product identifier"):
+            validate(data, AS_OF)
         assert list(validator.iter_errors(data))
 
 
@@ -152,16 +167,23 @@ def test_bad_shapes_never_crash_or_echo_untrusted_values() -> None:
         validate(malformed, AS_OF)
 
 
-def test_report_never_echoes_name_like_product_or_processor_identifiers() -> None:
+def test_name_like_product_ids_are_rejected_even_when_references_match() -> None:
     data = payload()
-    marker = "person-jane-doe-private"
+    marker = "jane-doe"
     data["products"][0]["product_id"] = marker
     for evidence in data["evidence_refs"]:
-        if evidence["product_id"] == "synthetic-product":
+        if evidence["product_id"] == PRODUCT_ID:
             evidence["product_id"] = marker
     for purpose in data["purpose_registry"]:
-        if purpose["product_id"] == "synthetic-product":
+        if purpose["product_id"] == PRODUCT_ID:
             purpose["product_id"] = marker
+    with pytest.raises(InputError, match="opaque generated product identifier"):
+        validate(data, AS_OF)
+
+
+def test_report_never_echoes_name_like_processor_identifiers() -> None:
+    data = payload()
+    marker = "person-jane-doe-private"
     data["products"][0]["inventory_status"] = "unknown"
     data["processor_inventory_status"] = "unknown"
     old_processor_id = data["processors"][0]["processor_id"]
@@ -220,12 +242,12 @@ def test_huge_json_integer_cli_refuses_without_traceback(tmp_path: Path) -> None
 
 def test_purpose_registry_rejects_cross_product_and_dangling_product_references() -> None:
     data = payload()
-    data["purpose_registry"].append({"product_id": "synthetic-product", "purpose_id": "other-purpose"})
+    data["purpose_registry"].append({"product_id": PRODUCT_ID, "purpose_id": "other-purpose"})
     data["products"][0]["data_flows"][0]["purpose_id"] = "purpose-other-product"
     with pytest.raises(InputError, match="cross-product purpose"):
         validate(data, AS_OF)
     data = payload()
-    data["purpose_registry"].append({"product_id": "missing-product", "purpose_id": "purpose-orphan"})
+    data["purpose_registry"].append({"product_id": UNKNOWN_PRODUCT_ID, "purpose_id": "purpose-orphan"})
     with pytest.raises(InputError, match="unknown product"):
         validate(data, AS_OF)
 
@@ -238,7 +260,7 @@ def test_evidence_references_are_package_or_exact_product_scoped() -> None:
 
     data = payload()
     second = copy.deepcopy(data["products"][0])
-    second["product_id"] = "another-product"
+    second["product_id"] = OTHER_PRODUCT_ID
     second["consent_evidence_refs"] = ["ev-consent"]
     second["retention_evidence_refs"] = ["ev-retention"]
     second["deletion_evidence_refs"] = ["ev-delete"]
@@ -246,7 +268,7 @@ def test_evidence_references_are_package_or_exact_product_scoped() -> None:
     second["data_flows"][0]["flow_id"] = "another-flow"
     second["data_flows"][0]["purpose_id"] = "purpose-another"
     second["data_flows"][0]["evidence_refs"] = ["ev-flow"]
-    data["purpose_registry"].append({"product_id": "another-product", "purpose_id": "purpose-another"})
+    data["purpose_registry"].append({"product_id": OTHER_PRODUCT_ID, "purpose_id": "purpose-another"})
     data["products"].append(second)
     with pytest.raises(InputError, match="outside this product scope"):
         validate(data, AS_OF)
@@ -262,7 +284,7 @@ def test_evidence_references_are_package_or_exact_product_scoped() -> None:
             "evidence_ref_id": "orphan-evidence",
             "sha256": "2" * 64,
             "observed_on": AS_OF,
-            "product_id": "missing-product",
+            "product_id": UNKNOWN_PRODUCT_ID,
         }
     )
     with pytest.raises(InputError, match="evidence scope references an unknown product"):

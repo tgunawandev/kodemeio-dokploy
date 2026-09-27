@@ -6,8 +6,12 @@ proof that evidence is authentic, or proof that deletion succeeded. The checked-
 synthetic and is not Teracorp product evidence.
 
 Do not enter personal data, customer/child records, names, contact details, raw events, free-form
-notes, URLs, or secrets. Use opaque lowercase identifiers and keep source evidence in its approved,
-access-controlled location. Digests are caller-supplied and are not authenticated by the checker.
+notes, URLs, or secrets. Product IDs must be generated opaque tokens matching
+`prod_<32 lowercase hex characters>`; never put product names or people into that field. Generate
+one with `python3 -c 'import uuid; print("prod_" + uuid.uuid4().hex)'` and use it consistently in
+the product, purpose, and evidence records. Other identifiers remain caller-provided lowercase
+labels; their shape is not a PII detector. Keep source evidence in its approved, access-controlled
+location. Digests are caller-supplied and are not authenticated by the checker.
 `none_declared`, `not_applicable_asserted`, and `not_required_asserted` are preserved as unverified
 assertions; they are not legal conclusions. Unknown or missing inventory is never represented as
 zero.

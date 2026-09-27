@@ -15,6 +15,7 @@ MAX_BYTES = 1_000_000
 MAX_JSON_DEPTH = 32
 MAX_JSON_INTEGER_DIGITS = 20
 ID = re.compile(r"^[a-z][a-z0-9_-]{0,63}$")
+PRODUCT_ID = re.compile(r"^prod_[a-f0-9]{32}$")
 SHA256 = re.compile(r"^[a-f0-9]{64}$")
 CATEGORIES = {
     "account_profile",
@@ -51,6 +52,12 @@ def _bounded_json_integer(token: str) -> int:
 def _id(value: Any, where: str) -> str:
     if not isinstance(value, str) or not ID.fullmatch(value):
         raise InputError(f"{where} must be an opaque lowercase identifier")
+    return value
+
+
+def _product_id(value: Any, where: str) -> str:
+    if not isinstance(value, str) or not PRODUCT_ID.fullmatch(value):
+        raise InputError(f"{where} must be an opaque generated product identifier")
     return value
 
 
@@ -143,7 +150,7 @@ def validate(payload: Any, as_of: str) -> dict[str, Any]:
             raise InputError(f"{where} is after as_of_date")
         scope_product = item["product_id"]
         if scope_product is not None:
-            scope_product = _id(scope_product, f"{where}.product_id")
+            scope_product = _product_id(scope_product, f"{where}.product_id")
         evidence[key] = observed
         evidence_product_scope[key] = scope_product
     for index, item in enumerate(processors_in):
@@ -158,7 +165,7 @@ def validate(payload: Any, as_of: str) -> dict[str, Any]:
     for index, raw in enumerate(purpose_registry):
         where = f"purpose_registry[{index}]"
         item = _object(raw, where, {"product_id", "purpose_id"})
-        product_id = _id(item["product_id"], f"{where}.product_id")
+        product_id = _product_id(item["product_id"], f"{where}.product_id")
         purpose_id = _id(item["purpose_id"], f"{where}.purpose_id")
         purposes = purposes_by_product.setdefault(product_id, set())
         if purpose_id in purposes:
@@ -185,7 +192,7 @@ def validate(payload: Any, as_of: str) -> dict[str, Any]:
             "data_flows",
         }
         item = _object(raw, where, keys)
-        product_id = _id(item["product_id"], f"{where}.product_id")
+        product_id = _product_id(item["product_id"], f"{where}.product_id")
         if product_id in product_ids:
             raise InputError("product_id values must be unique")
         product_ids.add(product_id)
