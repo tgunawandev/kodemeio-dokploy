@@ -28,6 +28,9 @@ a signature or protocol specification for this candidate.
   refused or explicitly marked unsupported; do not infer provider payout
   semantics. A payout allocation tied to any conflicted event history cannot
   be labeled reconciled.
+- Keep both per-payout and aggregate allocation counts bounded; direct callers
+  of the Python API must not bypass the CLI input-size guard to trigger
+  unbounded reconciliation work.
 - This is offline arithmetic over caller-normalized synthetic data. It must not
   perform network, database, provider, customer, payment, or secret operations.
 - Provider-specific Paddle/Polar signature rules and adapters are deliberately

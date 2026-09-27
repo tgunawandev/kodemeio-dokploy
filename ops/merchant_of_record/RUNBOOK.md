@@ -43,6 +43,8 @@ runbook.
 The candidate accepts only a fee-free, single-currency payout whose positive
 order-level allocations sum exactly to its positive payout amount. Allocations
 are bounded by net captured proceeds after normalized refunds and chargebacks.
+Each payout is capped at 10,000 allocation rows, and one reconciliation call is
+capped at 100,000 rows across all payouts, including direct Python API calls.
 This is not a provider gross-settlement model and does not account for provider
 fees, FX, reserves, withholding, adjustments, or negative payout reversals.
 Those cases are unsupported: unknown payout/allocations keys, non-positive

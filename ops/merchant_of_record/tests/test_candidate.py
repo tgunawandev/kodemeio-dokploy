@@ -193,6 +193,21 @@ def test_negative_payout_allocation_is_refused() -> None:
         MOR.reconcile([event("capture", "payment.captured", "10:00")], [order()], [payout])
 
 
+def test_total_payout_allocations_are_bounded_for_direct_callers(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(MOR, "_MAX_TOTAL_ALLOCATIONS", 2)
+    payout = {
+        "payout_ref": "p1",
+        "currency": "USD",
+        "amount_minor": 1,
+        "allocations": [
+            {"payment_ref": "payment:synthetic-1", "order_ref": "order:synthetic-1", "amount_minor": 1},
+            {"payment_ref": "payment:synthetic-1", "order_ref": "order:synthetic-1", "amount_minor": 1},
+        ],
+    }
+    with pytest.raises(MOR.InputError, match="total at most 2 rows"):
+        MOR.reconcile([], [order()], [payout, {**payout, "payout_ref": "p2"}])
+
+
 def test_conflicting_payment_history_cannot_produce_reconciled_payout() -> None:
     events = [
         event("capture", "payment.captured", "10:00"),

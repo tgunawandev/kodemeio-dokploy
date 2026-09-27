@@ -39,6 +39,7 @@ _MAX_EVENTS = 10_000
 _MAX_ORDERS = 10_000
 _MAX_PAYOUTS = 2_000
 _MAX_ALLOCATIONS = 10_000
+_MAX_TOTAL_ALLOCATIONS = 100_000
 _MAX_MINOR = 9_007_199_254_740_991
 
 
@@ -142,6 +143,15 @@ def reconcile(events: Any, orders: Any, payouts: Any) -> dict[str, Any]:
         raise InputError(f"orders must contain 1..{_MAX_ORDERS} entries")
     if type(payouts) is not list or len(payouts) > _MAX_PAYOUTS:
         raise InputError(f"payouts must be a list with at most {_MAX_PAYOUTS} entries")
+
+    # Bound work across the whole reconciliation, not just each payout. This
+    # also protects direct Python callers that bypass the CLI's byte limit.
+    total_allocations = 0
+    for raw in payouts:
+        if type(raw) is dict and type(raw.get("allocations")) is list:
+            total_allocations += len(raw["allocations"])
+            if total_allocations > _MAX_TOTAL_ALLOCATIONS:
+                raise InputError(f"payout allocations must total at most {_MAX_TOTAL_ALLOCATIONS} rows")
 
     conflicts: list[dict[str, str]] = []
     order_by_ref: dict[str, dict[str, Any]] = {}
