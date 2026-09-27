@@ -98,7 +98,20 @@ FIXNET="${PROJECT}-fixnet"
 PG_CONTAINER="${PROJECT}-pg"
 VOLUME="${PROJECT}-filestore"
 WORKDIR="$(mktemp -d)"
-FIXTURE_ADMIN_PASS="$(openssl rand -hex 16 2>/dev/null || head -c16 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+# ---------------------------------------------------------------------------
+# Fixture credentials -- exported so every container receives them BY NAME
+# (`-e VAR`), never as `-e VAR=value`: the latter is an argument of the docker
+# CLI, world-readable in /proc and recorded in the container's Config.Cmd for
+# as long as the container lives (Wave 0 final review I1; the same rule the S3
+# keys in ../lib/s3-local.sh follow). Both literals are throwaway fixture
+# values, named once here instead of repeated on a docker argv.
+# ---------------------------------------------------------------------------
+export PGPASSWORD="drillpg"            # fixture Postgres client password
+export POSTGRES_PASSWORD="drillpg"     # the fixture Postgres server's password
+export ODOO_ADMIN_PASSWD="drillmaster" # fixture odoo.conf master password
+export FIXTURE_ADMIN_PASS="$(openssl rand -hex 16 2>/dev/null || head -c16 /dev/urandom | od -An -tx1 | tr -d ' \n')"
+# The xmlrpc fixture client reads the same value under ODOO_PASSWORD.
+export ODOO_PASSWORD="$FIXTURE_ADMIN_PASS"
 
 cleanup() {
     docker rm -f "${PROJECT}-odoo-init" "${PROJECT}-odoo" "${PROJECT}-odoo-shell" "${PROJECT}-xmlrpc" "$PG_CONTAINER" >/dev/null 2>&1 || true
@@ -117,14 +130,14 @@ trap cleanup EXIT
 build_odoo_env_args() {
     local pgdatabase="$1" init_db="$2" init_modules="$3"
     ODOO_ENV_ARGS=(
-        -e PGHOST="$PG_CONTAINER" -e PGPORT=5432 -e PGUSER=odoo -e PGPASSWORD=drillpg -e PGDATABASE="$pgdatabase"
+        -e PGHOST="$PG_CONTAINER" -e PGPORT=5432 -e PGUSER=odoo -e PGPASSWORD -e PGDATABASE="$pgdatabase"
         -e ODOO_DATA_DIR=/var/lib/odoo
         -e ODOO_DB_FILTER="^${pgdatabase}\$"
         -e ODOO_LIST_DB=False
         -e ODOO_DB_MAXCONN=16
         -e ODOO_HTTP_PORT=8069 -e ODOO_GEVENT_PORT=8072 -e ODOO_PROXY_MODE=False
         -e ODOO_WORKERS=0 -e ODOO_MAX_CRON_THREADS=0
-        -e ODOO_ADMIN_PASSWD=drillmaster
+        -e ODOO_ADMIN_PASSWD
         -e ODOO_LOG_LEVEL=warn
         -e ODOO_LIMIT_TIME_CPU=600 -e ODOO_LIMIT_TIME_REAL=1200 -e ODOO_LIMIT_TIME_REAL_CRON=1800
         -e ODOO_LIMIT_MEMORY_SOFT=2147483648 -e ODOO_LIMIT_MEMORY_HARD=4294967296
@@ -143,7 +156,7 @@ docker network inspect "$FIXNET" >/dev/null 2>&1 || docker network create "$FIXN
 docker volume create "$VOLUME" >/dev/null
 
 docker run -d --name "$PG_CONTAINER" --network "$FIXNET" \
-    -e POSTGRES_USER=odoo -e POSTGRES_PASSWORD=drillpg -e POSTGRES_DB=postgres \
+    -e POSTGRES_USER=odoo -e POSTGRES_PASSWORD -e POSTGRES_DB=postgres \
     postgres:16 >/dev/null
 
 for _ in $(seq 1 60); do
@@ -162,7 +175,7 @@ log "bootstrapping admin password via odoo shell"
 build_odoo_env_args "$DB_NAME" false base
 docker run --rm -i --name "${PROJECT}-odoo-shell" --network "$FIXNET" \
     -v "${VOLUME}:/var/lib/odoo" "${ODOO_ENV_ARGS[@]}" \
-    -e FIXTURE_ADMIN_PASS="$FIXTURE_ADMIN_PASS" \
+    -e FIXTURE_ADMIN_PASS \
     "$ODOO_IMAGE" shell <<'PYEOF'
 import os
 pw = os.environ["FIXTURE_ADMIN_PASS"]
@@ -264,7 +277,7 @@ PYEOF
 docker run --rm --name "${PROJECT}-xmlrpc" --network "$FIXNET" \
     -v "${WORKDIR}:/work" \
     -e ODOO_URL="http://${PROJECT}-odoo:8069" -e ODOO_DB="$DB_NAME" \
-    -e ODOO_PASSWORD="$FIXTURE_ADMIN_PASS" -e OUT=/work/fixture_result.json \
+    -e ODOO_PASSWORD -e OUT=/work/fixture_result.json \
     python:3.12-slim python /work/fixture_client.py \
     || die "xmlrpc fixture population failed"
 
@@ -304,11 +317,15 @@ docker exec "$PG_CONTAINER" sh -c "pg_dump -U odoo -d '${DB_NAME}' -Fc | gzip -9
 [ -s "$DUMP_LOCAL" ] || die "pg_dump produced an empty file"
 
 DUMP_PATH="${PG_PREFIX}/${STAMP}.sql.gz"
-docker run --rm --network "$S3_NETWORK" -v "${WORKDIR}:/work" \
+# Credentials by NAME, never `-e VAR=value`: the latter puts the secret in the
+# docker CLI's argv, which `ps` and /proc expose to every local user.
+RCLONE_CONFIG_S3LOCAL_ACCESS_KEY_ID="$S3_ACCESS_KEY" \
+RCLONE_CONFIG_S3LOCAL_SECRET_ACCESS_KEY="$S3_SECRET_KEY" \
+    docker run --rm --network "$S3_NETWORK" -v "${WORKDIR}:/work" \
     -e RCLONE_CONFIG_S3LOCAL_TYPE=s3 -e RCLONE_CONFIG_S3LOCAL_PROVIDER=Other \
     -e RCLONE_CONFIG_S3LOCAL_ENV_AUTH=false \
-    -e RCLONE_CONFIG_S3LOCAL_ACCESS_KEY_ID="$S3_ACCESS_KEY" \
-    -e RCLONE_CONFIG_S3LOCAL_SECRET_ACCESS_KEY="$S3_SECRET_KEY" \
+    -e RCLONE_CONFIG_S3LOCAL_ACCESS_KEY_ID \
+    -e RCLONE_CONFIG_S3LOCAL_SECRET_ACCESS_KEY \
     -e RCLONE_CONFIG_S3LOCAL_ENDPOINT="http://${S3_HOST}:9000" \
     "$S3_LOCAL_IMAGE" copyto /work/dump.sql.gz "s3local:${PG_BUCKET}/${DUMP_PATH}"
 DUMP_TIME="$(date -u -d "${STAMP:0:8} ${STAMP:9:2}:${STAMP:11:2}:${STAMP:13:2}" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || echo "${STAMP}")"

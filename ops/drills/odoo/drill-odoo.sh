@@ -169,14 +169,14 @@ VENV_SITE_PACKAGES="$(resolve_venv_site_packages)"
 build_odoo_env_args() {
     local pgdatabase="$1" init_db="$2"
     ODOO_ENV_ARGS=(
-        -e PGHOST=db -e PGPORT=5432 -e PGUSER=odoo -e PGPASSWORD="$DRILL_PG_PASSWORD" -e PGDATABASE="$pgdatabase"
+        -e PGHOST=db -e PGPORT=5432 -e PGUSER=odoo -e PGPASSWORD -e PGDATABASE="$pgdatabase"
         -e ODOO_DATA_DIR=/var/lib/odoo
         -e ODOO_DB_FILTER="^${pgdatabase}\$"
         -e ODOO_LIST_DB=False
         -e ODOO_DB_MAXCONN=16
         -e ODOO_HTTP_PORT=8069 -e ODOO_GEVENT_PORT=8072 -e ODOO_PROXY_MODE=False
         -e ODOO_WORKERS=0 -e ODOO_MAX_CRON_THREADS=0
-        -e ODOO_ADMIN_PASSWD="$DRILL_ADMIN_PASSWD"
+        -e ODOO_ADMIN_PASSWD
         -e ODOO_LOG_LEVEL=warn
         -e ODOO_LIMIT_TIME_CPU=600 -e ODOO_LIMIT_TIME_REAL=1200 -e ODOO_LIMIT_TIME_REAL_CRON=1800
         -e ODOO_LIMIT_MEMORY_SOFT=2147483648 -e ODOO_LIMIT_MEMORY_HARD=4294967296
@@ -250,6 +250,14 @@ export ODOO_IMAGE
 export DRILL_DB_NAME="$DB_NAME"
 export DRILL_PG_PASSWORD
 export DRILL_ADMIN_PASSWD
+export DRILL_PASS
+# The containers that take PGPASSWORD / ODOO_ADMIN_PASSWD / DRILL_PASS receive
+# them BY NAME (`-e VAR`): a value in `-e VAR=value` is an argument of the
+# docker CLI, world-readable in /proc and kept in the container's Config.Cmd
+# (Wave 0 final review I1). DRILL_PASS is never echoed or written to
+# results.json -- that property must hold for the argv as well.
+export PGPASSWORD="$DRILL_PG_PASSWORD"
+export ODOO_ADMIN_PASSWD="$DRILL_ADMIN_PASSWD"
 export VENV_SITE_PACKAGES
 export ODOO_INIT_DB=false
 export ODOO_INIT_MODULES=base
@@ -347,7 +355,7 @@ SQL
         # target (an hrms-shaped database has no `sale` module installed).
         if docker run --rm -i --network "${PROJECT}-net" \
             -v "${PROJECT}-filestore:/var/lib/odoo" "${ODOO_ENV_ARGS[@]}" \
-            -e DRILL_PASS="$DRILL_PASS" \
+            -e DRILL_PASS \
             "$ODOO_IMAGE" shell <<'PYEOF'
 import os
 pw = os.environ["DRILL_PASS"]

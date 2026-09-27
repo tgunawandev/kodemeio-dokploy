@@ -264,11 +264,14 @@ t = datetime.datetime.strptime('${SNAPSHOT_TIME}', '%Y-%m-%dT%H:%M:%SZ') + datet
 print(t.strftime('%Y%m%dT%H%M%SZ'))
 ")"
     LATER_DUMP_PATH="pgdump/drill_src_neg2/${LATER_STAMP}.sql.gz"
-    docker run --rm --network "$S3_NET" \
+    # Credentials by NAME, never `-e VAR=value` (argv is world-readable).
+    RCLONE_CONFIG_S3LOCAL_ACCESS_KEY_ID="$S3_ACCESS" \
+    RCLONE_CONFIG_S3LOCAL_SECRET_ACCESS_KEY="$S3_SECRET" \
+        docker run --rm --network "$S3_NET" \
         -e RCLONE_CONFIG_S3LOCAL_TYPE=s3 -e RCLONE_CONFIG_S3LOCAL_PROVIDER=Other \
         -e RCLONE_CONFIG_S3LOCAL_ENV_AUTH=false \
-        -e RCLONE_CONFIG_S3LOCAL_ACCESS_KEY_ID="$S3_ACCESS" \
-        -e RCLONE_CONFIG_S3LOCAL_SECRET_ACCESS_KEY="$S3_SECRET" \
+        -e RCLONE_CONFIG_S3LOCAL_ACCESS_KEY_ID \
+        -e RCLONE_CONFIG_S3LOCAL_SECRET_ACCESS_KEY \
         -e RCLONE_CONFIG_S3LOCAL_ENDPOINT="http://${S3_NAME}:9000" \
         "$S3_LOCAL_IMAGE" copyto "s3local:${DUMP_PATH}" "s3local:${LATER_DUMP_PATH}"
 

@@ -30,11 +30,23 @@ s3_local_start() {
     docker network inspect "$network" >/dev/null 2>&1 || docker network create "$network" >/dev/null
     docker rm -f "$name" >/dev/null 2>&1 || true
 
-    docker run -d --name "$name" --network "$network" \
+    # The credential reaches the server BY NAME, never as `--auth-key
+    # access,secret`: an argument is world-readable in /proc and is recorded in
+    # the container's `Config.Cmd` for as long as the container lives. rclone
+    # reads it from RCLONE_AUTH_KEY; because --auth-key is repeatable the value
+    # is CSV-encoded, and the pair's own comma means it must be wrapped in
+    # literal double quotes (rclone errors without them).
+    # `-e RCLONE_AUTH_KEY` is what forwards it — a shell prefix alone only sets
+    # it in the docker CLI's own environment and the container never sees it
+    # (verified 2026-09-26: without -e the server logged "No auth provided so
+    # allowing anonymous access"). With it, a wrong key gets 403
+    # InvalidAccessKeyId.
+    RCLONE_AUTH_KEY="\"${access_key},${secret_key}\"" \
+        docker run -d --name "$name" --network "$network" \
         -v "${data_dir}:/data" \
+        -e RCLONE_AUTH_KEY \
         "$S3_LOCAL_IMAGE" serve s3 /data \
         --addr :9000 \
-        --auth-key "${access_key},${secret_key}" \
         >/dev/null
 }
 
@@ -45,12 +57,22 @@ s3_local_start() {
 s3_local_rclone() {
     local network="$1" access_key="$2" secret_key="$3" endpoint_host="$4"
     shift 4
-    docker run --rm --network "$network" \
+    # Credentials are exported for the duration of this one command and the
+    # container receives them BY NAME (`-e VAR`), so no secret is ever an
+    # argument of the docker CLI (`ps`/`/proc` are world-readable; the value in
+    # `-e VAR=value` is not). Docker still records `-e VAR` values in the
+    # container's Config.Env, which `docker inspect` shows while the container
+    # exists — this removes the argv exposure, not every exposure. Same pattern
+    # as ops/drills/odoo/make-fixture.sh's restic calls. The endpoint is not a
+    # secret and is passed as before.
+    RCLONE_CONFIG_S3LOCAL_ACCESS_KEY_ID="$access_key" \
+    RCLONE_CONFIG_S3LOCAL_SECRET_ACCESS_KEY="$secret_key" \
+        docker run --rm --network "$network" \
         -e RCLONE_CONFIG_S3LOCAL_TYPE=s3 \
         -e RCLONE_CONFIG_S3LOCAL_PROVIDER=Other \
         -e RCLONE_CONFIG_S3LOCAL_ENV_AUTH=false \
-        -e RCLONE_CONFIG_S3LOCAL_ACCESS_KEY_ID="${access_key}" \
-        -e RCLONE_CONFIG_S3LOCAL_SECRET_ACCESS_KEY="${secret_key}" \
+        -e RCLONE_CONFIG_S3LOCAL_ACCESS_KEY_ID \
+        -e RCLONE_CONFIG_S3LOCAL_SECRET_ACCESS_KEY \
         -e RCLONE_CONFIG_S3LOCAL_ENDPOINT="http://${endpoint_host}:9000" \
         "$S3_LOCAL_IMAGE" "$@"
 }
