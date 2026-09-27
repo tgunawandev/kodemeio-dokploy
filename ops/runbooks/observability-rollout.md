@@ -244,13 +244,49 @@ Shape, exactly:
   the list next to it holds the rows that survived, so the two can differ — the
   difference is what `dropped` is telling you.
 - The same file must pass the redaction contract before the job may succeed, so
-  a snapshot on disk is a snapshot that was checked:
-  `bash kodemeio-dokploy/ops/scripts/redaction-grep.sh --contract kodemeio-dokploy/contracts/observability/redaction.v1.yaml /var/lib/kod-metrics/`
+  a snapshot on disk is a snapshot that was checked. The volume lives inside the
+  container, so copy it out and scan it **as a directory** — `redaction-grep.sh`
+  expands a directory on purpose, one file per line and recursively
+  (`find "$dir" -type f`), so `history/<class>/` is covered too, and a tree with
+  no files in it is exit 2 rather than a clean zero:
 
-## M10 — Grafana (optional, founder-gated; spec D2)
+  ```bash
+  HOST=$(kctl-dokploy -p kodemeio compose get <compose-id> --json | jq -r '.server.host')  # confirm the name
+  CT=$(ssh "$HOST" "docker ps -qf label=com.docker.compose.service=kctl" | head -1)
+  rm -rf /tmp/kod-metrics && mkdir -p /tmp/kod-metrics
+  ssh "$HOST" "docker exec $CT tar -C /var/lib/kod-metrics -cf - ." | tar -C /tmp/kod-metrics -xf -
+  bash kodemeio-dokploy/ops/scripts/redaction-grep.sh \
+    --contract kodemeio-dokploy/contracts/observability/redaction.v1.yaml /tmp/kod-metrics
+  ```
+  Exit 0 with `SUMMARY sources=<n> hits=0` names how many files were scanned;
+  exit 1 prints `HIT <file>:<line>` (never the matched line). A directory that
+  cannot be read, or holds no files, is exit 2 — an empty scan is not evidence.
+- Prove that check once before trusting it — a verifier nobody has watched fail
+  is a verifier nobody should believe. Plant a marker in a copy of a real
+  artifact and watch the exit code flip (no test file required; the suite's
+  version of this is `ops/scripts/tests/test_redaction_grep.sh`):
 
-Nothing in this slice depends on Grafana, and no monitoring stack runs today —
-this section is a recipe, not a step. If the founder provisions it:
+  ```bash
+  printf 'ZZPII-MARKER-selftest\n' >> /tmp/kod-metrics/token-cost.json
+  bash kodemeio-dokploy/ops/scripts/redaction-grep.sh \
+    --contract kodemeio-dokploy/contracts/observability/redaction.v1.yaml /tmp/kod-metrics; echo "exit=$? (must be 1)"
+  ```
+  Then delete `/tmp/kod-metrics`: the copy holds the estate's real spend
+  numbers, which is exactly why it is a scratch directory and not the volume.
+
+## M10 — Grafana (DECIDED: deferred; config-ready, founder-gated; spec D2)
+
+**Decision, 2026-09-27 (recorded here and in the roadmap row): Grafana stays
+deferred.** No monitoring stack runs on this estate today, P4 ships no
+dashboard, and the row does not claim one — so nothing below is an open
+option to weigh, it is the recipe to pick up *if and when* the founder opens a
+dashboard slice. The gate's dashboard half is met by this decision together
+with the fact that the recipe is written against fields the snapshots already
+carry: the panels below need no change to any job, only an HTTP view of the
+volume (step 1) and a datasource.
+
+The P4 answers today are the snapshot files (M9) and the two alarms
+(Healthchecks period+grace, M2; jobrun mail). If the founder provisions Grafana:
 
 1. Grafana needs an HTTP view of the snapshots (it cannot read another
    container's volume). Cheapest: a read-only static file server over
@@ -277,9 +313,13 @@ this section is a recipe, not a step. If the founder provisions it:
 
 | Row | Gate | Evidence to record |
 |---|---|---|
-| P4 (O5) | dashboards + redaction test | kodemeio-skills `c56837d4` + `d0f0e51e` (`bash tests/test_kod_metrics.sh` → 145 ok, ALL PASS; mutation half fails the suite on purpose); kodemeio-dokploy `uv run pytest deploys/tests -q` (incl. `test_metrics_thresholds.py`, `test_kod_schedule_gates.py`); `uv run pytest ops/monitoring/gatus/tests -q` (15 passed, forced-outage e2e included); the four schedules shipped `enabled: false`; then **M1–M7 evidence** and, for the gate's dashboard half, either M10 built or the decision to defer it recorded in the results doc |
+| P4 (O5) | dashboards (deferred by decision; config-ready) + redaction test | kodemeio-skills `c56837d4` + `d0f0e51e` + the final-review fix wave (`bash tests/test_kod_metrics.sh` → 195 ok, ALL PASS; mutation half fails the suite on purpose); kodemeio-dokploy `uv run pytest deploys/tests -q` (incl. `test_metrics_thresholds.py`, `test_kod_schedule_gates.py`); `uv run pytest ops/monitoring/gatus/tests -q` (15 passed, forced-outage e2e included); the four schedules shipped `enabled: false`; then **M1–M7 evidence** |
 
 The row stays `built-local` until M1–M7 hold and the evidence above exists. The
 redaction half of the gate is met by the local test suite (a planted value
-fails it); the dashboard half is met by M10 **or** by the recorded decision
-that Grafana is deferred, because spec D2 makes it optional.
+fails it) **and** by the M9 self-check against the on-disk volume, which the
+final review's I1 turned from a check that could not fail into one that does.
+The dashboard half is **the recorded decision that Grafana is deferred** (M10,
+spec D2): config-ready — the panels need fields the snapshots already carry —
+founder-gated, and not claimed as running. There is no "either/or" left in the
+gate and no monitoring stack is implied.

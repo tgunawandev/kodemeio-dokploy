@@ -2,13 +2,31 @@
 
 Declarative monitoring configuration for the Kodemeio platform. All configs are version-controlled and applied via `kctl-*` CLIs.
 
-## Stack
+> ## What actually runs today (2026-09-27)
+>
+> **No Grafana/Prometheus stack runs on this estate** — nothing in the table
+> below is deployed, and `grafana.kodeme.io` / `prometheus.kodeme.io` are not
+> live targets. What exists is:
+>
+> | What | Where |
+> |---|---|
+> | **Gatus** — external uptime, body-level health, certificate expiry, admin-gate checks | config-as-code in `gatus/config.yaml`, deployed by `deploys/instances/production/kod-infra-gatus.yaml`; `uv run pytest ops/monitoring/gatus/tests -q` lints it and runs the forced-outage e2e |
+> | **Healthchecks.io** — the dead-man check every scheduled job pings (period + grace = the freshness threshold) | the `HC_*` ping URL per job; the contract for the metrics jobs is in `metrics/thresholds.yaml` |
+> | **The redacted metric snapshots** (P4 / O5, `kod-metrics-*` jobs) | read them with the runbook `ops/runbooks/observability-rollout.md` (M9); thresholds are committed in `metrics/thresholds.yaml` |
+>
+> **Grafana is deferred by decision (spec `2026-09-27-teracorp-observability-design.md` D2)** —
+> the dashboard recipe in that runbook's M10 is a plan, config-ready, that no
+> slice has built. The Grafana/Prometheus sections below predate Wave 0, were
+> not re-verified by it, and describe that plan, not a running system.
 
-| Tool | Purpose | CLI | URL |
-|------|---------|-----|-----|
-| Grafana | Dashboards, visualization & uptime | `kctl-grafana` | grafana.kodeme.io |
-| GlitchTip | Error tracking & DSN keys | `kctl-glitchtip` | glitchtip.kodeme.io |
-| Prometheus | Metrics collection & alerting | (via Grafana) | prometheus.kodeme.io |
+## Stack (planned, not deployed)
+
+| Tool | Purpose | CLI | URL | State |
+|------|---------|-----|-----|-------|
+| Grafana | Dashboards, visualization & uptime | `kctl-grafana` | grafana.kodeme.io | **not deployed — deferred (spec D2)** |
+| GlitchTip | Error tracking & DSN keys | `kctl-glitchtip` | glitchtip.kodeme.io | **not deployed** |
+| Prometheus | Metrics collection & alerting | (via Grafana) | prometheus.kodeme.io | **not deployed** |
+| Gatus | External uptime & health checks | (config-as-code) | no public UI | **runs** — `gatus/config.yaml` |
 
 > **Gatus is back (Teracorp Wave 0, 2026-09-26) — for the kod (kodeme.io) estate.**
 > External uptime, body-level health (`[BODY].db == connected` for LiteLLM), 14-day
@@ -39,7 +57,7 @@ monitoring/
     └── apply-monitoring.sh                # Apply all configs via kctl-* CLIs
 ```
 
-## Quick Start
+## Quick Start (Grafana-era — nothing here applies to a running system)
 
 Apply all monitoring configs in one shot:
 
@@ -88,7 +106,7 @@ kctl-grafana alert list
 | Service | URL | Health Endpoint |
 |---------|-----|-----------------|
 | Authentik SSO | auth.kodeme.io | /-/health/ready/ |
-| Grafana | grafana.kodeme.io | /api/health |
+| Grafana **(not deployed — deferred, spec D2)** | grafana.kodeme.io | /api/health |
 | GlitchTip | glitchtip.kodeme.io | /_health/ |
 | Mailcow | mail.kodeme.io | / |
 | WAHA | waha.kodeme.io | /api/health |

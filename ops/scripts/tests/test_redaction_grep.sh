@@ -30,6 +30,31 @@ bash "$SCRIPT" "$TMP/missing.log" >/dev/null 2>&1; rc=$?
 bash "$SCRIPT" >/dev/null 2>&1; rc=$?
 [ "$rc" = 2 ] && ok "no input -> usage exit 2" || fail "no input -> $rc"
 
+# A DIRECTORY is expanded on purpose (the runbook's snapshot-volume check): a
+# bare `grep -f markers "$dir"` prints "Is a directory" and still reports
+# hits=0, exit 0 -- the false clean the directory walk below exists to prevent.
+# The runbook's own invocation, on a kod-metrics-shaped volume:
+REPO="$(cd "$HERE/../../.." && pwd)"
+CONTRACT="$REPO/contracts/observability/redaction.v1.yaml"
+[ -r "$CONTRACT" ] || { echo "FAIL - the repo contract is not readable: $CONTRACT"; exit 1; }
+VOL="$TMP/vol"
+mkdir -p "$VOL/history/token-cost"
+printf '{"class":"token-cost","values":{"keys_total":1}}\n' > "$VOL/token-cost.json"
+out="$(bash "$SCRIPT" --contract "$CONTRACT" "$VOL")"; rc=$?
+[ "$rc" = 0 ] && grep -q '^SUMMARY sources=1 hits=0$' <<< "$out" \
+    && ok "runbook M9: a clean snapshot volume -> exit 0, one file scanned" || fail "M9 clean: rc=$rc out=$out"
+printf '{"class":"token-cost","leak":"ZZPII-MARKER-planted"}\n' > "$VOL/history/token-cost/2026-09-27.json"
+out="$(bash "$SCRIPT" --contract "$CONTRACT" "$VOL")"; rc=$?
+[ "$rc" = 1 ] && grep -q "HIT $VOL/history/token-cost/2026-09-27.json:1" <<< "$out" \
+    && grep -q '^SUMMARY sources=2 hits=1$' <<< "$out" \
+    && ok "runbook M9: a planted marker in a history artifact -> exit 1" || fail "M9 planted: rc=$rc out=$out"
+grep -q 'planted' <<< "$out" && fail "matched line content leaked into output" || ok "the planted line is never printed"
+rm -f "$VOL/history/token-cost/2026-09-27.json"
+
+mkdir -p "$TMP/empty"
+bash "$SCRIPT" "$TMP/empty" >/dev/null 2>&1; rc=$?
+[ "$rc" = 2 ] && ok "a directory holding no files -> exit 2, never a silent clean" || fail "empty directory -> $rc"
+
 # markers come from the contract, not a hardcoded list
 printf "synthetic_markers: ['QQTEST-']\n" > "$TMP/c.yaml"
 bash "$SCRIPT" --contract "$TMP/c.yaml" "$TMP/dirty.log" >/dev/null; rc=$?
