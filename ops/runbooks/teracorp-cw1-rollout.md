@@ -155,9 +155,13 @@ and this note is deleted from the next person's copy of this runbook.
    (`chatwoot-postgres`, volume `chatwoot-postgres-data`) has no backup job
    anywhere. It is now **recorded as an enforced gap** in
    `ops/backup-inventory.kod.yaml` (`id: chatwoot-postgres`, `planned: true`,
-   same shape as `litellm-db`) instead of living only in this prose, so
-   `./dokploy.sh backup kodemeio` / the inventory surface it again (final
-   review I3). **What remains founder-gated:** the entry stays `planned`
+   same shape as `litellm-db`) instead of living only in this prose (final
+   review I3). What reads that file: `deploys/tests/test_backup_inventory.py`
+   (which fails once the jobs and the inventory disagree — note it does NOT
+   read `./dokploy.sh backup <platform>`, which joins Dokploy's backup
+   configs to the objects in their S3 destinations and knows nothing about
+   this inventory), and the offsite jobs' own authors. **What remains
+   founder-gated:** the entry stays `planned`
    until the stack is actually deployed — there is no host, no volume and no
    credentials to dump from before step 1 (M1) and this rollout — so the
    promotion to a real `kind: pg-db` item needs, in the same change:

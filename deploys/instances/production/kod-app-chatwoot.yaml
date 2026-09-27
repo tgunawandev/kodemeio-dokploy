@@ -10,9 +10,15 @@
 # by that generic phase anyway. Its backup is a documented GAP, not a
 # `backup:` block here -- see ops/runbooks/teracorp-cw1-rollout.md's
 # "Backups" section and the note below, matching kod-infra-litellm.yaml's
-# own litellm-db precedent (Wave 0 ops/backup-inventory.kod.yaml planned
-# item, not yet added). With no `extends`, `backup` is simply never set,
-# and orchestrator.py's phase_backup() skips it correctly.
+# own litellm-db precedent. The gap is an inventory item as well as prose:
+# ops/backup-inventory.kod.yaml carries `chatwoot-postgres`
+# (`kind: gap`, `planned: true`; CW1 fix wave, final review I3), and
+# deploys/tests/test_backup_inventory.py reads that file, so the gap cannot
+# be dropped silently. It is a GO-LIVE GATE: promote it to a real `pg-db`
+# item together with the pg_dump job, its b2_sync source and its freshness
+# entries before this stack holds live conversations. With no `extends`,
+# `backup` is simply never set, and orchestrator.py's phase_backup() skips
+# it correctly.
 #
 # Design: kodemeio-support/kodemeio-docs/superpowers/specs/
 #         2026-09-26-teracorp-cw1-chatwoot-design.md (D11 "Chatwoot
