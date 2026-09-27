@@ -33,6 +33,11 @@ a signature or protocol specification for this candidate.
   unbounded reconciliation work.
 - This is offline arithmetic over caller-normalized synthetic data. It must not
   perform network, database, provider, customer, payment, or secret operations.
+- Reference syntax cannot establish that a value is free of personal data;
+  names and phone-like strings can pass and are echoed in reports. Inputs must
+  be invented synthetic values only. A future provider adapter must add a
+  separately reviewed, non-PII identifier/tokenization boundary before any
+  real source data is accepted.
 - Provider-specific Paddle/Polar signature rules and adapters are deliberately
   absent. Any such adapter remains blocked pending authoritative provider
   specifications, review, and a separately approved implementation.

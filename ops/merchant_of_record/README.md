@@ -38,8 +38,11 @@ Input is a versioned object containing `contract_version`, `events`, `orders`,
 and `payouts`. Each event must validate against
 [`merchant_event.v1.schema.json`](merchant_event.v1.schema.json). Unknown keys
 are refused. Amounts are integer minor units; no decimal or floating-point money
-is accepted. References are opaque identifiers and must not contain customer
-data.
+is accepted. References are echoed in reports. Their syntax check is **not** a
+PII detector: name-like and phone-like values can pass. Supply invented,
+synthetic references only; never pass customer, account, or raw provider
+identifiers. A production adapter must define and review a non-PII tokenization
+boundary before connecting real data.
 
 ## Verification boundary
 
@@ -56,8 +59,11 @@ secrets handling, replay defenses, and deployment have separate approval.
 
 Identical repeats of the same `event_id` are counted and ignored. Reusing either
 event identity with altered content is a conflict. Lifecycle observations are
-sorted by their UTC `occurred_at` time, not file/arrival order, so a delayed older
-authorization does not regress a capture. Contradictory terminal histories,
+ordered by parsed UTC instants, not timestamp text or file/arrival order, so
+fractional-second values sort correctly. Multiple distinct events for one
+payment at the exact same instant fail closed because this contract has no
+trusted provider sequence. A delayed older authorization therefore cannot
+regress a capture. Contradictory terminal histories,
 refunds or chargebacks before capture, reversal totals above capture, order
 amount/currency mismatches, and payout allocation mismatches produce explicit
 conflicts. Any conflict sets top-level `outcome` to `conflict`; consumers must

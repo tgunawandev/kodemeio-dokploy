@@ -75,6 +75,19 @@ def _currency(value: Any, where: str) -> str:
     return value
 
 
+def _event_time(value: Any) -> datetime:
+    """Parse the canonical RFC3339 UTC instant used to order lifecycle events."""
+    if not isinstance(value, str) or not value.endswith("Z"):
+        raise InputError("event.occurred_at must be an RFC3339 UTC timestamp ending in Z")
+    try:
+        parsed = datetime.fromisoformat(value[:-1] + "+00:00")
+    except ValueError as exc:
+        raise InputError("event.occurred_at must be a valid RFC3339 UTC timestamp") from exc
+    if parsed.utcoffset() is None or parsed.isoformat().replace("+00:00", "Z") != value:
+        raise InputError("event.occurred_at must use canonical UTC timestamp syntax")
+    return parsed
+
+
 def validate_event(value: Any) -> dict[str, Any]:
     """Validate one normalized event; no field can declare it cryptographically verified."""
     event = _exact_object(value, "event", _EVENT_KEYS)
@@ -84,15 +97,7 @@ def validate_event(value: Any) -> dict[str, Any]:
         _reference(event[key], f"event.{key}")
     if not isinstance(event["event_type"], str) or event["event_type"] not in _EVENT_TYPES:
         raise InputError("event.event_type is unsupported")
-    timestamp = event["occurred_at"]
-    if not isinstance(timestamp, str) or not timestamp.endswith("Z"):
-        raise InputError("event.occurred_at must be an RFC3339 UTC timestamp ending in Z")
-    try:
-        parsed = datetime.fromisoformat(timestamp[:-1] + "+00:00")
-    except ValueError as exc:
-        raise InputError("event.occurred_at must be a valid RFC3339 UTC timestamp") from exc
-    if parsed.utcoffset() is None or parsed.isoformat().replace("+00:00", "Z") != timestamp:
-        raise InputError("event.occurred_at must use canonical UTC timestamp syntax")
+    _event_time(event["occurred_at"])
     _minor(event["amount_minor"], "event.amount_minor")
     if event["event_type"] in {"payment.authorized", "payment.captured", "payment.refunded", "payment.chargeback"}:
         _minor(event["amount_minor"], "event.amount_minor", positive=True)
@@ -200,7 +205,24 @@ def reconcile(events: Any, orders: Any, payouts: Any) -> dict[str, Any]:
     payment_lookup: dict[str, dict[str, Any]] = {}
     for payment_ref, history in sorted(grouped.items()):
         history_conflict_start = len(conflicts)
-        history.sort(key=lambda item: (item["occurred_at"], item["event_id"]))
+        history.sort(
+            key=lambda item: (
+                _event_time(item["occurred_at"]),
+                item["event_type"],
+                item["amount_minor"],
+                item["currency"],
+                item["order_ref"],
+            )
+        )
+        event_times = [_event_time(item["occurred_at"]) for item in history]
+        if len(set(event_times)) != len(event_times):
+            conflicts.append(
+                _conflict(
+                    "ambiguous_event_order",
+                    payment_ref,
+                    "multiple payment events share a timestamp without a trusted provider sequence",
+                )
+            )
         if payment_ref in poisoned_payment_refs:
             conflicts.append(
                 _conflict(

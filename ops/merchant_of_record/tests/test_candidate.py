@@ -107,6 +107,34 @@ def test_late_arriving_older_lifecycle_event_does_not_regress_capture() -> None:
     assert result["payments"][0]["state"] == "captured"
 
 
+def test_fractional_second_events_are_ordered_by_instant_not_timestamp_text() -> None:
+    refund = event("refund", "payment.refunded", "10:00", amount=100)
+    capture = event("capture", "payment.captured", "10:00")
+    capture["occurred_at"] = "2026-09-28T10:00:00.000001Z"
+
+    result = MOR.reconcile([capture, refund], [order()], [])
+
+    assert result["outcome"] == "conflict"
+    assert "reversal_before_capture" in {item["code"] for item in result["conflicts"]}
+
+
+@pytest.mark.parametrize(
+    ("capture_id", "refund_id"),
+    [("a-capture", "z-refund"), ("z-capture", "a-refund")],
+)
+def test_same_time_lifecycle_events_fail_closed_independent_of_event_ids(capture_id: str, refund_id: str) -> None:
+    events = [
+        event(capture_id, "payment.captured", "10:00"),
+        event(refund_id, "payment.refunded", "10:00", amount=100),
+    ]
+
+    result = MOR.reconcile(events, [order()], [])
+
+    assert result["outcome"] == "conflict"
+    assert result["payments"][0]["state"] == "conflict"
+    assert "ambiguous_event_order" in {item["code"] for item in result["conflicts"]}
+
+
 @pytest.mark.parametrize(
     ("expected", "captured"),
     [(1001, 1000), (1000, 1001)],
@@ -331,3 +359,35 @@ def test_cli_oversized_integer_fails_without_traceback(tmp_path, capsys) -> None
     captured = capsys.readouterr()
     assert "safe-integer bound" in captured.err
     assert "Traceback" not in captured.err
+
+
+def test_cli_oversized_file_refuses_before_json_parsing(tmp_path, capsys) -> None:
+    path = tmp_path / "oversized.json"
+    path.write_bytes(b"{" * (MOR._MAX_INPUT_BYTES + 1))
+
+    assert MOR.main([str(path)]) == 2
+    captured = capsys.readouterr()
+    assert "input file must not exceed" in captured.err
+    assert "Traceback" not in captured.err
+
+
+def test_cli_conflict_returns_one_and_emits_conflict_report(tmp_path, capsys) -> None:
+    path = tmp_path / "conflict.json"
+    path.write_text(
+        json.dumps(
+            {
+                "contract_version": "merchant_reconciliation_input.v1",
+                "events": [
+                    event("capture", "payment.captured", "10:00"),
+                    event("failed", "payment.failed", "10:01"),
+                ],
+                "orders": [order()],
+                "payouts": [],
+            }
+        )
+    )
+
+    assert MOR.main([str(path)]) == 1
+    captured = capsys.readouterr()
+    assert json.loads(captured.out)["outcome"] == "conflict"
+    assert captured.err == ""
