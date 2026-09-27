@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "as_of_date": "2026-09-28",
+  "components": {
+    "g2": {
+      "path": "g2.synthetic.json",
+      "max_age_days": 14,
+      "evidence_status": "unverified",
+      "provenance_note": "synthetic fixture only"
+    },
+    "g3": {
+      "path": "g3.synthetic.json",
+      "max_age_days": 10,
+      "evidence_status": "unverified",
+      "provenance_note": "synthetic fixture only"
+    },
+    "g4": {
+      "path": "g4.synthetic.json",
+      "max_age_days": 45,
+      "evidence_status": "unverified",
+      "provenance_note": "synthetic fixture only"
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "trend_status": "four_consecutive_weeks",
+  "four_week_total_minutes": 360,
+  "four_week_change_minutes": 0,
+  "weeks": [
+    {"week_start":"2026-09-07","approval_minutes":60,"outage_response_minutes":20,"manual_fulfilment_minutes":10,"total_minutes":90,"change_vs_previous_week_minutes":null},
+    {"week_start":"2026-09-14","approval_minutes":60,"outage_response_minutes":20,"manual_fulfilment_minutes":10,"total_minutes":90,"change_vs_previous_week_minutes":0},
+    {"week_start":"2026-09-21","approval_minutes":60,"outage_response_minutes":20,"manual_fulfilment_minutes":10,"total_minutes":90,"change_vs_previous_week_minutes":0},
+    {"week_start":"2026-09-28","approval_minutes":60,"outage_response_minutes":20,"manual_fulfilment_minutes":10,"total_minutes":90,"change_vs_previous_week_minutes":0}
+  ]
+}

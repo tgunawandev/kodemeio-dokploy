@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "period": "2026-09",
+  "currency": "IDR",
+  "entities": [
+    {
+      "entity_id": "sample-entity",
+      "budget_amount": "1000000",
+      "invoice_total": "250000",
+      "variance_amount": "750000",
+      "budget_position": "within_budget"
+    }
+  ],
+  "invoice_count": 1,
+  "unallocated_amount": "0",
+  "total_budget": "1000000",
+  "total_invoice_amount": "250000",
+  "total_variance": "750000"
+}

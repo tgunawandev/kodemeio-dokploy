@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "as_of_date": "2026-09-28",
+  "products": [
+    {
+      "product_id": "sample-product",
+      "launch_date": "2026-01-01",
+      "currency": "IDR",
+      "checkpoints": [
+        {
+          "day": 60,
+          "due_date": "2026-03-02",
+          "observed_on": "2026-03-02",
+          "evidence_ref": "synthetic:day-60",
+          "metrics": {
+            "orders": {
+              "status": "met",
+              "observed": "12",
+              "direction": "gte",
+              "unit": "count",
+              "threshold": "10"
+            }
+          }
+        },
+        {
+          "day": 90,
+          "due_date": "2026-04-01",
+          "observed_on": null,
+          "evidence_ref": null,
+          "metrics": {
+            "orders": {
+              "status": "unmeasured",
+              "observed": null,
+              "direction": "gte",
+              "unit": "count",
+              "threshold": "10"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
