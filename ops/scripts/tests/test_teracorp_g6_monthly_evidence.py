@@ -39,12 +39,12 @@ def add_incident_decision(payload: dict) -> None:
         scope_id="incident-synthetic-1",
     )
     payload["decisions"].append(decision)
-    decision["evidence_refs"].append("ev.synthetic.incident.one")
+    decision["evidence_refs"].append("ev-11111111111111111111111111111111")
     payload["incident_inventory"]["items"].append(
         {
             "incident_id": "incident-synthetic-1",
             "handling_status": "handled",
-            "evidence_refs": ["ev.synthetic.incident.one"],
+            "evidence_refs": ["ev-11111111111111111111111111111111"],
             "decision_id": decision["decision_id"],
         }
     )
@@ -72,7 +72,7 @@ def test_synthetic_package_is_structural_inventory_only_and_schema_valid() -> No
 def test_change_evidence_must_be_linked_to_scoped_counsel_decision(subject_type: str) -> None:
     payload = valid_payload()
     item = next(row for row in payload["change_inventory"]["items"] if row["subject_type"] == subject_type)
-    item["evidence_refs"] = ["ev.unlinked.canary"]
+    item["evidence_refs"] = ["ev-22222222222222222222222222222222"]
     assert_incomplete(
         payload,
         f"change_inventory.items[{payload['change_inventory']['items'].index(item)}]:evidence_unlinked_from_decision",
@@ -82,7 +82,7 @@ def test_change_evidence_must_be_linked_to_scoped_counsel_decision(subject_type:
 def test_incident_evidence_must_be_linked_to_scoped_counsel_decision() -> None:
     payload = valid_payload()
     add_incident_decision(payload)
-    payload["incident_inventory"]["items"][0]["evidence_refs"] = ["ev.unlinked.incident"]
+    payload["incident_inventory"]["items"][0]["evidence_refs"] = ["ev-22222222222222222222222222222222"]
     assert_incomplete(payload, "incident_inventory.items[0]:evidence_unlinked_from_decision")
 
 
@@ -145,6 +145,43 @@ def test_naive_decision_timestamp_is_rejected() -> None:
     payload = valid_payload()
     payload["decisions"][0]["issued_at"] = "2026-09-20T10:00:00"
     assert evaluate(payload, AS_OF)["status"] == "incomplete"
+
+
+@pytest.mark.parametrize(
+    "evidence_ref",
+    [
+        "customer:jane.doe/order-123",
+        "jane.doe",
+        "ev.synthetic.jane.doe",
+        "ev-0123456789abcdef0123456789abcdef\n",
+        "qual-0123456789abcdef0123456789abcdef\n",
+    ],
+)
+def test_evidence_references_reject_human_identifiers(evidence_ref: str) -> None:
+    payload = valid_payload()
+    payload["decisions"][0]["evidence_refs"] = [evidence_ref]
+    schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
+    assert list(Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(payload))
+    assert_incomplete(payload, "document.decisions.0.evidence_refs.0:invalid_shape")
+
+
+def test_evidence_reference_accepts_opaque_machine_token() -> None:
+    payload = valid_payload()
+    payload["decisions"][0]["evidence_refs"] = ["ev-0123456789abcdef0123456789abcdef"]
+    schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
+    assert not list(Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(payload))
+    assert evaluate(payload, AS_OF)["status"] == "complete-for-counsel-review-unverified"
+
+
+@pytest.mark.parametrize("as_of", ["2026-09-28T00:00:00+07:00", "2026-09-27T19:00:00-05:00"])
+def test_non_utc_as_of_is_rejected(as_of: str) -> None:
+    assert_incomplete(valid_payload(), "as_of:utc_timestamp_required", as_of)
+    with pytest.raises(g6.argparse.ArgumentTypeError, match="as_of_requires_utc_timestamp"):
+        g6.parse_as_of(as_of)
+
+
+def test_utc_offset_as_of_is_accepted() -> None:
+    assert g6.parse_as_of("2026-09-28T00:00:00+00:00") == "2026-09-28T00:00:00+00:00"
 
 
 def test_invalid_shape_unknown_keys_and_non_echoing_output() -> None:

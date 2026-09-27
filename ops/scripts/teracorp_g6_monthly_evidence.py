@@ -102,6 +102,11 @@ def _timestamp(value: Any) -> datetime | None:
     return parsed
 
 
+def _is_utc_timestamp(value: Any) -> bool:
+    parsed = _timestamp(value)
+    return parsed is not None and parsed.utcoffset().total_seconds() == 0
+
+
 def _add(issues: set[str], path: str, reason: str) -> None:
     issues.add(f"{path}:{reason}")
 
@@ -111,6 +116,9 @@ def _evaluate_valid_shape(payload: dict[str, Any], as_of_value: Any, issues: set
     as_of = _timestamp(as_of_value)
     if as_of is None:
         _add(issues, "as_of", "timezone_timestamp_required")
+        return
+    if as_of.utcoffset().total_seconds() != 0:
+        _add(issues, "as_of", "utc_timestamp_required")
         return
 
     decisions = payload["decisions"]
@@ -294,8 +302,8 @@ def load_document(path: Path) -> Any:
 
 
 def parse_as_of(value: str) -> str:
-    if _timestamp(value) is None:
-        raise argparse.ArgumentTypeError("as_of_requires_timezone_timestamp")
+    if not _is_utc_timestamp(value):
+        raise argparse.ArgumentTypeError("as_of_requires_utc_timestamp")
     return value
 
 
