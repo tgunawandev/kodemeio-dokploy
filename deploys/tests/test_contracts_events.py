@@ -43,6 +43,7 @@ EXPECTED_INVALID = {
     "bad-work-order-id": ("pattern", ("work_order_id",), "'WO-bad-id'"),
     "bad-state": ("enum", ("state",), "'in_progress'"),
     "refs-extra-field": ("additionalProperties", ("refs",), "'secret'"),
+    "unknown-channel": ("enum", ("payload", "channel"), "'shopee'"),
 }
 
 
@@ -79,3 +80,9 @@ def test_invalid_example_check_rejects_the_wrong_reason():
     errors = list(validator_for(CONTRACTS / "events/order.requested.v1.schema.json").iter_errors(example))
     assert _unexpected_failures(errors, EXPECTED_INVALID["extra-field"])
     assert not _unexpected_failures(errors, EXPECTED_INVALID["financial-class"])
+
+
+def test_marketplace_channel_is_valid_in_order_requested_v1():
+    example = json.loads((EXAMPLES / "events/order.requested.v1.valid.json").read_text())
+    example["payload"]["channel"] = "marketplace"
+    validator_for(CONTRACTS / "events/order.requested.v1.schema.json").validate(example)
