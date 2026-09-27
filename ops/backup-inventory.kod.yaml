@@ -213,6 +213,11 @@ items:
     planned: true
     notes: "LiteLLM is not deployed on kod (Task 0: kodemeio-postgres-backup/litellm/ has had zero objects, ever; no kod-infra-litellm compose; no llm.kodeme.io DNS record). Re-add as a pg-db item (and to both freshness jobs) when LiteLLM ships."
 
+  - id: chatwoot-postgres
+    kind: gap
+    planned: true
+    notes: "Teracorp CW1, final review I3 (2026-09-27). Chatwoot's own Postgres -- container/service `chatwoot-postgres`, volume chatwoot-postgres-data, manifest deploys/instances/production/kod-app-chatwoot.yaml -- has NO backup job and no S3 object anywhere. Chatwoot's transcripts are the system of record for every customer conversation and for the consent/opt-out evidence UU PDP rests on, so this is a GO-LIVE GATE rather than a Wave 0 gap: no real conversations until a pg_dump to kodemeio-postgres-backup/chatwoot/ (plus its b2_sync source in kod-offsite-mirror.sh, both freshness prefixes, and this item promoted to kind: pg-db with fresh_h) exists. It is `planned` because the stack is not deployed yet: there is no host, no volume and no credentials to dump from until the kod-app-chatwoot rollout runs (runbook step 1 M1 host + step 9 backups, founder-gated). Wiring it before then would only produce a job that fails on every run."
+
   - id: postgres-gatus-glitchtip
     kind: gap
     planned: true

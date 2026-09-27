@@ -44,8 +44,23 @@ and this note is deleted from the next person's copy of this runbook.
    `sale_payment_request_api` (depends on `api_sale` + `payment_midtrans_guard`)
    on the production Terakidz database, and configure the SAME MCP profile
    `field_policy` settings `bin/teracorp_slice_setup.py` writes on
-   `teracorp_slice` — a partner phone/email/street/mobile deny-list on the
-   `kido-chat` profile, and a payment-code deny on `kido`. Do this through
+   `teracorp_slice`. Those are ALLOW-lists, not deny-lists (final review M7
+   corrected this paragraph: the implementation is stricter than the
+   deny-list it used to describe, and an operator re-creating it by hand from
+   the weaker shape would widen it). `kido-chat` gets exactly:
+   `partners` allow `name, phone, company_id, active` (everything else --
+   email, mobile, street/street2/city/zip/state/country, vat, website,
+   comment, bank accounts, children -- is withheld from every read, filter,
+   sort and write); `products` allow `default_code, name, list_price, active,
+   description_sale, company_id`; `sale-orders` allow `name, state,
+   amount_total, partner_id, company_id`, `integration_ref` when it exists,
+   plus the PAY1 payment fields when `sale_payment_request_api` is installed.
+   `kido` (order_intake) instead gets a DENY on the payment-code fields
+   (`midtrans_qr_string`, `midtrans_qr_url`, `midtrans_va_number`,
+   `midtrans_va_bank`, `midtrans_payment_expires_at`,
+   `midtrans_payment_type`) so the model can never read a code. The
+   `kido-chat` policy is drift-checked against `contracts/agents/kido_chat.yaml`
+   on every run; a hand edit is refused. Do this through
    the normal Odoo deploy path (`teracorp-odoo-rollout.md`'s own install
    steps), not through this compose — this stack has no Odoo of its own.
 3. **Secrets to 1Password + Dokploy env** (names only below; real values
@@ -62,9 +77,13 @@ and this note is deleted from the next person's copy of this runbook.
      configured, the webhook accepts a FORGED signature as genuine.
    - **`SAFE_FETCH_ALLOW_PRIVATE_NETWORK=true` — REQUIRED for the agent bot to
      reach `kido-chat`, and a deliberate SSRF relaxation.** Read the section
-     below ("SafeFetch and the agent bot") before setting it; the compose's
-     default is `false` so that forgetting it fails at the webhook instead of
-     silently opening the process up.
+     below ("SafeFetch and the agent bot") before setting it: the env examples
+     deliberately ship `true` (the bot receives nothing without it), and
+     confirming — or deliberately changing — that value IS the M6 founder
+     gate. The compose's own default when the variable is unset is `false`, so
+     a stack that never sets it opens nothing. Never leave it as `change-me`
+     or blank: Chatwoot's `ActiveModel::Type::Boolean` cast turns any
+     non-false string into true.
    - kido_chat: `LITELLM_KEY`, `KIDO_CHAT_MCP_TOKEN`,
      `CHATWOOT_CONTACT_TOKEN`, `KIDO_INTAKE_SECRET`,
      `KIDO_BOT_SECRET_TERAKIDZ`, `KIDO_BOT_TOKEN_TERAKIDZ` (the last two come
@@ -132,18 +151,27 @@ and this note is deleted from the next person's copy of this runbook.
    only — add to Gatus as an internal-network check if Gatus can reach
    `cw-internal`, otherwise rely on the container healthcheck + Dokploy's
    own "unhealthy container" surfacing).
-9. **Backups**: Chatwoot's own Postgres (`chatwoot-postgres`, volume
-   `chatwoot-postgres-data`) is **not yet in the kod offsite backup plan**
-   (`ops/backup-inventory.kod.yaml`) — this is the same kind of gap
-   `kod-infra-litellm.yaml` documents for `litellm-db` (a real database with
-   no backup job yet). Adding it needs a new `pg-db` entry in
-   `ops/backup-inventory.kod.yaml` **and** a matching job in
-   `kodemeio-skills`' `docker/jobs/kod-*.sh` (a different repo — out of this
-   task's scope; `deploys/tests/test_backup_inventory.py` will catch drift
-   once both sides exist). Track this as a follow-up task before this stack
-   holds real customer conversations for any meaningful length of time —
-   Chatwoot's transcripts ARE the record of every customer interaction, not
-   a cache of something recoverable from Odoo.
+9. **Backups — 🔴 GO-LIVE GATE, founder-gated.** Chatwoot's own Postgres
+   (`chatwoot-postgres`, volume `chatwoot-postgres-data`) has no backup job
+   anywhere. It is now **recorded as an enforced gap** in
+   `ops/backup-inventory.kod.yaml` (`id: chatwoot-postgres`, `planned: true`,
+   same shape as `litellm-db`) instead of living only in this prose, so
+   `./dokploy.sh backup kodemeio` / the inventory surface it again (final
+   review I3). **What remains founder-gated:** the entry stays `planned`
+   until the stack is actually deployed — there is no host, no volume and no
+   credentials to dump from before step 1 (M1) and this rollout — so the
+   promotion to a real `kind: pg-db` item needs, in the same change:
+   (a) a pg_dump job in `kodemeio-skills`' `docker/jobs/kod-*.sh` writing
+   `kodemeio-postgres-backup/chatwoot/`, (b) that prefix as a `b2_sync`
+   source in `kod-offsite-mirror.sh` and a `b2_fresh`/`hzfresh` entry in both
+   freshness jobs, (c) this inventory item promoted with its `fresh_h`.
+   `deploys/tests/test_backup_inventory.py` checks (b)/(c) for equality once
+   both sides exist. **Do not let this stack hold real customer
+   conversations before that lands** — Chatwoot's transcripts ARE the record
+   of every customer interaction and the consent/opt-out evidence UU PDP
+   rests on, not a cache of something recoverable from Odoo. The first
+   `KIDO_ENABLED=0` deploy (step 6) is deliberately not blocked by this;
+   live traffic is.
 
 ## KIDO_ENABLED default (kill switch #1) and the founder's vetted-LLM decision
 
@@ -201,12 +229,27 @@ so this is a real widening, not a formality.
 it is "the bot does not work", because the design puts `kido-chat` off the
 public network on purpose. The mitigation is the network boundary: `cw-internal`
 publishes no port (`no ports:` on every service but `chatwoot-web`), the ingress
-is reachable only from this compose, and the host runs no other tenant. The
-founder must set it explicitly (default in the compose is `false`, so a stack
-that forgets it fails loudly at the webhook rather than silently opening up),
-and re-visit this line if Chatwoot ever ships a host allowlist — then the
-narrow form (only `kido-chat`) replaces the boolean. Residual risk is recorded
-in the CW1 results document's security notes.
+is reachable only from this compose, and the host runs no other tenant.
+
+**Where the value comes from (final review M6 — this paragraph used to say the
+founder "must set it explicitly" while the env example already shipped
+`true`, so the two statements disagreed).** Both env examples ship
+`SAFE_FETCH_ALLOW_PRIVATE_NETWORK=true` deliberately: it is required for the
+bot to receive a single message, and shipping `false`-or-blank as the template
+would produce exactly the silent failure this runbook warns about elsewhere (a
+bot that is created and never fires). The compose's own default when the
+variable is unset is `false` (`docker-compose.prod.yml`), so the founder gate
+at M6 is to **confirm or change** the shipped `true` in Dokploy's env store —
+confirming it is the explicit acknowledgement of the table above; setting it
+`false` is a valid choice that trades the bot for a narrower SafeFetch. **Never
+leave it as a placeholder or blank:** Chatwoot reads it with
+`ActiveModel::Type::Boolean` (`lib/safe_fetch.rb:36-37`), and that cast turns
+any string that is not an explicit false ("0"/"false"/"off") into **true** —
+measured in the pinned v4.18.0 image: `"change-me"` → true, `""` → true.
+`deploys/tests/test_chatwoot_env_parity.py` fails on a placeholder value for
+this reason. Re-visit this line if Chatwoot ever ships a host allowlist — then
+the narrow form (only `kido-chat`) replaces the boolean. Residual risk is
+recorded in the CW1 results document's security notes.
 
 **How to verify the bot path is live** after a deploy: send one WhatsApp
 message to the number and watch the kido-chat container log for
