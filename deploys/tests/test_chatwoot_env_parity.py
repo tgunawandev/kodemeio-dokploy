@@ -231,13 +231,20 @@ def test_mutation_dropping_the_app_secret_from_the_dokploy_example_fails_parity(
     """I1's actual shape: the key existed in the chatwoot example and in the
     compose, and was simply absent here. Deleting it from an in-memory copy
     must fail the parity check and the required-key check -- not pass because
-    today's file happens to be complete."""
+    today's file happens to be complete.
+
+    Both of those checks are comparisons AGAINST the sibling repo (its compose
+    and its example), so this test needs the same `_require_sibling()` gate as
+    every other sibling-dependent test: without it, dokploy's own CI -- which
+    checks out only `kodemeio-dsh` -- read a file that is not there and errored
+    with FileNotFoundError, turning the job red (scoped re-review, 2026-09-27).
+    """
+    _require_sibling()
     dokploy = DOKPLOY_EXAMPLE.read_text()
     assert "WHATSAPP_APP_SECRET=" in dokploy
     mutated = "\n".join(line for line in dokploy.splitlines() if not line.strip().startswith("WHATSAPP_APP_SECRET="))
     assert "WHATSAPP_APP_SECRET" in missing_required_violations(mutated, CHATWOOT_PROD_COMPOSE.read_text())
-    if CHATWOOT_EXAMPLE.is_file():
-        assert parity_violations(mutated, CHATWOOT_EXAMPLE.read_text())
+    assert parity_violations(mutated, CHATWOOT_EXAMPLE.read_text())
 
 
 def test_mutation_dropping_safe_fetch_fails_the_required_keys_check():
@@ -272,8 +279,7 @@ def test_mutation_a_reordered_key_is_caught():
     """Prove the order check has teeth: move one key to the end and it fails
     (a hand merge that drops a key back into the wrong block looks exactly
     like this)."""
-    if not CHATWOOT_EXAMPLE.is_file():
-        pytest.skip("needs the kodemeio-chatwoot sibling to reorder against")
+    _require_sibling()
     dokploy = DOKPLOY_EXAMPLE.read_text()
     lines = dokploy.splitlines()
     moved = next(line for line in lines if line.strip().startswith("SMTP_DOMAIN="))
