@@ -17,11 +17,11 @@ and no production write happens anywhere in this document without `--yes`.
 
 | # | Fact | How it was read |
 |---|---|---|
-| 1 | `factory_content` is committed on `18.0` (`kodemeio-odoo` **491804e55** T1, **d2393db21** T2, **b9e9ebb33** T3) — **112 tests, 0 failed**; `factory_base` 140 and `factory_landing`/`factory_template` stay green on their own slim DB | `TEST_DB=odoo_test_factory_f8 ./odoo.sh dev t factory_content` |
+| 1 | Refreshed F8 acceptance: **143 factory_content tests, 0 failed/0 errors** (Odoo summary: 115 post-tests). The composed `factory_base` neighbor run remains **2 failures of 336**, exactly `factory_landing` A6/A8 HTTP 404s; these are known and the neighbor suite is not green. Rerun `factory_landing` and resolve those failures before treating the neighbor suite as a rollout prerequisite | `/tmp/factory_content_f8n_isolated.log`; `/tmp/factory_base_f8n.log` |
 | 2 | Bundle group `content` exists in `install/private-factory.yaml` (depends `core`, one module) and the bundle `requires` `private-content`; `bin/validate-bundles` reports **0 errors** | `bin/validate-bundles` |
 | 3 | The channel limits are committed: `factory_content/data/content_channel_rules.yaml` — four channels (`tiktok`, `youtube`, `instagram`, `facebook`), materialised into `factory.content.channel.rule` rows on install **and on every upgrade** | the file; the module's `CLAUDE.md` |
 | 4 | 🔴 **Only the Terakidz kit is real.** `brands/terakidz.yaml` carries a written voice, a do/don't list, forbidden phrases, a required disclaimer and an AI-disclosure line; `terakon` is a draft fixture, and **`terafin` and `terakod` have no kit file at all** | `kodemeio-dokploy/brands/` |
-| 5 | 🔴 **No `content.transport` for an LLM gateway exists on this estate.** The content kernel's transports are `veo` and `seedance` (video), and every piece is enqueued through that ledger; the LiteLLM-keyed *copy-writing* transport the spec's D4 anticipates is **not wired anywhere**, so the account a piece is generated under must be one the operator has created and priced | `kodemeio-odoo/src/private/content/`; spec D4 |
+| 5 | The F8 fix wave adds a `LITELLM` provider adapter while generation, prompts, prices, budget reservations, idempotency and assets remain in the content framework. Its recorded-response test passes; no estate key or live gateway is used | F8 fix-wave source and `/tmp/factory_content_f8n_isolated.log` |
 | 6 | 🔴 **Nothing publishes.** `action_release_content` sets `released`; publication (TikTok/YouTube/Meta) is F10 (`publishing`) and `content_publish_base` is not even a dependency of this module | spec D5; `tests/test_acceptance.py::test_nothing_is_published` |
 | 7 | The content kernel's own FAKE transport is registered only under `--test-enable`; no production instance has a second generation path | `content_base/models/__init__.py` |
 
@@ -40,7 +40,7 @@ manager creates one; (2) **a brand kit that is not usable** — a kit whose font
 | Which Odoo instance | `./odoo.sh kod prod` (erp.kodeme.io) is the default here; `kod-desk` for the desk instance | one `-p` profile per instance |
 | Which channels are in scope FIRST | the committed four are `tiktok`, `youtube`, `instagram`, `facebook` — all four have a module on the estate (`content_tiktok`, `content_youtube`, `content_meta`) | the spec's founder gate 2; a channel not in the file is refused by name |
 | Which brands | **Terakidz only, today.** Terakon/Terafin/Terakod are placeholders (fact 4) | see M2 |
-| Which copy-writing engine | none is wired (fact 5) | a follow-up: either a `content.transport` for the gateway, or the composition runs outside and the piece records it |
+| Which copy-writing engine | LiteLLM through the framework `LITELLM` transport; requires an estate-managed account key, price line and budget | the spec's founder gate 2 |
 
 **Founder decisions to record here (fill in and commit):**
 
@@ -48,8 +48,7 @@ manager creates one; (2) **a brand kit that is not usable** — a kit whose font
 Target instance:        [ ] kod (erp.kodeme.io)     [ ] kod-desk (desk.kodeme.io)
 Channels in scope first:[ ] tiktok  [ ] youtube  [ ] instagram  [ ] facebook
 Brands turned on:       [ ] terakidz                [ ] terakon  [ ] terafin  [ ] terakod
-Copy engine:            [ ] accept "no LLM transport yet" (piece materialise still requires an account)
-                        [ ] commission the gateway transport first
+Copy engine:            [ ] use configured LITELLM content account, price line and budget
 ```
 
 **Rollback:** none — this step decides, it does not change anything.
@@ -161,14 +160,20 @@ no price line exists — the adapter then refuses materialise by name. So:
 # then, as a content manager, a price line per (transport, medium, model scope)
 ```
 
-🔴 **Fact 5**: this estate has **no LLM transport for copy**. The transports that exist generate
-video. Until a gateway transport is wired, the account a piece is generated under is whatever
-exists, and the composed prompt is what that transport receives. Decide explicitly which of these
-this instance does:
+The factory's `LITELLM` content transport sends the prompt-version body through the existing
+content generation ledger and stores the returned JSON completion as a framework `content.asset`.
+Before use, a content manager must configure the shared gateway URL/model/timeout in Digital AI
+settings, create an active `content.account` with transport `LITELLM` serving the target company,
+set its estate virtual key through `content.account.set_secret("litellm_api_key", ...)`, and add a
+`content.price.line` for `LITELLM` + `text` + the configured model and a matching content budget.
+Do not put keys in work-order inputs, logs, commands, or this runbook. The recorded-response test
+uses a test-only credential and passes; no estate key is read and no live gateway request was made.
+Generation remains queued and is completed by the content framework dispatcher before generated
+copy can be submitted for review.
 
-- **(a)** accept it — the piece is materialised, its prompt is composed from the kit, and the
-  ledger row records what was asked for; the copy itself is written outside and recorded;
-- **(b)** commission the `content.transport` for the gateway first.
+Recorded neighbor-suite status is a rollout prerequisite: `factory_landing` had two failures of
+48 tests, A6 and A8 returning HTTP 404. It is not green; rerun and resolve A6/A8 before claiming
+the neighboring suite is green.
 
 **Rollback:** deactivate the account; nothing spends while it is inactive.
 
