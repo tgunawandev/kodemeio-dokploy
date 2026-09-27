@@ -44,9 +44,16 @@ TEST_DB=odoo_test_factory_f10 ./odoo.sh dev testdb factory_publish
 TEST_DB=odoo_test_factory_f10 ./odoo.sh dev t factory_publish
 ```
 
-The `private-factory:publishing` group depends on the F8 `content` group and the publication
-engine/review modules supplied by `private-content`. It is intentionally absent from the default
-profile and no production deployment is implied by the bundle entry.
+The `private-factory:publishing` group depends on the F8 `content` install group and the publication
+engine/review modules supplied by `private-content`. This bundle dependency describes module
+installation only; it is not evidence that F8 has passed acceptance or been deployed. The earlier
+serialized F10 neighbour run reported 3 failures and 44 errors of 115 tests; its full traceback
+and failing test names were not retained. On 2026-09-27 the owner reported a later updated-DB F8
+`factory_content` run red with 9 failures and 2 errors. Bohr is fixing it and preparing a rerun
+with captured output; that result is pending and has not been independently verified here. Neither
+red run is F8 acceptance evidence. Review the captured rerun before relying on F8 operationally.
+This F10 runbook makes no F8 acceptance or production-deployment claim. The group is absent from
+the default profile.
 
 Configure accounts using the Odoo UI/API with the founder-approved company, brand kit, channel
 and mode. Do not paste credentials into source, YAML, logs, publication metadata or test
@@ -78,5 +85,6 @@ retry an unknown platform call by hand. Capture only IDs, states, timestamps, ch
 founder's decision; redact account names if they identify a person.
 
 Before any founder approval, attach the F10 results ledger with the module and neighbour test
-counts, `bin/validate-bundles`, `bin/lint-addon-i18n`, and the exact local commits. No push,
-deploy, Postiz connection or live-platform call is part of this slice.
+counts, `bin/validate-bundles`, `bin/lint-addon-i18n`, the fix-wave test output and exact local
+commits. Record `built-local` only; no deployment or live-platform evidence is claimed here. No
+push, deploy, Postiz connection or live-platform call is part of this slice.
