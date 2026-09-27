@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "as_of_date": "2026-09-28",
+  "hooks": [
+    {
+      "hook_id": "sample-benefit-hook",
+      "version": 1,
+      "brand": "terakod",
+      "hook_type": "benefit",
+      "variant_label": "synthetic-variant-a",
+      "created_on": "2026-09-01",
+      "lifecycle": "active"
+    }
+  ],
+  "evidence_refs": [
+    {
+      "evidence_ref_id": "synthetic-fixture-checksum",
+      "brand": "terakod",
+      "evidence_kind": "performance_source",
+      "verification_status": "verified",
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "observed_on": "2026-09-15"
+    }
+  ],
+  "performance_windows": [
+    {
+      "schema_version": 1,
+      "window_id": "sample-window-01",
+      "hook_id": "sample-benefit-hook",
+      "hook_version": 1,
+      "brand": "terakod",
+      "window_start": "2026-09-08",
+      "window_end": "2026-09-14",
+      "observed_on": "2026-09-15",
+      "provenance": "synthetic",
+      "source_id": "synthetic-fixture",
+      "impressions": 100,
+      "engagements": 8,
+      "conversions": 2,
+      "evidence_ref_id": "synthetic-fixture-checksum"
+    }
+  ],
+  "retirement_decisions": []
+}
