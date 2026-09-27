@@ -12,6 +12,9 @@ env_overrides:
   HERMES_UPSTREAM_REF: v2026.8.31
   HERMES_CONTAINER_PREFIX: kod-infra-hermes-vision
   HERMES_PERSONA: vision
+  HERMES_INFERENCE_MODEL: deepseek/deepseek-v4-flash
+  HERMES_MODEL_PROVIDER: openai
+  HERMES_MODEL_BASE_URL: https://llm.kodeme.io/v1
   HERMES_CPU_LIMIT: '2.0'
   HERMES_MEM_LIMIT: 2G
   HERMES_MEM_RESERVATION: 512M

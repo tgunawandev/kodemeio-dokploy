@@ -127,6 +127,11 @@ hermes:
     - name: vision
       persona: vision
       edition: business
+      model:
+        name: deepseek/deepseek-v4-flash
+        provider: openai
+        base_url: https://llm.kodeme.io/v1
+        api_key_env: OPENAI_API_KEY
       inbound:
         telegram:
           enabled: false

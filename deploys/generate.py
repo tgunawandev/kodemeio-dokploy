@@ -12,8 +12,10 @@ from __future__ import annotations
 
 import argparse
 import difflib
+import re
 import sys
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import yaml
 
@@ -1089,6 +1091,41 @@ def gen_hermes(
         )
     upstream_ref = upstream_ref.strip()
 
+    model_block = hermes.get("model")
+    if model_block is not None:
+        if type(model_block) is not dict or set(model_block) != {"name", "provider", "base_url", "api_key_env"}:
+            raise ValueError(
+                f"tenants/{code}.yaml: hermes.model must contain exactly name, provider, base_url, api_key_env"
+            )
+        model_name = model_block["name"]
+        if not isinstance(model_name, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._/-]{0,127}", model_name):
+            raise ValueError(f"tenants/{code}.yaml: hermes.model.name must be a safe model alias")
+        if model_block["provider"] != "openai":
+            raise ValueError(
+                f"tenants/{code}.yaml: hermes.model.provider must be openai for the governed LiteLLM route"
+            )
+        base_url = model_block["base_url"]
+        try:
+            parsed_base_url = urlsplit(base_url) if isinstance(base_url, str) else None
+            port = parsed_base_url.port if parsed_base_url else None
+        except ValueError:
+            parsed_base_url = None
+            port = None
+        if (
+            parsed_base_url is None
+            or parsed_base_url.scheme != "https"
+            or parsed_base_url.hostname != "llm.kodeme.io"
+            or parsed_base_url.path != "/v1"
+            or port not in (None, 443)
+            or parsed_base_url.username is not None
+            or parsed_base_url.password is not None
+            or parsed_base_url.query
+            or parsed_base_url.fragment
+        ):
+            raise ValueError(f"tenants/{code}.yaml: hermes.model.base_url must be https://llm.kodeme.io/v1")
+        if model_block["api_key_env"] != "OPENAI_API_KEY":
+            raise ValueError(f"tenants/{code}.yaml: hermes.model.api_key_env must be OPENAI_API_KEY")
+
     dashboard_block = hermes.get("dashboard", {})
     dashboard_on = bool(dashboard_block.get("enabled"))
     if dashboard_on and edition != "superuser":
@@ -1169,6 +1206,15 @@ def gen_hermes(
             "HERMES_CONTAINER_PREFIX": instance_name,
             **({"HERMES_PERSONA": persona} if persona else {}),
             **({"HERMES_TENANT": tenant_name} if tenant_name else {}),
+            **(
+                {
+                    "HERMES_INFERENCE_MODEL": model_block["name"],
+                    "HERMES_MODEL_PROVIDER": model_block["provider"],
+                    "HERMES_MODEL_BASE_URL": model_block["base_url"],
+                }
+                if model_block
+                else {}
+            ),
             **HERMES_EDITION_RESOURCES[edition],
         },
     }
@@ -1193,6 +1239,18 @@ def gen_hermes(
         "TZ=Asia/Jakarta",
         "",
     ]
+
+    if model_block:
+        lines += [
+            "# === Governed OpenAI-compatible inference endpoint ===",
+            "# Use the per-agent LiteLLM virtual key issued for this model alias.",
+            "# Never use a shared provider account key or paste a real value here.",
+            f"HERMES_INFERENCE_MODEL={model_block['name']}",
+            f"HERMES_MODEL_PROVIDER={model_block['provider']}",
+            f"HERMES_MODEL_BASE_URL={model_block['base_url']}",
+            "OPENAI_API_KEY=CHANGE_ME",
+            "",
+        ]
 
     if edition == "superuser":
         lines += [
@@ -1296,8 +1354,6 @@ def gen_hermes(
         "HERMES_MCP_WAHA_TOKEN=",
     ]
     env_example = "\n".join(lines) + "\n"
-
-    import re
 
     rendered = yaml_dump(instance)
     if re.match(r"^tpp-prod-\d+$", server):

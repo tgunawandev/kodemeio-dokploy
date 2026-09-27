@@ -41,7 +41,9 @@ def test_two_agents_produce_two_distinct_manifests():
 
 def test_each_agent_gets_its_own_container_prefix():
     hermes = {
-        "enabled": True, "server": "tpp-prod-04", "inbound": INBOUND,
+        "enabled": True,
+        "server": "tpp-prod-04",
+        "inbound": INBOUND,
         "agents": [{"edition": "superuser"}, {"name": "jarvis", "edition": "business"}],
     }
     out = gen_hermes_agents(TENANT, hermes, "production")
@@ -51,7 +53,9 @@ def test_each_agent_gets_its_own_container_prefix():
 
 def test_an_agent_inherits_shared_config_and_overrides_its_own():
     hermes = {
-        "enabled": True, "server": "tpp-prod-04", "inbound": INBOUND,
+        "enabled": True,
+        "server": "tpp-prod-04",
+        "inbound": INBOUND,
         "edition": "superuser",
         "agents": [{}, {"name": "jarvis", "edition": "business"}],
     }
@@ -65,7 +69,9 @@ def test_an_agent_inherits_shared_config_and_overrides_its_own():
 
 def test_env_example_filenames_are_distinct_per_agent():
     hermes = {
-        "enabled": True, "server": "tpp-prod-04", "inbound": INBOUND,
+        "enabled": True,
+        "server": "tpp-prod-04",
+        "inbound": INBOUND,
         "agents": [{}, {"name": "jarvis", "edition": "business"}],
     }
     out = gen_hermes_agents(TENANT, hermes, "production")
@@ -76,8 +82,80 @@ def test_env_example_filenames_are_distinct_per_agent():
 
 def test_two_unnamed_agents_are_refused_rather_than_silently_colliding():
     hermes = {
-        "enabled": True, "server": "tpp-prod-04", "inbound": INBOUND,
+        "enabled": True,
+        "server": "tpp-prod-04",
+        "inbound": INBOUND,
         "agents": [{}, {}],
     }
     with pytest.raises(ValueError, match="unique"):
         gen_hermes_agents(TENANT, hermes, "production")
+
+
+def test_agent_model_can_be_governed_by_litellm_virtual_key():
+    tenant = {"code": "kodemeio", "name": "Kodemeio", "short_name": "KOD"}
+    hermes = {
+        "enabled": True,
+        "server": "kod-prod-02",
+        "inbound": {"mattermost": {"enabled": True, "url": "https://mm.kodeme.io"}},
+        "agents": [
+            {
+                "name": "vision",
+                "edition": "business",
+                "persona": "vision",
+                "model": {
+                    "name": "deepseek/deepseek-v4-flash",
+                    "provider": "openai",
+                    "base_url": "https://llm.kodeme.io/v1",
+                    "api_key_env": "OPENAI_API_KEY",
+                },
+            }
+        ],
+    }
+    _, manifest, _, env_example = gen_hermes_agents(tenant, hermes, "production")[0]
+    assert "HERMES_INFERENCE_MODEL: deepseek/deepseek-v4-flash" in manifest
+    assert "HERMES_MODEL_PROVIDER: openai" in manifest
+    assert "HERMES_MODEL_BASE_URL: https://llm.kodeme.io/v1" in manifest
+    assert "OPENAI_API_KEY=CHANGE_ME" in env_example
+    assert "OPENAI_API_KEY:" not in manifest
+
+
+@pytest.mark.parametrize(
+    "model",
+    [
+        {
+            "name": "deepseek-flash",
+            "provider": "openai",
+            "base_url": "http://llm.kodeme.io/v1",
+            "api_key_env": "OPENAI_API_KEY",
+        },
+        {
+            "name": "deepseek-flash",
+            "provider": "openai",
+            "base_url": "https://llm.kodeme.io/v1",
+            "api_key_env": "OPENROUTER_API_KEY",
+        },
+        {
+            "name": "deepseek-flash",
+            "provider": "openai",
+            "base_url": "https://user:pass@llm.kodeme.io/v1",
+            "api_key_env": "OPENAI_API_KEY",
+        },
+        {
+            "name": "deepseek-flash",
+            "provider": "openai",
+            "base_url": "https://llm.kodeme.io:444/v1",
+            "api_key_env": "OPENAI_API_KEY",
+        },
+    ],
+    ids=["https-required", "unapproved-key-env", "embedded-credentials-refused", "nonstandard-port-refused"],
+)
+def test_invalid_agent_llm_governance_config_refuses(model):
+    tenant = {"code": "kodemeio", "name": "Kodemeio", "short_name": "KOD"}
+    hermes = {
+        "enabled": True,
+        "server": "kod-prod-02",
+        "inbound": {"mattermost": {"enabled": True, "url": "https://mm.kodeme.io"}},
+        "agents": [{"name": "vision", "edition": "business", "persona": "vision", "model": model}],
+    }
+    with pytest.raises(ValueError, match="hermes.model"):
+        gen_hermes_agents(tenant, hermes, "production")
