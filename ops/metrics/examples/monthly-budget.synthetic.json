@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "period": "2026-09",
+  "currency": "IDR",
+  "entities": [
+    {"entity_id": "terakidz", "budget_amount": "1000000"},
+    {"entity_id": "terakod", "budget_amount": "500000"}
+  ],
+  "invoices": [
+    {
+      "invoice_ref": "invoice:synthetic-001",
+      "invoice_date": "2026-09-05",
+      "amount": "300000",
+      "allocations": [
+        {"entity_id": "terakidz", "amount": "200000"},
+        {"entity_id": "terakod", "amount": "100000"}
+      ]
+    },
+    {
+      "invoice_ref": "invoice:synthetic-002",
+      "invoice_date": "2026-09-15",
+      "amount": "400000",
+      "allocations": [{"entity_id": "terakidz", "amount": "400000"}]
+    }
+  ]
+}
