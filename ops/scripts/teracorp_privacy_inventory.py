@@ -99,6 +99,7 @@ def validate(payload: Any, as_of: str) -> dict[str, Any]:
         raise InputError("products must contain 1..128 products")
     processors: dict[str, str] = {}
     evidence: dict[str, date] = {}
+    evidence_product_scope: dict[str, str | None] = {}
     for index, raw in enumerate(processors_in):
         where = f"processors[{index}]"
         item = _object(raw, where, {"processor_id", "inventory_status", "evidence_refs"})
@@ -121,17 +122,24 @@ def validate(payload: Any, as_of: str) -> dict[str, Any]:
         pass  # Unknown is intentionally distinct from an asserted empty inventory.
     for index, raw in enumerate(evidence_in):
         where = f"evidence_refs[{index}]"
-        item = _object(raw, where, {"evidence_ref_id", "sha256", "observed_on"})
+        item = _object(raw, where, {"evidence_ref_id", "sha256", "observed_on", "product_id"})
         key = _id(item["evidence_ref_id"], f"{where}.evidence_ref_id")
         if key in evidence or not isinstance(item["sha256"], str) or not SHA256.fullmatch(item["sha256"]):
             raise InputError(f"{where} has duplicate identity or invalid digest")
         observed = _day(item["observed_on"], f"{where}.observed_on")
         if observed > cutoff:
             raise InputError(f"{where} is after as_of_date")
+        scope_product = item["product_id"]
+        if scope_product is not None:
+            scope_product = _id(scope_product, f"{where}.product_id")
         evidence[key] = observed
+        evidence_product_scope[key] = scope_product
     for index, item in enumerate(processors_in):
-        if not set(item["evidence_refs"]) <= evidence.keys():
+        refs = set(item["evidence_refs"])
+        if not refs <= evidence.keys():
             raise InputError(f"processors[{index}] references missing evidence")
+        if any(evidence_product_scope[ref] is not None for ref in refs):
+            raise InputError(f"processors[{index}] requires package-scoped evidence")
 
     purposes_by_product: dict[str, set[str]] = {}
     for index, raw in enumerate(purpose_registry):
@@ -192,6 +200,8 @@ def validate(payload: Any, as_of: str) -> dict[str, Any]:
             linked_refs += len(refs)
             if not set(refs) <= evidence.keys():
                 raise InputError(f"{where}.{field} references missing evidence")
+            if any(evidence_product_scope[ref] != product_id for ref in refs):
+                raise InputError(f"{where}.{field} references evidence outside this product scope")
         for status_field, ref_field in (
             ("consent_status", "consent_evidence_refs"),
             ("retention_status", "retention_evidence_refs"),
@@ -249,6 +259,8 @@ def validate(payload: Any, as_of: str) -> dict[str, Any]:
             linked_refs += len(refs)
             if not set(refs) <= evidence.keys():
                 raise InputError(f"{flow_where}.evidence_refs references missing evidence")
+            if any(evidence_product_scope[ref] != product_id for ref in refs):
+                raise InputError(f"{flow_where}.evidence_refs references evidence outside this product scope")
         if item["inventory_status"] == "unknown":
             unresolved.add(f"{product_id}:inventory_status:unknown")
         if item["consent_status"] == "not_applicable_asserted":
@@ -257,6 +269,8 @@ def validate(payload: Any, as_of: str) -> dict[str, Any]:
             unresolved.add(f"{product_id}:pia_status:founder_asserted_unverified")
     if not set(purposes_by_product) <= product_ids:
         raise InputError("purpose_registry references an unknown product")
+    if not {scope for scope in evidence_product_scope.values() if scope is not None} <= product_ids:
+        raise InputError("evidence scope references an unknown product")
     if processor_state == "unknown":
         unresolved.add("processor_inventory_status:unknown")
     if processor_state == "none_declared":

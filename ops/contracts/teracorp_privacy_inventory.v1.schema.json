@@ -39,11 +39,12 @@
     },
     "evidence": {
       "type": "object", "additionalProperties": false,
-      "required": ["evidence_ref_id", "sha256", "observed_on"],
+      "required": ["evidence_ref_id", "sha256", "observed_on", "product_id"],
       "properties": {
         "evidence_ref_id": {"$ref": "#/$defs/id"},
         "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-        "observed_on": {"$ref": "#/$defs/date"}
+        "observed_on": {"$ref": "#/$defs/date"},
+        "product_id": {"oneOf": [{"$ref": "#/$defs/id"}, {"type": "null"}], "description": "Null means package-scoped evidence; an ID binds evidence to exactly one product."}
       }
     },
     "dataFlow": {

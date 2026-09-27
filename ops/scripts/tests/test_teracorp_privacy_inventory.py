@@ -172,6 +172,45 @@ def test_purpose_registry_rejects_cross_product_and_dangling_product_references(
         validate(data, AS_OF)
 
 
+def test_evidence_references_are_package_or_exact_product_scoped() -> None:
+    data = payload()
+    data["products"][0]["data_flows"][0]["evidence_refs"] = ["ev-vendor"]
+    with pytest.raises(InputError, match="outside this product scope"):
+        validate(data, AS_OF)
+
+    data = payload()
+    second = copy.deepcopy(data["products"][0])
+    second["product_id"] = "another-product"
+    second["consent_evidence_refs"] = ["ev-consent"]
+    second["retention_evidence_refs"] = ["ev-retention"]
+    second["deletion_evidence_refs"] = ["ev-delete"]
+    second["pia_evidence_refs"] = ["ev-pia"]
+    second["data_flows"][0]["flow_id"] = "another-flow"
+    second["data_flows"][0]["purpose_id"] = "purpose-another"
+    second["data_flows"][0]["evidence_refs"] = ["ev-flow"]
+    data["purpose_registry"].append({"product_id": "another-product", "purpose_id": "purpose-another"})
+    data["products"].append(second)
+    with pytest.raises(InputError, match="outside this product scope"):
+        validate(data, AS_OF)
+
+    data = payload()
+    data["processors"][0]["evidence_refs"] = ["ev-consent"]
+    with pytest.raises(InputError, match="package-scoped evidence"):
+        validate(data, AS_OF)
+
+    data = payload()
+    data["evidence_refs"].append(
+        {
+            "evidence_ref_id": "orphan-evidence",
+            "sha256": "2" * 64,
+            "observed_on": AS_OF,
+            "product_id": "missing-product",
+        }
+    )
+    with pytest.raises(InputError, match="evidence scope references an unknown product"):
+        validate(data, AS_OF)
+
+
 def test_future_caller_as_of_does_not_authenticate_or_verify_inventory() -> None:
     data = payload()
     data["as_of_date"] = "2099-01-01"

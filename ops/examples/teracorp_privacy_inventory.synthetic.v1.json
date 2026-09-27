@@ -7,12 +7,13 @@
     {"processor_id": "synthetic-vendor", "inventory_status": "identified", "evidence_refs": ["ev-vendor"]}
   ],
   "evidence_refs": [
-    {"evidence_ref_id": "ev-map", "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "observed_on": "2026-09-20"},
-    {"evidence_ref_id": "ev-vendor", "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "observed_on": "2026-09-21"},
-    {"evidence_ref_id": "ev-consent", "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", "observed_on": "2026-09-22"},
-    {"evidence_ref_id": "ev-retention", "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd", "observed_on": "2026-09-22"},
-    {"evidence_ref_id": "ev-delete", "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "observed_on": "2026-09-24"},
-    {"evidence_ref_id": "ev-pia", "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "observed_on": "2026-09-22"}
+    {"evidence_ref_id": "ev-map", "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "observed_on": "2026-09-20", "product_id": null},
+    {"evidence_ref_id": "ev-vendor", "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "observed_on": "2026-09-21", "product_id": null},
+    {"evidence_ref_id": "ev-consent", "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", "observed_on": "2026-09-22", "product_id": "synthetic-product"},
+    {"evidence_ref_id": "ev-retention", "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd", "observed_on": "2026-09-22", "product_id": "synthetic-product"},
+    {"evidence_ref_id": "ev-delete", "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "observed_on": "2026-09-24", "product_id": "synthetic-product"},
+    {"evidence_ref_id": "ev-pia", "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "observed_on": "2026-09-22", "product_id": "synthetic-product"},
+    {"evidence_ref_id": "ev-flow", "sha256": "1111111111111111111111111111111111111111111111111111111111111111", "observed_on": "2026-09-23", "product_id": "synthetic-product"}
   ],
   "purpose_registry": [
     {"product_id": "synthetic-product", "purpose_id": "purpose-synthetic"}
@@ -31,7 +32,7 @@
       "pia_status": "completed",
       "pia_evidence_refs": ["ev-pia"],
       "data_flows": [
-        {"flow_id": "synthetic-flow", "processor_id": "synthetic-vendor", "purpose_id": "purpose-synthetic", "data_categories": ["account_profile"], "evidence_refs": ["ev-map", "ev-vendor"]}
+        {"flow_id": "synthetic-flow", "processor_id": "synthetic-vendor", "purpose_id": "purpose-synthetic", "data_categories": ["account_profile"], "evidence_refs": ["ev-flow"]}
       ]
     }
   ]
