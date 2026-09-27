@@ -16,6 +16,18 @@
 #   expect-401-or-403   401 or 403 (bearer-only API, never 200 without a token)
 # Any 200 is a FAIL whatever the expectation.
 #
+# 🔴 Residual risk on 401/403 (final review M6), read before "fixing" it:
+# dsh.kodeme.io is the one admin host behind Cloudflare (Task 0). A Cloudflare
+# challenge or WAF 403 therefore reads as "gated" even if the origin were open,
+# because neither this script nor Gatus can see WHERE a 401/403 came from --
+# unlike a 302, whose Location host IS checked above. Distinguishing the two
+# needs an origin-side probe (bypassing Cloudflare), which the monitor host and
+# the founder's laptop cannot do reliably; a wrong FAIL here would alarm on a
+# correctly-gated host, which for a gate monitor is the worse failure. So the
+# 401/403 acceptance is deliberate and disclosed: after any change to dsh's
+# Cloudflare record, WAF rules or its Traefik middlewares, re-check gate-dsh by
+# hand (G8 step 3) rather than trusting this line.
+#
 # --resolve-to sends every request to HOST:PORT while keeping the URL's
 # Host/SNI (curl --connect-to) — used by the local test.
 #

@@ -162,6 +162,39 @@ def offsite_coverage_violations(items: list[dict], mirror_sources: list[str]) ->
     return violations
 
 
+# A mirror source with no inventory item of its own. Every entry needs a
+# one-line reason, so adding a source stays a decision rather than a default.
+MIRROR_SOURCE_EXEMPT: dict[str, str] = {
+    # (none today: all five sources below are claimed by an inventory item)
+}
+
+
+def mirror_source_claim_violations(items: list[dict], mirror_sources: list[str]) -> list[str]:
+    """The REVERSE of offsite_coverage_violations (Wave 0 final review M5).
+
+    That check asks "is every inventory item mirrored?". This one asks "is
+    every mirrored source inventoried?" -- without it, a new `b2_sync` line
+    with no inventory item and no freshness entry passed every test in this
+    file: copied forever, described nowhere, and invisible to the drift
+    checks that are supposed to be the estate's memory.
+    """
+    claims = [
+        item["offsite"]["prefix"]
+        for item in items
+        if isinstance(item.get("offsite"), dict) and item["offsite"].get("prefix")
+    ]
+    violations: list[str] = []
+    for source in mirror_sources:
+        if source in MIRROR_SOURCE_EXEMPT:
+            continue
+        if not any(claim.startswith(source) for claim in claims):
+            violations.append(
+                f"b2_sync source {source!r} is claimed by no inventory offsite.prefix "
+                f"(add an item, or record it in MIRROR_SOURCE_EXEMPT with a reason)"
+            )
+    return violations
+
+
 def fresh_equality_violations(
     items: list[dict],
     job_offsite: dict[str, int],
@@ -291,6 +324,28 @@ def test_offsite_mirror_sources_cover_inventory():
     assert mirror_sources, "no b2_sync sources parsed from kod-offsite-mirror.sh -- marker text changed?"
     violations = offsite_coverage_violations(items, mirror_sources)
     assert not violations, violations
+
+
+def test_every_offsite_mirror_source_is_claimed_by_the_inventory():
+    """The reverse direction (Wave 0 final review M5): a b2_sync source the
+    inventory does not describe fails here instead of passing everything."""
+    jobs_dir = _require_job_scripts()
+    items = _load_inventory()["items"]
+    mirror_sources = offsite_mirror_sources(jobs_dir)
+    assert mirror_sources, "no b2_sync sources parsed from kod-offsite-mirror.sh -- marker text changed?"
+    violations = mirror_source_claim_violations(items, mirror_sources)
+    assert not violations, violations
+
+
+def test_mutation_unclaimed_mirror_source_fails_the_reverse_check():
+    """Proves the reverse check has teeth: a sixth source that nothing in the
+    inventory claims must be caught, not accepted because today's five happen
+    to line up."""
+    jobs_dir = _require_job_scripts()
+    items = _load_inventory()["items"]
+    sources = offsite_mirror_sources(jobs_dir) + ["kodemeio-phantom-backup"]
+    violations = mirror_source_claim_violations(items, sources)
+    assert any("kodemeio-phantom-backup" in v for v in violations), violations
 
 
 def test_fresh_prefixes_equal_inventory():

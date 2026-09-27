@@ -196,6 +196,13 @@ endpoints:
       - type: telegram
       - type: email
 
+  # gate-dsh: the one admin host behind Cloudflare (Task 0). A 401/403 from a
+  # Cloudflare challenge or WAF rule is indistinguishable from one from the
+  # origin here -- Gatus with ignore-redirect sees only the status (final
+  # review M6). Accepted deliberately, and the residual risk is documented in
+  # ops/scripts/check-admin-gates.sh's header, which CAN check a redirect's
+  # Location host: re-run it by hand after any change to dsh's Cloudflare
+  # record, WAF rules or Traefik middlewares (G8 step 3).
   - name: gate-dsh
     group: admin-gates
     url: "https://dsh.kodeme.io/"
