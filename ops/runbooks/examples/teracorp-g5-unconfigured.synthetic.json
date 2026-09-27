@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "policy": {
+    "hours_threshold": null,
+    "unit": "hours/week",
+    "comparator": "gt",
+    "measurement_window_weeks": null,
+    "approved_by_ref": null,
+    "approved_at_utc": null,
+    "decision_ref": null
+  },
+  "trigger": {
+    "measured_hours_per_week": null,
+    "period_start": null,
+    "period_end": null,
+    "source_evidence_ref": null,
+    "reviewer_ref": null,
+    "reviewed_at_utc": null
+  },
+  "events": []
+}
