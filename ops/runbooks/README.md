@@ -7,6 +7,8 @@ safe operating instructions.
 | Runbook | Use |
 |---|---|
 | [incident-response.md](incident-response.md) | Initial triage, evidence collection, and escalation |
+| [p7-break-glass-access-recovery.md](p7-break-glass-access-recovery.md) | P7: founder-led recovery paths and staged access-gate verification |
+| [p9-incident-rotation-access-review.md](p9-incident-rotation-access-review.md) | P9: incident coordination, credential rotation calendar, and quarterly access review |
 | [postgres-restore.md](postgres-restore.md) | Restore a compose-embedded PostgreSQL database |
 | [mattermost-sg-migration.md](mattermost-sg-migration.md) | Reviewed Mattermost Singapore migration |
 | [hetzner-disk-resize.md](hetzner-disk-resize.md) | Resize Hetzner disks and filesystems |
