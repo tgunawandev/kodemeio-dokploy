@@ -6,13 +6,15 @@
 #   redaction-grep.sh [--contract FILE] [--docker CONTAINER]... [FILE|DIR...]
 #
 # Reads `synthetic_markers` from the contract, greps `docker logs <container>`
-# (stdout+stderr) and each FILE. A DIRECTORY is expanded deliberately, one file
-# per line, recursively (`find "$dir" -type f`): the runbook's snapshot check
+# (stdout+stderr) and each FILE. A DIRECTORY is expanded deliberately,
+# recursively, one file per NUL-delimited entry (`find "$dir" -type f -print0`):
+# the runbook's snapshot check
 # (ops/runbooks/observability-rollout.md M9) scans the whole kod-metrics volume,
 # and `grep -f markers "$dir"` would print "Is a directory" to stderr and still
 # report hits=0 — a false clean on the one check that backs the redaction claim.
-# A directory the scan cannot read, or one that holds no files, is exit 2, never
-# "clean".
+# A directory traversal error, a directory the scan cannot read, or one that
+# holds no files is exit 2, never "clean". NUL delimiters preserve filenames
+# containing whitespace or newlines.
 #
 # On a hit it prints "HIT <source>:<line>" — the source and line number only,
 # NEVER the matched line (it may hold the very secret that leaked).
@@ -53,7 +55,9 @@ if [ -z "$markers" ]; then
 fi
 [ -n "$markers" ] || { echo "no synthetic_markers in $CONTRACT" >&2; exit 2; }
 pattern_file="$(mktemp)"
-trap 'rm -f "$pattern_file"' EXIT
+find_output="$(mktemp)"
+sorted_output="$(mktemp)"
+trap 'rm -f "$pattern_file" "$find_output" "$sorted_output"' EXIT
 printf '%s\n' "$markers" > "$pattern_file"
 
 hits=0
@@ -77,11 +81,18 @@ for f in "${files[@]}"; do
     if [ -d "$f" ]; then
         [ -r "$f" ] || { echo "cannot read directory $f" >&2; exit 2; }
         found=0
-        while IFS= read -r child; do
+        if ! find "$f" -type f -print0 > "$find_output"; then
+            echo "cannot enumerate files under $f" >&2; exit 2
+        fi
+        if ! LC_ALL=C sort -z "$find_output" > "$sorted_output"; then
+            echo "cannot sort files under $f" >&2; exit 2
+        fi
+        while IFS= read -r -d '' child; do
             [ -r "$child" ] || { echo "cannot read $child" >&2; exit 2; }
+            # shellcheck disable=SC2094  # scan only reads stdin; nothing writes to $child
             scan "$child" < "$child"
             found=$((found + 1))
-        done < <(find "$f" -type f | LC_ALL=C sort)
+        done < "$sorted_output"
         # An empty (or unreadable) tree is not evidence of anything: exit 2
         # rather than report the clean zero the bug above this fix produced.
         [ "$found" -gt 0 ] || { echo "no files under $f" >&2; exit 2; }

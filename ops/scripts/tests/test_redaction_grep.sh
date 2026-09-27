@@ -55,6 +55,17 @@ mkdir -p "$TMP/empty"
 bash "$SCRIPT" "$TMP/empty" >/dev/null 2>&1; rc=$?
 [ "$rc" = 2 ] && ok "a directory holding no files -> exit 2, never a silent clean" || fail "empty directory -> $rc"
 
+# find can emit partial results and still fail during traversal. Simulate that
+# deterministically, independent of filesystem permissions and runner identity.
+REAL_FIND="$(command -v find)"
+mkdir -p "$TMP/find-fails"
+# shellcheck disable=SC2016  # this is a literal shim script; its variables expand when executed
+printf '#!/bin/sh\n"$REDACTION_REAL_FIND" "$@"\nstatus=$?\n[ "$status" -eq 0 ] || exit "$status"\nexit 73\n' > "$TMP/find-fails/find"
+chmod +x "$TMP/find-fails/find"
+out="$(PATH="$TMP/find-fails:$PATH" REDACTION_REAL_FIND="$REAL_FIND" bash "$SCRIPT" "$VOL" 2>"$TMP/find-failure.err")"; rc=$?
+[ "$rc" = 2 ] && ! grep -q '^SUMMARY ' <<< "$out" \
+    && ok "find traversal failure after listing -> exit 2 before summary" || fail "find traversal failure: rc=$rc out=$out"
+
 # markers come from the contract, not a hardcoded list
 printf "synthetic_markers: ['QQTEST-']\n" > "$TMP/c.yaml"
 bash "$SCRIPT" --contract "$TMP/c.yaml" "$TMP/dirty.log" >/dev/null; rc=$?
