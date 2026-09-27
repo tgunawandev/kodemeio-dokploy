@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "action_class": "draft",
+  "as_of": "2026-09-28",
+  "thresholds": {
+    "minimum_green_runs": 3,
+    "minimum_cases_per_run": 20,
+    "minimum_mutation_checks_per_run": 2,
+    "maximum_incidents_90d": 0,
+    "maximum_run_age_days": 30
+  },
+  "incident_count_90d": 0,
+  "runs": [
+    {"run_id": "run-001", "observed_on": "2026-09-20", "case_count": 20, "passed_count": 20, "mutation_check_count": 2, "mutation_checks_passed": 2},
+    {"run_id": "run-002", "observed_on": "2026-09-24", "case_count": 20, "passed_count": 20, "mutation_check_count": 2, "mutation_checks_passed": 2},
+    {"run_id": "run-003", "observed_on": "2026-09-28", "case_count": 20, "passed_count": 20, "mutation_check_count": 2, "mutation_checks_passed": 2}
+  ]
+}
