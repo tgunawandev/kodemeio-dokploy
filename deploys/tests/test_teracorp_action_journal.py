@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import os
@@ -19,14 +20,14 @@ SPEC.loader.exec_module(JOURNAL)
 def event(event_id: str = "evt-001") -> dict:
     return {
         "schema_version": 1,
-        "event_id": event_id,
+        "event_id": "evt-" + hashlib.sha256(event_id.encode()).hexdigest()[:32],
         "occurred_at": "2026-09-28T08:30:00Z",
-        "tenant_id": "kodemeio",
+        "tenant_id": "ten-" + "1" * 32,
         "actor_kind": "agent",
-        "actor_id": "karen",
+        "actor_id": "act-" + "2" * 32,
         "action": "workflow.requested",
-        "work_order_ref": "odoo:work.order/123",
-        "target_ref": "factory:template/terakidz-kit",
+        "work_order_ref": "odoo:work.order/" + "3" * 32,
+        "target_ref": "factory:template/" + "4" * 32,
         "approval_ref": None,
         "payload_sha256": "a" * 64,
     }
@@ -52,7 +53,7 @@ def test_tampered_record_refuses_verification(tmp_path) -> None:
     path = tmp_path / "actions.jsonl"
     JOURNAL.append_event(path, event())
     record = json.loads(path.read_text(encoding="utf-8"))
-    record["event"]["actor_id"] = "other-agent"
+    record["event"]["actor_id"] = "act-" + "5" * 32
     path.write_text(json.dumps(record) + "\n", encoding="utf-8")
     with pytest.raises(JOURNAL.InputError, match="hash mismatch"):
         JOURNAL.verify_journal(path)
@@ -84,7 +85,10 @@ def test_duplicate_event_id_refuses_without_changing_journal(tmp_path) -> None:
         lambda value: value.update(occurred_at="2026-09-28T08:30:00+07:00"),
         lambda value: value.update(payload_sha256="not-a-hash"),
         lambda value: value.update(approval_ref="https://example.invalid/approval"),
-        lambda value: value.update(tenant_id=""),
+        lambda value: value.update(tenant_id="customer-jane-doe"),
+        lambda value: value.update(actor_id="jane-doe"),
+        lambda value: value.update(work_order_ref="customer:jane-doe/order-123"),
+        lambda value: value.update(target_ref="factory:template/customer-jane-doe"),
     ],
     ids=[
         "free-text-refused",
@@ -93,12 +97,17 @@ def test_duplicate_event_id_refuses_without_changing_journal(tmp_path) -> None:
         "non-utc-timestamp-refused",
         "invalid-digest",
         "url-refused",
-        "invalid-tenant",
+        "pii-like-tenant",
+        "pii-like-actor",
+        "pii-like-work-order-ref",
+        "pii-like-target-ref",
     ],
 )
 def test_invalid_event_refuses(mutate, tmp_path) -> None:
     data = event()
     mutate(data)
+    with pytest.raises(JOURNAL.InputError):
+        JOURNAL.validate_event(data)
     with pytest.raises(JOURNAL.InputError):
         JOURNAL.append_event(tmp_path / "actions.jsonl", data)
 
@@ -165,4 +174,4 @@ def test_script_has_no_network_or_database_dependencies() -> None:
 def test_checked_in_journal_example_is_synthetic_and_valid() -> None:
     example = SCRIPT.parents[1] / "journal/examples/action.synthetic.json"
     payload = json.loads(example.read_text(encoding="utf-8"))
-    assert JOURNAL.validate_event(payload)["event_id"] == "evt-synthetic-001"
+    assert JOURNAL.validate_event(payload)["event_id"] == "evt-" + "a" * 32

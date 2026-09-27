@@ -22,8 +22,12 @@ that preserves an independently trusted prior head.
 
 ## Security boundary
 
-- The event schema allows only machine IDs, approved action labels, timestamps, opaque record refs,
-  and a SHA-256 digest of the action payload. It has no free-text description or raw arguments.
+- The event schema allows only prefixed UUID-shaped identifiers, fixed model/reference namespaces,
+  approved action labels, timestamps, and a SHA-256 digest of the action payload. The identifier
+  shapes keep names and free text out of accepted values; they are not authentication or PII
+  detection. Producers must derive IDs from trusted internal records and must never put names,
+  email addresses, phone numbers, prompts, raw arguments, tokens, credentials, or financial content
+  into any field. The schema has no free-text description.
 - Actor and tenant identifiers are caller claims; this tool does not authenticate them or authorize
   actions. The payload digest is only format-checked; this tool does not compute it, reveal it, or
   validate its preimage.
@@ -60,11 +64,15 @@ python3 ops/scripts/teracorp_action_journal_export.py /var/lib/teracorp/actions.
   --bucket <founder-provisioned-bucket> \
   --prefix <dedicated-safe-prefix> \
   --endpoint https://s3.us-west-004.backblazeb2.com \
-  --retention-days <approved-1-to-3000>
+  --retention-days <approved-1-to-3000> \
+  --expected-head <trusted-current-head-sha256>
 ```
 
-Required environment names: `TERACORP_B2_ACCESS_KEY_ID` and
-`TERACORP_B2_SECRET_ACCESS_KEY`. Do not paste credentials into the command line or commit them.
+The expected head must come from a separately protected source, not the journal being checked.
+Required environment names: `TERACORP_B2_ACCESS_KEY_ID`, `TERACORP_B2_SECRET_ACCESS_KEY`,
+`TERACORP_B2_READ_ACCESS_KEY_ID`, and `TERACORP_B2_READ_SECRET_ACCESS_KEY`; the read-only
+credentials must be independently provisioned with read-only capabilities. Do not paste
+credentials into the command line or commit them.
 The child process receives only a sanitized environment with those explicit credentials and fixed
 AWS CLI settings; output and error streams from AWS are never printed. The key must be scoped by the
 founder to this bucket/prefix and must lack delete and bucket-administration capabilities. The

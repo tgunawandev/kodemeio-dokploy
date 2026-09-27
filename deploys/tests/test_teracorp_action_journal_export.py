@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import fcntl
+import hashlib
 import importlib.util
 import json
 import os
@@ -29,14 +30,14 @@ SPEC.loader.exec_module(EXPORTER)
 def event(event_id: str = "evt-export") -> dict:
     return {
         "schema_version": 1,
-        "event_id": event_id,
+        "event_id": "evt-" + hashlib.sha256(event_id.encode()).hexdigest()[:32],
         "occurred_at": "2026-09-28T08:30:00Z",
-        "tenant_id": "kodemeio",
+        "tenant_id": "ten-" + "1" * 32,
         "actor_kind": "agent",
-        "actor_id": "karen",
+        "actor_id": "act-" + "2" * 32,
         "action": "workflow.requested",
-        "work_order_ref": "odoo:work.order/123",
-        "target_ref": "factory:template/terakidz-kit",
+        "work_order_ref": "odoo:work.order/" + "3" * 32,
+        "target_ref": "factory:template/" + "4" * 32,
         "approval_ref": None,
         "payload_sha256": "a" * 64,
     }
@@ -142,7 +143,7 @@ def test_invalid_or_tampered_journal_makes_zero_provider_calls(tmp_path, tamper)
     seed_journal(path)
     if tamper == "hash":
         record = json.loads(path.read_text())
-        record["event"]["actor_id"] = "other-agent"
+        record["event"]["actor_id"] = "act-" + "5" * 32
         path.write_text(json.dumps(record) + "\n")
         path.chmod(0o600)
     elif tamper == "truncated":
@@ -164,7 +165,7 @@ def test_rebuilt_chain_tamper_does_not_match_independent_expected_head(tmp_path)
     seed_journal(path)
     expected = JOURNAL.verify_journal(path)["head_hash"]
     record = json.loads(path.read_text())
-    record["event"]["actor_id"] = "other-agent"
+    record["event"]["actor_id"] = "act-" + "5" * 32
     record["entry_hash"] = JOURNAL._hash(record["sequence"], record["event"], record["previous_hash"])
     path.write_bytes(JOURNAL._canonical(record) + b"\n")
     path.chmod(0o600)

@@ -21,8 +21,19 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-_ID = re.compile(r"^[a-z][a-z0-9_-]{0,63}$")
-_REF = re.compile(r"^[A-Za-z0-9][A-Za-z0-9:._/-]{0,127}$")
+_ID_PATTERNS = {
+    "event_id": re.compile(r"^evt-[0-9a-f]{32}$"),
+    "tenant_id": re.compile(r"^ten-[0-9a-f]{32}$"),
+    "actor_id": re.compile(r"^act-[0-9a-f]{32}$"),
+}
+_REFERENCE_PATTERNS = {
+    "work_order_ref": re.compile(r"^odoo:work\.order/[0-9a-f]{32}$"),
+    "target_ref": re.compile(
+        r"^(?:factory:(?:template|digital\.delivery)|odoo:(?:work\.order|mcp\.operation)|"
+        r"hatchet:(?:workflow|task)|mattermost:(?:post|channel))/[0-9a-f]{32}$"
+    ),
+    "approval_ref": re.compile(r"^odoo:mcp\.operation/[0-9a-f]{32}$"),
+}
 _UTC = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _MAX_EVENT_BYTES = 16_384
@@ -55,17 +66,17 @@ def _object(value: Any, where: str, keys: set[str]) -> dict[str, Any]:
     return value
 
 
-def _safe_id(value: Any, where: str) -> str:
-    if not isinstance(value, str) or not _ID.fullmatch(value):
-        raise InputError(f"{where} must be a safe lowercase machine identifier")
+def _safe_id(value: Any, field: str) -> str:
+    if not isinstance(value, str) or not _ID_PATTERNS[field].fullmatch(value):
+        raise InputError(f"event.{field} must be a prefixed opaque lowercase identifier")
     return value
 
 
-def _reference(value: Any, where: str, *, optional: bool = False) -> str | None:
+def _reference(value: Any, field: str, *, optional: bool = False) -> str | None:
     if optional and value is None:
         return None
-    if not isinstance(value, str) or not _REF.fullmatch(value) or "://" in value:
-        raise InputError(f"{where} must be an opaque reference, not a URL or free text")
+    if not isinstance(value, str) or not _REFERENCE_PATTERNS[field].fullmatch(value):
+        raise InputError(f"event.{field} must use an allowlisted model and opaque lowercase identifier")
     return value
 
 
@@ -90,7 +101,7 @@ def validate_event(value: Any) -> dict[str, Any]:
     if type(event["schema_version"]) is not int or event["schema_version"] != 1:
         raise InputError("event.schema_version must be integer 1")
     for field in ("event_id", "tenant_id", "actor_id"):
-        _safe_id(event[field], f"event.{field}")
+        _safe_id(event[field], field)
     actor_kind = event["actor_kind"]
     if not isinstance(actor_kind, str) or actor_kind not in {"human", "agent", "service"}:
         raise InputError("event.actor_kind must be human, agent, or service")
@@ -106,9 +117,9 @@ def validate_event(value: Any) -> dict[str, Any]:
         raise InputError("event.occurred_at must be a valid UTC timestamp") from exc
     if parsed_at.strftime("%Y-%m-%dT%H:%M:%SZ") != occurred_at:
         raise InputError("event.occurred_at must be canonical UTC YYYY-MM-DDTHH:MM:SSZ")
-    _reference(event["work_order_ref"], "event.work_order_ref")
-    _reference(event["target_ref"], "event.target_ref")
-    _reference(event["approval_ref"], "event.approval_ref", optional=True)
+    _reference(event["work_order_ref"], "work_order_ref")
+    _reference(event["target_ref"], "target_ref")
+    _reference(event["approval_ref"], "approval_ref", optional=True)
     digest = event["payload_sha256"]
     if not isinstance(digest, str) or not _SHA256.fullmatch(digest):
         raise InputError("event.payload_sha256 must be a lowercase SHA-256 digest")

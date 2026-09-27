@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
-  "event_id": "evt-synthetic-001",
+  "event_id": "evt-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "occurred_at": "2026-09-28T08:30:00Z",
-  "tenant_id": "kodemeio",
+  "tenant_id": "ten-11111111111111111111111111111111",
   "actor_kind": "agent",
-  "actor_id": "karen",
+  "actor_id": "act-22222222222222222222222222222222",
   "action": "workflow.requested",
-  "work_order_ref": "odoo:work.order/123",
-  "target_ref": "factory:template/terakidz-kit",
+  "work_order_ref": "odoo:work.order/33333333333333333333333333333333",
+  "target_ref": "factory:template/44444444444444444444444444444444",
   "approval_ref": null,
   "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 }
