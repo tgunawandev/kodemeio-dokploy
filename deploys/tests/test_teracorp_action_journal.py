@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import stat
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -111,6 +112,11 @@ def test_truncated_line_and_symlink_refuse(tmp_path) -> None:
     link.symlink_to(target)
     with pytest.raises(JOURNAL.InputError):
         JOURNAL.append_event(link, event())
+
+    fifo = tmp_path / "journal-pipe"
+    os.mkfifo(fifo, 0o600)
+    with pytest.raises(JOURNAL.InputError, match="regular files"):
+        JOURNAL.append_event(fifo, event())
 
 
 def test_cli_appends_and_verifies_explicit_files_without_reading_free_text(tmp_path, capsys) -> None:

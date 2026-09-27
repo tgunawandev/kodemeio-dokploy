@@ -127,7 +127,7 @@ def _hash(sequence: int, event: dict[str, Any], previous_hash: str) -> str:
 def _open_fd(path: Path, flags: int, mode: int = 0o600) -> int:
     nofollow = getattr(os, "O_NOFOLLOW", 0)
     try:
-        fd = os.open(path, flags | nofollow, mode)
+        fd = os.open(path, flags | nofollow | os.O_NONBLOCK, mode)
     except OSError as exc:
         if exc.errno == errno.ELOOP:
             raise InputError("journal and lock targets must not be symlinks") from exc
@@ -211,20 +211,20 @@ def append_event(path: Path, value: Any) -> dict[str, Any]:
     lock_fd = _open_fd(lock_path, os.O_CREAT | os.O_WRONLY)
     try:
         fcntl.flock(lock_fd, fcntl.LOCK_EX)
-        state = _inspect_journal(path)
-        if state["record_count"] >= _MAX_RECORDS:
-            raise InputError(f"journal exceeds {_MAX_RECORDS} records")
-        if event["event_id"] in state["event_ids"]:
-            raise InputError("event_id values must be unique")
-        sequence = state["record_count"] + 1
-        previous = state["head_hash"]
-        entry_hash = _hash(sequence, event, previous)
-        record = {"sequence": sequence, "event": event, "previous_hash": previous, "entry_hash": entry_hash}
-        encoded = _canonical(record) + b"\n"
-        if len(encoded) > _MAX_RECORD_BYTES:
-            raise InputError("journal record exceeds the maximum record size")
-        journal_fd = _open_fd(path, os.O_CREAT | os.O_WRONLY | os.O_APPEND)
+        journal_fd = _open_fd(path, os.O_CREAT | os.O_RDWR | os.O_APPEND)
         try:
+            state = _verify_fd(journal_fd)
+            if state["record_count"] >= _MAX_RECORDS:
+                raise InputError(f"journal exceeds {_MAX_RECORDS} records")
+            if event["event_id"] in state["event_ids"]:
+                raise InputError("event_id values must be unique")
+            sequence = state["record_count"] + 1
+            previous = state["head_hash"]
+            entry_hash = _hash(sequence, event, previous)
+            record = {"sequence": sequence, "event": event, "previous_hash": previous, "entry_hash": entry_hash}
+            encoded = _canonical(record) + b"\n"
+            if len(encoded) > _MAX_RECORD_BYTES:
+                raise InputError("journal record exceeds the maximum record size")
             if os.fstat(journal_fd).st_size + len(encoded) > _MAX_JOURNAL_BYTES:
                 raise InputError(f"journal would exceed {_MAX_JOURNAL_BYTES} bytes")
             remaining = memoryview(encoded)
