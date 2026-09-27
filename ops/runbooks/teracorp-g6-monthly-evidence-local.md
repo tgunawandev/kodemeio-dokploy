@@ -8,13 +8,16 @@ domains: PDP/data protection, OJK/regulatory boundary, Terakod contract/seller-o
 processor/data-map changes, access/retention/deletion, and incidents/exceptions/remediation. Each
 decision must name counsel, include opaque qualification and evidence references, and carry issue,
 effective, and expiry timestamps. Product/processor change entries and incident entries must link
-to a counsel decision covering the exact scope. Unknown, unresolved, uncovered, future, expired,
-or unhandled items block completeness.
+to a counsel decision covering the exact scope, and each row's evidence refs must be included in
+that decision's evidence refs. Unknown, unresolved, uncovered, future, expired, or unhandled items
+block structural completeness.
 
 The checker cannot authenticate the counsel identity or qualifications, verify cited evidence,
 establish that inventories are exhaustive, or make a legal determination. It does not encode legal
 rules, classifications, interpretations, advice, or freshness thresholds. No output is `compliant`,
 approved, or actionable, and the package is not connected to JARVIS or Hatchet.
+Every report keeps `manual_counsel_review_required` true and explicitly sets counsel identity,
+evidence, inventory exhaustiveness, and caller-supplied `as_of` authentication flags false.
 
 Use only a founder/counsel-prepared, access-controlled evidence package; keep evidence itself
 outside this report and put opaque references in the JSON. Example (the checked-in fixture is

@@ -39,6 +39,7 @@ def add_incident_decision(payload: dict) -> None:
         scope_id="incident-synthetic-1",
     )
     payload["decisions"].append(decision)
+    decision["evidence_refs"].append("ev.synthetic.incident.one")
     payload["incident_inventory"]["items"].append(
         {
             "incident_id": "incident-synthetic-1",
@@ -58,8 +59,31 @@ def test_synthetic_package_is_structural_inventory_only_and_schema_valid() -> No
         "issues": [],
         "verified": False,
         "legal_reviewed": False,
+        "manual_counsel_review_required": True,
+        "counsel_identity_authenticated": False,
+        "evidence_authenticated": False,
+        "inventory_exhaustiveness_verified": False,
+        "as_of_authenticated": False,
         "inventory_counts": {"decisions": 8, "change_items": 2, "incident_items": 0},
     }
+
+
+@pytest.mark.parametrize("subject_type", ["product", "processor"])
+def test_change_evidence_must_be_linked_to_scoped_counsel_decision(subject_type: str) -> None:
+    payload = valid_payload()
+    item = next(row for row in payload["change_inventory"]["items"] if row["subject_type"] == subject_type)
+    item["evidence_refs"] = ["ev.unlinked.canary"]
+    assert_incomplete(
+        payload,
+        f"change_inventory.items[{payload['change_inventory']['items'].index(item)}]:evidence_unlinked_from_decision",
+    )
+
+
+def test_incident_evidence_must_be_linked_to_scoped_counsel_decision() -> None:
+    payload = valid_payload()
+    add_incident_decision(payload)
+    payload["incident_inventory"]["items"][0]["evidence_refs"] = ["ev.unlinked.incident"]
+    assert_incomplete(payload, "incident_inventory.items[0]:evidence_unlinked_from_decision")
 
 
 def test_missing_required_decision_blocks_completeness() -> None:

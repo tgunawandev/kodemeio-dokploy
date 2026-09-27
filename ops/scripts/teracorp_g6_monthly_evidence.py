@@ -172,6 +172,8 @@ def _evaluate_valid_shape(payload: dict[str, Any], as_of_value: Any, issues: set
             or linked["status"] != "decided"
         ):
             _add(issues, path, "decision_uncovered")
+        elif not set(item["evidence_refs"]) <= set(linked["evidence_refs"]):
+            _add(issues, path, "evidence_unlinked_from_decision")
     if product_count == 0:
         _add(issues, "change_inventory", "product_inventory_missing")
     if changes["processor_inventory_status"] == "none" and processor_count:
@@ -199,6 +201,8 @@ def _evaluate_valid_shape(payload: dict[str, Any], as_of_value: Any, issues: set
             or linked["status"] != "decided"
         ):
             _add(issues, path, "decision_uncovered")
+        elif not set(item["evidence_refs"]) <= set(linked["evidence_refs"]):
+            _add(issues, path, "evidence_unlinked_from_decision")
 
 
 def evaluate(payload: Any, as_of: Any) -> dict[str, Any]:
@@ -245,6 +249,11 @@ def _report(payload: dict[str, Any] | None = None, issues: set[str] | None = Non
         "issues": all_issues,
         "verified": False,
         "legal_reviewed": False,
+        "manual_counsel_review_required": True,
+        "counsel_identity_authenticated": False,
+        "evidence_authenticated": False,
+        "inventory_exhaustiveness_verified": False,
+        "as_of_authenticated": False,
         "inventory_counts": {
             "decisions": len(decisions),
             "change_items": len(change_items),
