@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "weeks": [
+    {
+      "week_start": "2026-01-05",
+      "approval_minutes": 120,
+      "outage_response_minutes": 30,
+      "manual_fulfilment_minutes": 180
+    },
+    {
+      "week_start": "2026-01-12",
+      "approval_minutes": 90,
+      "outage_response_minutes": 0,
+      "manual_fulfilment_minutes": 150
+    },
+    {
+      "week_start": "2026-01-19",
+      "approval_minutes": 90,
+      "outage_response_minutes": 60,
+      "manual_fulfilment_minutes": 120
+    },
+    {
+      "week_start": "2026-01-26",
+      "approval_minutes": 60,
+      "outage_response_minutes": 0,
+      "manual_fulfilment_minutes": 90
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "as_of_date": "2026-09-28",
+  "products": [
+    {
+      "product_id": "synthetic-kit",
+      "launch_date": "2026-01-01",
+      "currency": "IDR",
+      "metrics": [
+        {"metric_id": "net_revenue", "direction": "gte", "unit": "idr", "threshold": "1000000"},
+        {"metric_id": "refund_rate", "direction": "lte", "unit": "fraction", "threshold": "0.05"}
+      ],
+      "checkpoints": [
+        {
+          "day": 60,
+          "due_date": "2026-03-02",
+          "observed_on": null,
+          "observations": {"net_revenue": null, "refund_rate": null},
+          "evidence_ref": null
+        },
+        {
+          "day": 90,
+          "due_date": "2026-04-01",
+          "observed_on": null,
+          "observations": {"net_revenue": null, "refund_rate": null},
+          "evidence_ref": null
+        }
+      ]
+    }
+  ]
+}
