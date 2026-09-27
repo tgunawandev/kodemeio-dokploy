@@ -133,6 +133,17 @@ def test_cli_duplicate_keys_oversize_and_invalid_utf8_fail_closed(tmp_path: Path
         load(invalid_utf8)
 
 
+def test_cli_json_depth_is_bounded_but_string_brackets_are_ignored(tmp_path: Path) -> None:
+    too_deep = tmp_path / "too-deep.json"
+    too_deep.write_text("[" * 33 + "0" + "]" * 33, encoding="utf-8")
+    with pytest.raises(InputError, match="input_too_deep"):
+        load(too_deep)
+
+    quoted = tmp_path / "quoted.json"
+    quoted.write_text('{"note":"' + "[" * 64 + '"}', encoding="utf-8")
+    assert load(quoted) == {"note": "[" * 64}
+
+
 def test_cli_has_no_network_and_emits_only_structural_unverified_status() -> None:
     result = subprocess.run(
         [sys.executable, str(ROOT / "ops/scripts/teracorp_privacy_inventory.py"), "--as-of", AS_OF, str(SAMPLE)],

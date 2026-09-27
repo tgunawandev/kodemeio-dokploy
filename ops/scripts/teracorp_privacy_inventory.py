@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 MAX_BYTES = 1_000_000
+MAX_JSON_DEPTH = 32
 ID = re.compile(r"^[a-z][a-z0-9_-]{0,63}$")
 SHA256 = re.compile(r"^[a-f0-9]{64}$")
 CATEGORIES = {
@@ -258,6 +259,28 @@ def _reject_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
+def _check_json_depth(text: str) -> None:
+    depth = 0
+    in_string = False
+    escaped = False
+    for char in text:
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+        elif char == '"':
+            in_string = True
+        elif char in "[{":
+            depth += 1
+            if depth > MAX_JSON_DEPTH:
+                raise InputError("input_too_deep")
+        elif char in "]}":
+            depth -= 1
+
+
 def load(path: Path) -> Any:
     try:
         with path.open("rb") as stream:
@@ -267,8 +290,10 @@ def load(path: Path) -> Any:
     if len(raw) > MAX_BYTES:
         raise InputError("input_too_large")
     try:
-        return json.loads(raw.decode("utf-8"), object_pairs_hook=_reject_duplicates)
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        text = raw.decode("utf-8")
+        _check_json_depth(text)
+        return json.loads(text, object_pairs_hook=_reject_duplicates)
+    except (UnicodeDecodeError, json.JSONDecodeError, RecursionError) as exc:
         raise InputError("input_unreadable_or_invalid_json") from exc
 
 
