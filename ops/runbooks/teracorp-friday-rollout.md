@@ -315,7 +315,16 @@ git -C kodemeio-dsh log --oneline bdc234b..main
 #   afe8d3b 9a46e73 c2e9c88 db6590a 6d816ab 2fe3cb2 b313a48 750b6c2 ee1b4ee 5f52c25
 # 6d816ab is REQUIRED: it creates the kod-infra-dsh-dispatch network the worker uses (Step 6
 # pre-checks it). 750b6c2 belongs to the LiteLLM track and rides along.
-git -C kodemeio-dsh merge-base --is-ancestor origin/main bdc234b && echo "LiteLLM runbook Step 14 already pushed: OK"
+# The base of the range must ALREADY be published (the LiteLLM runbook's Step 14 pushed it).
+# `git merge-base --is-ancestor A B` is true when A is an ancestor of B, so the argument order
+# below is the one that matches its message: this line used to read `--is-ancestor origin/main
+# bdc234b`, which is true for any older origin/main and printed "already pushed: OK" while
+# bdc234b was in fact not on origin at all.
+git -C kodemeio-dsh merge-base --is-ancestor bdc234b origin/main \
+  && echo "base bdc234b is on origin/main: LiteLLM runbook Step 14 is done" \
+  || echo "STOP: bdc234b is NOT on origin/main -- run the LiteLLM runbook's Step 14 first"
+# ...and this push must still be the one that publishes the range:
+git -C kodemeio-dsh rev-list --count origin/main..main   # 0 = origin already has it all; non-zero = pending (17 at this revision)
 git -C kodemeio-dsh merge-base --is-ancestor bdc234b main && echo "fast-forward from bdc234b: OK"
 git -C kodemeio-dsh push origin main:refs/heads/main
 
@@ -485,8 +494,10 @@ kctl-op -p kodemeio push --project kodemeio-hatchet --env kod-infra-friday-dispa
 # kodemeio-hatchet/kod-infra-friday-dispatch" if discovery does not see the file, so read it
 # before trusting the real push
 kctl-op -p kodemeio push --project kodemeio-hatchet --env kod-infra-friday-dispatch
-kctl-op -p kodemeio vault items --vault <the vault the dry-run named>   # item exists, names only
-unset FRIDAY_WEBHOOK_SECRET
+# `--vault` is a ROOT-level option and `vault items` takes none -- written the other way round it
+# errors with "No such option: --vault". Names only, never values:
+kctl-op -p kodemeio --vault <the vault the dry-run named> vault items
+# `kctl-op -p kodemeio list` is the same listing if you prefer it without --vault.
 ```
 **Rollback:** the 1Password item is a backup copy, not an input to anything — delete or rotate it
 in 1Password if the value is being retired; Dokploy remains the live source either way.
