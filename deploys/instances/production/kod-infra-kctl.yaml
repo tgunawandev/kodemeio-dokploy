@@ -120,7 +120,68 @@ env_overrides:
 # See this task's report (task-4-report.md, same dir as the Wave-0 brief)
 # for the original gate list and reasoning; the runbook G4 step 4 lists which
 # alarms are EXPECTED on a first run before those deploys land.
+#
+# ---------------------------------------------------------------------------
+# P4 (observability with redaction): the four kod-metrics-* schedules
+#
+# One job per signal class, each writing a redacted snapshot into the
+# toolbox's kod-metrics volume (docker/lib/metrics.py's allow-list is the only
+# thing that decides what a snapshot may contain):
+#   kod-metrics-token-cost  per LiteLLM key alias, spend against that alias's
+#                           daily budget. Daily, just before the UTC budget
+#                           day LiteLLM resets on (the snapshot's
+#                           window=budget-period names what the figure means).
+#   kod-metrics-queue-lag   Hatchet run counts + the oldest running/queued age.
+#                           Every 15 minutes, so a 30-minute lag threshold is
+#                           seen within a quarter of an hour of being crossed.
+#   kod-metrics-outcome     work orders / approvals / prepared MCP operations
+#                           by state. Daily.
+#   kod-metrics-funnel      leads -> orders -> payments, last 24 h. Daily.
+#
+# ALL FOUR SHIP DISABLED (`enabled: false`), and the founder must NOT flip
+# them until ALL of these hold. Each is a real dependency of the job, not a
+# formality -- the jobs fail loudly (RESULT=FAILED, no snapshot, no ping) when
+# one is missing, and the whole point of shipping them off is that an alarm
+# must never be noise:
+#   - The toolbox IMAGE is rebuilt and pinned: compose/toolbox-kod.yml still
+#     carries `sha-PENDING` (kodemeio-skills), and the four job scripts and
+#     docker/lib/metrics.{sh,py} only exist in an image built after P4 T1/T2.
+#     `DEPLOY_CHECK=1 bash tests/test_toolbox_kod.sh` is the gate that refuses
+#     the placeholder.
+#   - A Healthchecks check exists for EACH of the four jobs with a period and
+#     grace period matching its cadence, and its ping URL is in the toolbox
+#     env (HC_KOD_METRICS_TOKEN_COST / _QUEUE_LAG / _OUTCOME / _FUNNEL). That
+#     check IS the "a dead job is visible from outside" mechanism (spec D7):
+#     Gatus gains no endpoint for this, deliberately -- see the ruling in
+#     ops/monitoring/gatus/config.yaml.
+#   - LiteLLM is deployed and llm.kodeme.io answers, with the master key in
+#     LITELLM_ADMIN_KEY (kod-infra-litellm is NOT deployed today; the Gatus
+#     llm-* endpoints ship disabled for the same reason). Until it is, the
+#     token-cost job ENABLED would alarm every day by design.
+#   - A Hatchet API token (bearer JWT, its `sub` claim is the tenant) is in
+#     HATCHET_API_TOKEN, and hatchet.kodeme.io answers.
+#   - An Odoo read-only operator API key for the kod erp instance is in
+#     KCTL_ODOO_API_KEY, `sql_guard` is installed there, and factory_base,
+#     base_tier_validation (+ approval-extension) and mcp_base are all
+#     installed -- the outcome job reads those four tables.
+#   - The thresholds are confirmed (spec §6 gate 2): see
+#     ops/monitoring/metrics/thresholds.yaml -- 80 % of a key's daily budget
+#     is a BREACH, and a run older than 30 minutes is a BREACH. Both are
+#     env-overridable per job (METRICS_TOKEN_WARN_PCT, METRICS_QUEUE_LAG_S);
+#     changing the default means changing it in BOTH places or
+#     deploys/tests/test_metrics_thresholds.py fails.
+# Nothing else deploys in this slice: no new service, no new route, no Grafana
+# (spec D1/D2 -- Grafana stays a founder-gated recipe in the runbook
+# ops/runbooks/observability-rollout.md).
+#
+# A run at 23:40/23:50 UTC now carries the metrics jobs too, but they are
+# independent of the backup chain: the freshness jobs' ordering constraint
+# (mirror before the two checks) is untouched.
 schedules:
   - {name: kod-offsite-mirror, cron: "45 */2 * * *", command: "jobrun kod-offsite-mirror", service: kctl, shell: sh, timezone: UTC, enabled: false}
   - {name: kod-hz-fresh,       cron: "40 23 * * *",  command: "jobrun kod-hz-fresh",       service: kctl, shell: sh, timezone: UTC, enabled: false}
   - {name: kod-offsite-fresh,  cron: "50 23 * * *",  command: "jobrun kod-offsite-fresh",  service: kctl, shell: sh, timezone: UTC, enabled: false}
+  - {name: kod-metrics-token-cost, cron: "55 23 * * *",  command: "jobrun kod-metrics-token-cost", service: kctl, shell: sh, timezone: UTC, enabled: false}
+  - {name: kod-metrics-queue-lag,  cron: "*/15 * * * *", command: "jobrun kod-metrics-queue-lag",  service: kctl, shell: sh, timezone: UTC, enabled: false}
+  - {name: kod-metrics-outcome,    cron: "35 23 * * *",  command: "jobrun kod-metrics-outcome",    service: kctl, shell: sh, timezone: UTC, enabled: false}
+  - {name: kod-metrics-funnel,     cron: "45 23 * * *",  command: "jobrun kod-metrics-funnel",     service: kctl, shell: sh, timezone: UTC, enabled: false}

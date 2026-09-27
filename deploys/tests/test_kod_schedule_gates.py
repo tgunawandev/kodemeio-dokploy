@@ -1,7 +1,8 @@
-"""R8/G2 gate: the three kod estate schedules ship DISABLED.
+"""R8/G2 + P4 gate: every kod estate schedule ships DISABLED.
 
 `deploys/instances/production/kod-infra-kctl.yaml` declares kod-offsite-mirror,
-kod-hz-fresh and kod-offsite-fresh with `enabled: false`. That is the machine
+kod-hz-fresh and kod-offsite-fresh (Wave 0) and the four kod-metrics-* jobs
+(P4, observability with redaction) with `enabled: false`. That is the machine
 half of ledger ruling R8: the schedules stay off until the founder's gates hold
 -- G2 (a B2 key without deleteFiles, a lifecycle rule, and a hard-delete test
 that returns 401, measured on the KOD keys), a fresh `kod_odoo_hrms` dump, and
@@ -24,12 +25,25 @@ import yaml
 
 MANIFEST = Path(__file__).resolve().parents[1] / "instances" / "production" / "kod-infra-kctl.yaml"
 
-# The kod estate's three jobs. A rename is a deploy-time 404 inside Dokploy's
+# The kod estate's jobs. A rename is a deploy-time 404 inside Dokploy's
 # scheduler (`jobrun <name>`), which has no failure notification -- so pin it.
-KOD_SCHEDULES = {"kod-offsite-mirror", "kod-hz-fresh", "kod-offsite-fresh"}
+# The four kod-metrics-* names were added by P4 (observability with redaction)
+# and ship disabled for their own gate (manifest comment: image pin, the four
+# Healthchecks checks, LiteLLM deployed, a Hatchet token, an Odoo read-only
+# operator key + sql_guard, the confirmed thresholds).
+KOD_SCHEDULES = {
+    "kod-offsite-mirror",
+    "kod-hz-fresh",
+    "kod-offsite-fresh",
+    "kod-metrics-token-cost",
+    "kod-metrics-queue-lag",
+    "kod-metrics-outcome",
+    "kod-metrics-funnel",
+}
 
 # name -> why enabling it is deliberate, with the evidence. Empty on purpose:
-# every kod schedule is gated today (R8/G2).
+# every kod schedule is gated today (R8/G2 for the backup chain, the P4 gate
+# above for the metrics jobs).
 ENABLED_BY_EXCEPTION: dict[str, str] = {}
 
 
@@ -37,7 +51,7 @@ def _schedules() -> list[dict]:
     return yaml.safe_load(MANIFEST.read_text()).get("schedules") or []
 
 
-def test_manifest_declares_the_three_kod_schedules():
+def test_manifest_declares_every_kod_schedule():
     names = {s["name"] for s in _schedules()}
     assert names == KOD_SCHEDULES, f"kod-infra-kctl schedules changed: {sorted(names)}"
 

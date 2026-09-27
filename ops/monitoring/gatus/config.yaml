@@ -215,6 +215,22 @@ endpoints:
       - type: telegram
       - type: email
 
+# Metrics snapshots (P4): intentionally NOT an endpoint here.
+#
+# The four kod-metrics-* jobs (LiteLLM spend per key alias, Hatchet queue lag,
+# Odoo action-outcome and product-funnel counts) write redacted snapshots into
+# the toolbox's own volume and each pings its own Healthchecks check. A Gatus
+# check needs an HTTP surface: the toolbox publishes no port and takes no
+# Traefik route (kod-infra-kctl.yaml), so an endpoint here would need either a
+# new service exposing the snapshot files -- a new stack, which spec D1/D2
+# reject -- or a URL that does not exist, which would alarm forever (the same
+# reason the llm-* endpoints above ship enabled: false). The requirement the
+# spec does make, "a dead job is visible from outside", is met by the
+# Healthchecks check each job pings, whose period and grace period ARE the
+# snapshot's freshness threshold (ops/monitoring/metrics/thresholds.yaml): a
+# job cannot report its own absence, and Healthchecks alerts from outside the
+# estate when the ping stops arriving.
+#
 # external-endpoints (backup-heartbeat): intentionally omitted. Healthchecks.io
 # is the primary dead-man for every backup job (spec D5); a second, Hetzner-
 # hosted heartbeat would add nothing that survives a Hetzner outage.

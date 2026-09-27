@@ -1,0 +1,91 @@
+# Metric snapshot thresholds -- the committed record of every number a
+# kod-metrics-* job treats as a breach (P4 / O5, spec D3 + §6 gate 2).
+#
+# WHAT A BREACH DOES (docker/lib/metrics.sh): the snapshot is still written --
+# the number is real and the dashboard should show it -- the job prints
+# ALERT/BREACH lines into its output, exits 3, and WITHHOLDS its Healthchecks
+# ping. jobrun mails the output on any non-zero exit and the withheld ping
+# keeps Healthchecks (Telegram + email, off-host) alarming until a clean run
+# resolves it, so a standing breach cannot be masked by the next ordinary
+# success. A source that cannot be read is a different outcome entirely:
+# RESULT=FAILED, no snapshot, /fail ping.
+#
+# WHO DECIDES: the founder (spec §6 gate 2). These are the proposed defaults,
+# built from what the estate already commits elsewhere -- 80 % is below the
+# 100 % at which LiteLLM blocks a key outright
+# (kodemeio-llmlite/config/keys.yaml sets a 1d budget on every key), and 30
+# minutes is an order of magnitude above the few-second runs the Stage C
+# integration tests observed, so a real worker stall is what trips it.
+#
+# HOW IT REACHES THE JOB: each value is a default INSIDE
+# kodemeio-skills docker/lib/metrics.py (the constant named in
+# default_in_code) and is overridable per run through the env var named in
+# env_override, so the founder can raise it in the toolbox env without a code
+# change. deploys/tests/test_metrics_thresholds.py fails when this file and
+# that code disagree -- a threshold that silently stops matching its job is
+# exactly the kind of drift the Wave 0 redaction contract is kept in step to
+# avoid.
+#
+# The two classes with no threshold say so explicitly. A count of work in
+# flight, or of leads, has no "too high" without a founder's baseline; those
+# jobs can therefore only exit 0 or 1 (never 3).
+
+version: 1
+
+classes:
+  token-cost:
+    job: kod-metrics-token-cost
+    source: litellm-key-list
+    snapshot: token-cost.json
+    breach: "a key alias at or over warn_pct of its daily budget"
+    thresholds:
+      warn_pct: 80.0
+    env_override: METRICS_TOKEN_WARN_PCT
+    default_in_code: DEFAULT_TOKEN_WARN_PCT
+    measured_against: "LiteLLM's own per-key budget (max_budget) and the spend it tracks for that key's current budget period (budget_duration: 1d on every key)"
+
+  queue-lag:
+    job: kod-metrics-queue-lag
+    source: hatchet-workflow-runs
+    snapshot: queue-lag.json
+    breach: "the oldest running or queued Hatchet run is older than lag_seconds"
+    thresholds:
+      lag_seconds: 1800
+    env_override: METRICS_QUEUE_LAG_S
+    default_in_code: DEFAULT_QUEUE_LAG_S
+    measured_against: "Hatchet run history (startedAt of the oldest RUNNING row, createdAt of the oldest QUEUED row) -- never payloads"
+
+  action-outcome:
+    job: kod-metrics-outcome
+    source: odoo-sql-guarded
+    snapshot: action-outcome.json
+    breach: "none -- no threshold until the founder sets a baseline"
+    thresholds: {}
+    measured_against: "factory.work_order, tier.review and mcp.operation counts by state, through the guarded read-only SQL path"
+
+  product-funnel:
+    job: kod-metrics-funnel
+    source: odoo-sql-guarded
+    snapshot: product-funnel.json
+    breach: "none -- no threshold until the founder sets a baseline"
+    thresholds: {}
+    measured_against: "landing_lead / sale_order / account_payment counts over the last 24 h, through the guarded read-only SQL path"
+
+# The dead-man half. Each job pings its own Healthchecks check: plain on a
+# clean run, /fail on a failed read, and NOTHING on a breach (the withhold).
+# The check's period and grace period are what make a DEAD job visible from
+# outside Hetzner -- the job cannot report its own absence, so this is the
+# only mechanism that covers it (spec D7), and it is why Gatus gains no
+# endpoint for these classes (ops/monitoring/gatus/config.yaml, "Metrics
+# snapshots" ruling).
+healthchecks:
+  env_vars:
+    - HC_KOD_METRICS_TOKEN_COST
+    - HC_KOD_METRICS_QUEUE_LAG
+    - HC_KOD_METRICS_OUTCOME
+    - HC_KOD_METRICS_FUNNEL
+  period:
+    kod-metrics-token-cost: 1 day, grace 2 hours (daily at 23:55 UTC)
+    kod-metrics-queue-lag: 15 minutes, grace 15 minutes
+    kod-metrics-outcome: 1 day, grace 2 hours (daily at 23:35 UTC)
+    kod-metrics-funnel: 1 day, grace 2 hours (daily at 23:45 UTC)
