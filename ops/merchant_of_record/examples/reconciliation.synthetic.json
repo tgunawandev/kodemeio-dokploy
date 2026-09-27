@@ -1,0 +1,41 @@
+{
+  "contract_version": "merchant_reconciliation_input.v1",
+  "events": [
+    {
+      "contract_version": "merchant_event.v1",
+      "event_id": "synthetic-capture-001",
+      "provider_event_ref": "synthetic-provider-event-001",
+      "event_type": "payment.captured",
+      "occurred_at": "2026-09-28T10:00:00Z",
+      "order_ref": "order:synthetic-001",
+      "payment_ref": "payment:synthetic-001",
+      "amount_minor": 12500,
+      "currency": "USD",
+      "verification": {
+        "status": "unverified",
+        "adapter": "none"
+      }
+    }
+  ],
+  "orders": [
+    {
+      "order_ref": "order:synthetic-001",
+      "amount_minor": 12500,
+      "currency": "USD"
+    }
+  ],
+  "payouts": [
+    {
+      "payout_ref": "payout:synthetic-001",
+      "currency": "USD",
+      "amount_minor": 12500,
+      "allocations": [
+        {
+          "payment_ref": "payment:synthetic-001",
+          "order_ref": "order:synthetic-001",
+          "amount_minor": 12500
+        }
+      ]
+    }
+  ]
+}

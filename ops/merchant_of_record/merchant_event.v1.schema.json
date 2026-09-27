@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kodeme.io/candidates/merchant_of_record/merchant_event.v1.schema.json",
+  "title": "Normalized merchant-of-record event v1 (offline candidate)",
+  "description": "Provider-neutral synthetic observation. It cannot attest webhook authenticity; verification is structurally fixed to unverified and no provider adapter is defined.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "event_id",
+    "provider_event_ref",
+    "event_type",
+    "occurred_at",
+    "order_ref",
+    "payment_ref",
+    "amount_minor",
+    "currency",
+    "verification"
+  ],
+  "properties": {
+    "contract_version": { "const": "merchant_event.v1" },
+    "event_id": { "type": "string", "pattern": "^[a-zA-Z0-9][a-zA-Z0-9:._/-]{0,127}$" },
+    "provider_event_ref": { "type": "string", "pattern": "^[a-zA-Z0-9][a-zA-Z0-9:._/-]{0,127}$" },
+    "event_type": {
+      "enum": [
+        "payment.pending",
+        "payment.authorized",
+        "payment.captured",
+        "payment.failed",
+        "payment.cancelled",
+        "payment.refunded",
+        "payment.chargeback"
+      ]
+    },
+    "occurred_at": { "type": "string", "format": "date-time", "pattern": "Z$" },
+    "order_ref": { "type": "string", "pattern": "^[a-zA-Z0-9][a-zA-Z0-9:._/-]{0,127}$" },
+    "payment_ref": { "type": "string", "pattern": "^[a-zA-Z0-9][a-zA-Z0-9:._/-]{0,127}$" },
+    "amount_minor": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+    "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "adapter"],
+      "properties": {
+        "status": { "const": "unverified" },
+        "adapter": { "const": "none" }
+      }
+    }
+  }
+}
