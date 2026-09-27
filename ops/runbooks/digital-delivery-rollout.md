@@ -1,9 +1,11 @@
 # Runbook — Digital delivery on kodeme.io (founder-gated)
 
-Takes R6 / DIG1 from **built and tested locally** to one founder-approved paid digital
-delivery on the kodeme.io estate: a released factory artefact is attached to a digital product,
-a paid order grants one replay-safe entitlement, the buyer receives the bytes through a scoped
-expiring capability, and a full refund revokes the link.
+Takes R6 / DIG1 from **fix-wave implementation and local acceptance complete** to one founder-approved
+paid digital delivery on the kodeme.io estate: a released factory artefact is attached to a digital product,
+a paid order line grants one adapter-owned purchase record, the buyer receives the bytes through a
+line-scoped expiring capability, and a full refund revokes that line's links. The digital kernel's
+product/buyer entitlement remains an aggregate gate, active only while at least one paid line grant
+is live; it is not represented as one kernel entitlement per line.
 
 This is a founder runbook. Read-only checks are marked **R**; production changes are **M**.
 Nothing in this document has been applied by the implementation slice. Every target is kodeme.io
@@ -17,10 +19,11 @@ and `…/plans/2026-09-27-teracorp-digital-delivery.md`. Roadmap row: **R6**.
 
 | Fact | Evidence |
 |---|---|
-| Released-render binding, scoped company lookup, paid entitlement, hash re-read, hashed capability link, delivery ledger, sale guards, and refund revoke are implemented | `kodemeio-odoo` `factory_digital` |
-| The module suite is green | `TEST_DB=odoo_test_factory_r6 ./odoo.sh dev ut factory_digital`: 70 tests, 0 failed; 56 post-tests, 0 failed/errors |
+| Released-render binding, scoped company lookup, paid-line grant ledger, hash re-read, line-scoped hashed capability, delivery ledger, sale guards, and refund reconciliation are implemented | `kodemeio-odoo` `factory_digital`; fix-wave commit `67b713f38` |
+| Current module suite | **Green:** `kctl-odoo local test factory_digital -d odoo_test_factory_r6 --tags /factory_digital`; 74 module-stat tests, 0 failures/errors of 60 post-tests. Log: `/tmp/factory_digital_r6_fixwave_rerun_20260927.log`. Separate external Odoo activity on `odoo_test_proof` was observed during the run window; this acceptance was not a guaranteed isolated/serialized rerun. |
+| Static checks | Ruff lint/format, Python AST (19 files), XML parse (4 files), `git diff --check`, and addon i18n catalog lint passed; `bin/validate-bundles install` reported 0 errors and 4 warnings (3 duplicate report modules; empty `report-access-map` missing `groups`). |
 | The link is an opaque random capability; only its SHA-256 is stored | `factory_digital/models/factory_digital_link.py` |
-| Bundle metadata and catalogs are present | `bin/validate-bundles install`: 0 errors; `bin/lint-addon-i18n src/private/factory/factory_digital`: exit 0 |
+| Translation extraction | Catalog shape lint passes, but no fresh Odoo export was run for the new ledger labels/help; regenerate POT/PO and lint before release. |
 | No production state, DNS, secret, payment account, or deployment was changed | implementation boundary |
 
 Local evidence is not live evidence. Production is **not** considered operational until the
@@ -132,8 +135,12 @@ company twin must refuse there, not make the invoice unreadable in payment-state
 
 **R — verify the acceptance invariants:**
 
-- one paid line creates one entitlement; replaying the paid callback changes no count or provenance;
-- the entitlement records its first sale-line/product provenance once;
+- one confirmed paid line creates one `factory.digital.purchase` grant keyed by sale line and
+  digital product; duplicate callbacks create no extra line grants;
+- the kernel `digital.entitlement` remains one aggregate product/buyer record due to its unique
+  constraint; only the adapter grant ledger expresses per-line purchase status;
+- every capability and delivery row names its exact purchase grant; the grant's line key is the
+  refund and revocation boundary;
 - the generated URL contains only an opaque random token;
 - `factory.digital.link` stores the token hash, expiry, budget, and revocation state, never the raw
   token, filestore path, buyer email, or client-supplied expiry;
@@ -150,14 +157,20 @@ against a database-level tamper; this delivery check is mandatory.
 
 Run this with the synthetic paid order before accepting a real order:
 
-1. Save the entitlement's link URL and delivery count.
-2. Post a **full** refund/cancellation through the normal payment/refund path.
-3. **R —** verify the entitlement is revoked, the link returns the named refusal, and the old URL
-   does not expose whether another entitlement exists.
-4. Create a second paid purchase for the same buyer/product. **R —** verify the buyer's one
-   entitlement remains active only when another paid purchase is live.
-5. Run a **partial** refund. **R —** verify access remains and the entitlement chatter contains a
-   manual-review note; partial refunds do not silently revoke the entire product.
+1. Save line-grant IDs, link URLs, and delivery counts; never save raw token values.
+2. Post a **full** refund/cancellation through the normal payment/refund path. Verify that line
+   grant is refunded, every link for it refuses, and the aggregate kernel entitlement is revoked
+   when no other live line grant exists.
+3. Replay/force the paid callback for the refunded invoice. Verify net paid/reversals are
+   reconciled first, the aggregate entitlement stays revoked, and its pre-existing links stay
+   unusable.
+4. Create a second order for the same buyer/product. Verify it creates a second line grant and its
+   own capability. Refund the first order: its old link must refuse while the second order's link
+   still delivers; refunding the second then revokes the aggregate gate.
+5. Verify alternate-invoice coverage separately for confirmed paid, unpaid, partially refunded,
+   and fully refunded purchases. Only confirmed-paid lines with positive net after reversals count.
+6. Run a **partial** refund. **R —** verify that positive-net line remains live and chatter records
+   the manual-review note; partial refunds do not silently revoke access.
 
 Record order/invoice/entitlement/link IDs only. Never record the raw URL token. If a refund event
 is replayed, the result must remain revoked and no duplicate delivery or chatter storm may occur.
