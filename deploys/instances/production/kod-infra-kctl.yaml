@@ -95,7 +95,7 @@ env_overrides:
 #                       has had over an hour to land.
 #
 # ALL THREE SHIP DISABLED (`enabled: false`). Per this task's rulings, the
-# founder must NOT flip them to `enabled: true` / deploy until ALL FOUR hold
+# founder must NOT flip them to `enabled: true` / deploy until ALL FIVE hold
 # (final review I5 added the last two, which Task 6 introduced after this list
 # was written -- without them the first runs alarm on backups that were never
 # deployed, not on anything broken):
