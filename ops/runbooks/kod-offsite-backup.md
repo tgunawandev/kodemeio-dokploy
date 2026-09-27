@@ -38,7 +38,12 @@ that is the repo's own `snapshots/` directory, not the repo root.
 The B2 key is the Hetzner bucket name with `kod-prod-backup/` in front, so any
 path below is read as `b2:kod-prod-backup/<the Offsite column>`. Deliberately
 NOT mirrored: Dokploy's weekly volume tars (`kodemeio-odoo-filestore/compose-*/`)
-and any `*-stg/` canary — restic already holds a better copy of the first.
+and any `*-stg/` canary — restic already holds a better copy of the first. Both
+are `--exclude` flags on the filestore `b2_sync` in
+kodemeio-skills' `docker/jobs/kod-offsite-mirror.sh`, and
+`tests/test_kod_jobs.sh` asserts both reach rclone (final review M1: the
+sentence was true for `compose-*/**` only until 2026-09-27, and the stg canary
+had been copied).
 
 Gaps (no backup — listed in the inventory with a reason): LiteLLM DB (not
 deployed), Mattermost config volume, Dokploy control plane, Hermes state, dsh
