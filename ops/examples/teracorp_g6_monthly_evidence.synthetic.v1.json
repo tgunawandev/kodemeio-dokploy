@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "month": "2026-09",
+  "decisions": [
+    {"decision_id":"d-pdp","topic":"pdp_data_protection","scope_type":"month","scope_id":"2026-09","status":"decided","counsel":{"name":"Synthetic Counsel A","qualification_refs":["qual.synthetic.a"]},"evidence_refs":["ev.synthetic.pdp"],"issued_at":"2026-09-20T10:00:00Z","valid_from":"2026-09-20T10:00:00Z","valid_until":"2026-10-20T10:00:00Z"},
+    {"decision_id":"d-ojk","topic":"ojk_regulatory_boundary","scope_type":"month","scope_id":"2026-09","status":"decided","counsel":{"name":"Synthetic Counsel A","qualification_refs":["qual.synthetic.a"]},"evidence_refs":["ev.synthetic.ojk"],"issued_at":"2026-09-20T10:00:00Z","valid_from":"2026-09-20T10:00:00Z","valid_until":"2026-10-20T10:00:00Z"},
+    {"decision_id":"d-terakod","topic":"terakod_contract_seller_of_record","scope_type":"month","scope_id":"2026-09","status":"decided","counsel":{"name":"Synthetic Counsel A","qualification_refs":["qual.synthetic.a"]},"evidence_refs":["ev.synthetic.terakod"],"issued_at":"2026-09-20T10:00:00Z","valid_from":"2026-09-20T10:00:00Z","valid_until":"2026-10-20T10:00:00Z"},
+    {"decision_id":"d-changes","topic":"processor_data_map_changes","scope_type":"month","scope_id":"2026-09","status":"decided","counsel":{"name":"Synthetic Counsel A","qualification_refs":["qual.synthetic.a"]},"evidence_refs":["ev.synthetic.changes"],"issued_at":"2026-09-20T10:00:00Z","valid_from":"2026-09-20T10:00:00Z","valid_until":"2026-10-20T10:00:00Z"},
+    {"decision_id":"d-access","topic":"access_retention_deletion","scope_type":"month","scope_id":"2026-09","status":"decided","counsel":{"name":"Synthetic Counsel A","qualification_refs":["qual.synthetic.a"]},"evidence_refs":["ev.synthetic.access"],"issued_at":"2026-09-20T10:00:00Z","valid_from":"2026-09-20T10:00:00Z","valid_until":"2026-10-20T10:00:00Z"},
+    {"decision_id":"d-incident","topic":"incident_exception_remediation","scope_type":"month","scope_id":"2026-09","status":"decided","counsel":{"name":"Synthetic Counsel A","qualification_refs":["qual.synthetic.a"]},"evidence_refs":["ev.synthetic.incidents"],"issued_at":"2026-09-20T10:00:00Z","valid_from":"2026-09-20T10:00:00Z","valid_until":"2026-10-20T10:00:00Z"},
+    {"decision_id":"d-product-b8","topic":"processor_data_map_changes","scope_type":"product","scope_id":"B8","status":"decided","counsel":{"name":"Synthetic Counsel A","qualification_refs":["qual.synthetic.a"]},"evidence_refs":["ev.synthetic.b8"],"issued_at":"2026-09-20T10:00:00Z","valid_from":"2026-09-20T10:00:00Z","valid_until":"2026-10-20T10:00:00Z"},
+    {"decision_id":"d-processor-demo","topic":"processor_data_map_changes","scope_type":"processor","scope_id":"processor-demo","status":"decided","counsel":{"name":"Synthetic Counsel A","qualification_refs":["qual.synthetic.a"]},"evidence_refs":["ev.synthetic.processor"],"issued_at":"2026-09-20T10:00:00Z","valid_from":"2026-09-20T10:00:00Z","valid_until":"2026-10-20T10:00:00Z"}
+  ],
+  "change_inventory": {
+    "inventory_status":"complete", "processor_inventory_status":"complete", "evidence_refs":["ev.synthetic.inventory"],
+    "items":[
+      {"subject_type":"product","subject_id":"B8","change_status":"unchanged","evidence_refs":["ev.synthetic.b8.change"],"decision_id":"d-product-b8"},
+      {"subject_type":"processor","subject_id":"processor-demo","change_status":"changed","evidence_refs":["ev.synthetic.processor.change"],"decision_id":"d-processor-demo"}
+    ]
+  },
+  "incident_inventory": {"inventory_status":"complete","evidence_refs":["ev.synthetic.incident-register"],"items":[]}
+}

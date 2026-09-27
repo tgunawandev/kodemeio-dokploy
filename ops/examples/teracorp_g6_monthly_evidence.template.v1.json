@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "month": "YYYY-MM",
+  "decisions": [],
+  "change_inventory": {"inventory_status":"unknown","processor_inventory_status":"unknown","evidence_refs":[],"items":[]},
+  "incident_inventory": {"inventory_status":"unknown","evidence_refs":[],"items":[]}
+}
