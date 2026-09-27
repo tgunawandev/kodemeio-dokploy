@@ -1,0 +1,91 @@
+# Terakidz learning pack — the template factory's PDF proof (Teracorp F3/TPL1, spec D10).
+#
+# EXAMPLE CONTENT. Nothing here is approved Terakidz product copy: the activity list is a
+# plausible placeholder so the factory has a real, schema-valid PDF template to render in
+# variants per brand kit (roadmap gate F3: "variants per brand kit, licence-clean"). The real
+# pack content is the factory's job later (spec section 7, out of scope).
+#
+# Every asset reference is an `asset:<key>` into the consumer's licence-checked library (Odoo
+# `factory.asset`); no URL appears anywhere in a template, because the licence lives with the
+# asset and never with the document. `fonts.heading`/`fonts.body` resolve to the Terakidz kit's
+# own `fonts` refs (asset:font-nunito, OFL-1.1) — a font that is not a verified, commercial,
+# non-expired `font` asset refuses the render by name.
+#
+# Placeholders (see contracts/templates/template.v1.schema.json):
+#   {{var.<key>}}      a declared variable, typed and validated at render time
+#   {{theme.<token>}}  a brand-kit token (`_fb_theme()`: 13 colour/radius tokens + font families)
+#   {{page.<token>}}   the page box (size, orientation, margin_top/right/bottom/left)
+#   {{option.<name>}}  a render option (locale, palette)
+#   {{kit.<key>}}      kit content the document must carry (disclaimers, ai_disclosure)
+#   {{blocks}}         the rendered block flow (layout sources only)
+id: terakidz-learning-pack
+version: 1
+title: "Terakidz Learning Pack"
+kind: pdf
+renderer: wkhtml
+layout: layout.html
+
+page:
+  size: A4
+  orientation: portrait
+  margins:
+    top: 18
+    right: 16
+    bottom: 18
+    left: 16
+
+blocks:
+  - type: heading
+    level: 1
+    text: "{{var.pack_title}}"
+  - type: paragraph
+    text: >-
+      Paket latihan komunikasi untuk anak usia {{var.age_band}} tahun. Setiap aktivitas
+      dirancang untuk dikerjakan bersama pendamping, dalam suasana tenang dan tanpa batas waktu.
+  - type: list
+    ordered: true
+    items:
+      - "Papan komunikasi: tunjuk satu gambar, lalu ucapkan kata yang sama."
+      - "Kartu kosakata: ambil tiga kartu, ceritakan satu kalimat untuk setiap kartu."
+      - "Cerita sosial: baca bersama, lalu tanyakan bagaimana perasaan tokohnya."
+  - type: image
+    asset: "asset:image-terakidz-learning-hero"
+    alt: "Ilustrasi pendamping dan anak menggunakan papan komunikasi"
+  - type: disclaimer
+    text: "{{kit.disclaimers}}"
+  - type: footer
+    text: "Dicetak dari Paket Belajar Terakidz — {{var.session_date}}"
+
+variables:
+  - key: pack_title
+    type: string
+    required: true
+    default: "Paket Belajar Komunikasi"
+    description: "The pack's title as it appears on the sheet."
+  - key: age_band
+    type: enum
+    enum: ["3-5", "6-7", "8-9"]
+    required: true
+    default: "3-5"
+    description: "Age band the activity list is pitched at (a variant axis)."
+  - key: session_date
+    type: date
+    required: false
+    default: "2026-09-27"
+    description: "The date printed on the sheet; formatted for the render's locale."
+
+assets:
+  fonts:
+    heading: "asset:font-nunito"
+    body: "asset:font-nunito"
+  images:
+    hero: "asset:image-terakidz-learning-hero"
+
+outputs: [pdf]
+
+# The template is brand-neutral by construction -- it prints the KIT's tokens, fonts and
+# mandatory disclaimers -- so it is approved for both committed kits. That is what makes the
+# two-kit proof a real render rather than a special case: one template, two kits, two
+# documents. A kit not listed here refuses the render by name.
+brand:
+  kits: ["terakidz", "terakon"]

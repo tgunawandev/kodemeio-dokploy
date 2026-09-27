@@ -1,0 +1,97 @@
+{
+  "id": "terakidz-learning-pack",
+  "version": 1,
+  "title": "Terakidz Learning Pack",
+  "kind": "pdf",
+  "renderer": "wkhtml",
+  "layout": "layout.html",
+  "page": {
+    "size": "A4",
+    "orientation": "portrait",
+    "margins": {
+      "top": 18,
+      "right": 16,
+      "bottom": 18,
+      "left": 16
+    }
+  },
+  "blocks": [
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "{{var.pack_title}}"
+    },
+    {
+      "type": "paragraph",
+      "text": "Paket latihan komunikasi untuk anak usia {{var.age_band}} tahun. Setiap aktivitas dirancang untuk dikerjakan bersama pendamping, dalam suasana tenang dan tanpa batas waktu."
+    },
+    {
+      "type": "list",
+      "ordered": true,
+      "items": [
+        "Papan komunikasi: tunjuk satu gambar, lalu ucapkan kata yang sama.",
+        "Kartu kosakata: ambil tiga kartu, ceritakan satu kalimat untuk setiap kartu.",
+        "Cerita sosial: baca bersama, lalu tanyakan bagaimana perasaan tokohnya."
+      ]
+    },
+    {
+      "type": "image",
+      "asset": "https://cdn.example.test/hero.png",
+      "alt": "Ilustrasi pendamping dan anak menggunakan papan komunikasi"
+    },
+    {
+      "type": "disclaimer",
+      "text": "{{kit.disclaimers}}"
+    },
+    {
+      "type": "footer",
+      "text": "Dicetak dari Paket Belajar Terakidz — {{var.session_date}}"
+    }
+  ],
+  "variables": [
+    {
+      "key": "pack_title",
+      "type": "string",
+      "required": true,
+      "default": "Paket Belajar Komunikasi",
+      "description": "The pack's title as it appears on the sheet."
+    },
+    {
+      "key": "age_band",
+      "type": "enum",
+      "enum": [
+        "3-5",
+        "6-7",
+        "8-9"
+      ],
+      "required": true,
+      "default": "3-5",
+      "description": "Age band the activity list is pitched at (a variant axis)."
+    },
+    {
+      "key": "session_date",
+      "type": "date",
+      "required": false,
+      "default": "2026-09-27",
+      "description": "The date printed on the sheet; formatted for the render's locale."
+    }
+  ],
+  "assets": {
+    "fonts": {
+      "heading": "asset:font-nunito",
+      "body": "asset:font-nunito"
+    },
+    "images": {
+      "hero": "asset:image-terakidz-learning-hero"
+    }
+  },
+  "outputs": [
+    "pdf"
+  ],
+  "brand": {
+    "kits": [
+      "terakidz",
+      "terakon"
+    ]
+  }
+}

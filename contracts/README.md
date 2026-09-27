@@ -39,4 +39,28 @@ Owners: this repo holds the schemas; each service repo implements them.
   service imports its own read-only snapshot (e.g. Odoo's `factory_base`, per the Teracorp
   factory-commons plan) rather than editing the kit directly. `brands/terakidz.yaml` is
   `active`; `brands/terakon.yaml` is a `draft` test fixture only (no real product yet).
+- `templates/template.v1.schema.json` is a factory template (Teracorp template factory, F3):
+  a committed `templates/<id>/template.yaml` plus the layout sidecar it names (`.html` for
+  `typst`/`wkhtml`, `.yaml`/`.json` for `xlsx` — the renderer pins the extension). **A layout is
+  never a program** (spec D2 amendment, 2026-09-27): the HTML sidecar is a skeleton the renderer
+  FILLS ({{blocks}} and the kit's tokens), and the workbook sidecar is DATA the renderer
+  INTERPRETS — `sheets → rows → cells`, each cell one of `text`/`var`/`block`/`formula`, with a
+  closed style set (`title`, `note`, `header`, `body`, `grid`, `footer`, `notice`) and a closed
+  formula set (`SUM`, `AVG`, `MIN`, `MAX`, `COUNT` over a cell or a range). A `.py` sidecar is
+  refused by the contract, so a merged template can never become code inside a renderer. It pins
+  the artefact `kind` (`pdf`|`xlsx`), the render `renderer`, the page box (size, orientation,
+  margins in mm), a **closed block vocabulary** (`heading`, `paragraph`, `list`, `table`,
+  `image`, `spacer`, `footer`, `disclaimer` — never free-form HTML), typed `variables`
+  (`string`|`int`|`date`|`enum`, with `required`/`default`/`enum`), licensed `assets`
+  (`fonts` and `images` role maps — every value an `asset:<key>` reference, so a raw URL is
+  never a template value: the licence lives with the asset), `outputs` and the `brand.kits` a
+  template is approved to render under. Every string is literal text or a placeholder:
+  `{{var.<key>}}`, `{{theme.<token>}}` (the kit's palette and font families), `{{page.<token>}}`,
+  `{{option.<locale|palette|page_size|orientation>}}`, `{{kit.<disclaimers|ai_disclosure>}}`,
+  and `{{blocks}}` in a layout source. The human label is `title`, not `name`: `name` is
+  refused by the shared PII property-name denylist in `deploys/tests/contracts_lib.py`. The
+  two shipped examples are `templates/terakidz-learning-pack/` (PDF) and
+  `templates/terakon-planner/` (workbook); `deploys/tests/test_contracts_templates.py` checks
+  both the schema and the semantics it cannot express (every placeholder resolves, every image
+  block names a declared role).
 - Tests: `uv run pytest deploys/tests -k contracts`.

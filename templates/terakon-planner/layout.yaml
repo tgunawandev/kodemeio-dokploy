@@ -1,0 +1,53 @@
+# Terakon weekly planner -- the layout sidecar named by template.yaml (`layout`).
+#
+# DATA, NOT CODE (spec D2 amendment, 2026-09-27). The workbook sidecar is INTERPRETED by the
+# renderer and never executed: there is no `exec` in the render path, so a merged template can
+# never become arbitrary code inside an Odoo worker. The estate's law is a closed vocabulary at
+# every boundary, and this is that boundary for a workbook.
+#
+# Shape (validated by the consumer's importer; the schema pins only the file extension):
+#   sheets[]      name (the workbook's sheet, in order), optional columns/rows/freeze, cells[]
+#   cell.ref      an A1 reference
+#   cell.<one of> text | var | block | formula  -- exactly one content source:
+#       text     a literal string; {{...}} placeholders resolve exactly as in a block
+#       var      a declared variable's value, formatted for the render's locale
+#       block    an integer index into the template's `blocks`; the renderer places it here --
+#                  heading/paragraph/footer/disclaimer -> this cell
+#                  list  -> one cell per item, downwards
+#                  table -> the header row across, then one row per declared row, downwards
+#       formula  a closed-vocabulary aggregate over cells: SUM|AVG|MIN|MAX|COUNT(<cell|range>)
+#                (no CONCAT: composing strings is what `text` and `var` are for, and every
+#                 name in a vocabulary must be one a template actually uses)
+#   cell.type     text | number | date (a hint for the cell's number format)
+#   cell.style    title | note | header | body | grid | footer | notice -- the renderer's own
+#                 style set, painted from the brand kit's tokens. A layout names a style, never
+#                 a colour, so the kit stays the single source of the look.
+sheets:
+  - name: Planner
+    columns:
+      A: 22
+      B: 18
+      C: 18
+      D: 18
+      E: 18
+      F: 18
+    freeze: A5
+    cells:
+      - {ref: A1, block: 0, style: title} # the heading block: the planner's title
+      - {ref: A2, block: 1, style: note} # the paragraph block: week number, start, review day
+      - {ref: A4, block: 2, style: grid} # the table block: the weekly grid, header row first
+      - {ref: A8, text: "Terisi", style: header}
+      - {ref: B8, formula: "COUNT(B5:F7)", type: number, style: body}
+      - {ref: A9, block: 3, style: body} # the list block: the checklist, one item per row
+      - {ref: A14, block: 4, style: footer}
+      - {ref: A16, block: 5, style: notice} # the kit's mandatory disclaimer
+
+  - name: Notes
+    columns:
+      A: 60
+    rows:
+      - {ref: 3, height: 22}
+    cells:
+      - {ref: A1, block: 0, style: title}
+      - {ref: A3, var: week_start, type: date, style: note}
+      - {ref: A5, text: "Catatan:", style: header}

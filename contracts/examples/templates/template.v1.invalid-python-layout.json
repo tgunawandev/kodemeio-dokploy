@@ -1,0 +1,134 @@
+{
+  "id": "terakon-planner",
+  "version": 1,
+  "title": "Terakon Weekly Planner",
+  "kind": "xlsx",
+  "renderer": "xlsx",
+  "layout": "layout.py",
+  "page": {
+    "size": "A4",
+    "orientation": "portrait",
+    "margins": {
+      "top": 12,
+      "right": 12,
+      "bottom": 12,
+      "left": 12
+    }
+  },
+  "blocks": [
+    {
+      "type": "heading",
+      "level": 1,
+      "text": "{{var.planner_title}}"
+    },
+    {
+      "type": "paragraph",
+      "text": "Minggu ke-{{var.week_number}} · mulai {{var.week_start}} · tinjauan {{var.review_day}}"
+    },
+    {
+      "type": "table",
+      "columns": [
+        "Slot",
+        "Senin",
+        "Selasa",
+        "Rabu",
+        "Kamis",
+        "Jumat"
+      ],
+      "rows": [
+        [
+          "Pagi",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Siang",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        [
+          "Sore",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ]
+      ]
+    },
+    {
+      "type": "list",
+      "ordered": false,
+      "items": [
+        "Tandai satu prioritas utama untuk minggu ini.",
+        "Catat satu keputusan yang menunggu masukan.",
+        "Tutup minggu dengan meninjau slot yang belum terisi."
+      ]
+    },
+    {
+      "type": "footer",
+      "text": "Dibuat dengan Terakon Planner"
+    },
+    {
+      "type": "disclaimer",
+      "text": "{{kit.disclaimers}}"
+    }
+  ],
+  "variables": [
+    {
+      "key": "planner_title",
+      "type": "string",
+      "required": true,
+      "default": "Rencana Mingguan",
+      "description": "The workbook's title, written into the first sheet's header cell."
+    },
+    {
+      "key": "week_number",
+      "type": "int",
+      "required": true,
+      "default": 39,
+      "description": "ISO week number the planner covers (a variant axis)."
+    },
+    {
+      "key": "week_start",
+      "type": "date",
+      "required": false,
+      "default": "2026-09-27",
+      "description": "First day of the week; formatted for the render's locale."
+    },
+    {
+      "key": "review_day",
+      "type": "enum",
+      "enum": [
+        "Senin",
+        "Selasa",
+        "Rabu",
+        "Kamis",
+        "Jumat"
+      ],
+      "required": false,
+      "default": "Jumat",
+      "description": "Day named in the header note as the review day."
+    }
+  ],
+  "assets": {
+    "fonts": {
+      "heading": "asset:font-inter",
+      "body": "asset:font-inter"
+    }
+  },
+  "outputs": [
+    "xlsx"
+  ],
+  "brand": {
+    "kits": [
+      "terakon"
+    ]
+  }
+}

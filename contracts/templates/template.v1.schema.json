@@ -1,0 +1,633 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kodeme.io/contracts/templates/template.v1.schema.json",
+  "title": "Template v1",
+  "description": "A factory template (Teracorp template factory, spec D2): one committed template.yaml plus the layout source file it names, both under templates/<id>/ in this repo. The schema defines WHAT a template is -- kind, renderer, page box, a closed block vocabulary, typed variables, licensed asset references -- never the document itself: the layout sidecar is a separate, separately reviewed file (a filled-in HTML template for the PDF renderers, declarative data for the workbook renderer -- never code), and no template value is ever free-form HTML. Every string a template contributes is one of (a) literal text, (b) a placeholder {{var.<key>}} naming a declared variable, or (c) a layout token: {{blocks}}, {{theme.<token>}}, {{page.<token>}}, {{option.<locale|palette|page_size|orientation>}}, {{kit.<disclaimers|ai_disclosure>}}. Fonts are declared under assets.fonts only, images under assets.images, and every asset value is an `asset:<key>` reference resolved by the consumer's asset library -- a raw URL is never a template value, because the licence lives with the asset and never with the document. The human label is `title`, not `name`: `name` is refused by the shared PII property-name denylist (deploys/tests/contracts_lib.py PII_NAMES), which every schema in this repo is checked against. The schema is deliberately SELF-CONTAINED (no $ref, not even to its own branches) so contracts_lib's schema walkers keep working on it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "version",
+    "title",
+    "kind",
+    "renderer",
+    "layout",
+    "page",
+    "blocks",
+    "variables",
+    "assets",
+    "outputs",
+    "brand"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{1,63}$",
+      "description": "Kebab slug; also the directory name under templates/ and the import key."
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Monotonic per id: a consumer refuses a lower or equal version (drift refusal)."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human label. Deliberately not `name` (see the schema description)."
+    },
+    "kind": {
+      "enum": [
+        "pdf",
+        "xlsx"
+      ],
+      "description": "The artefact family; the renderer decides the bytes."
+    },
+    "renderer": {
+      "enum": [
+        "typst",
+        "wkhtml",
+        "xlsx"
+      ],
+      "description": "typst/wkhtml produce PDF; xlsx produces a workbook. A renderer the consumer does not have REFUSES the render by name, never falls back. No renderer executes its layout: there is no eval, no exec and no subprocess of a template-authored file anywhere in the render path."
+    },
+    "layout": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*\\.(html|yaml|json)$",
+      "description": "Bare file name of the layout sidecar beside template.yaml -- no directory part, no traversal. Pinned per renderer below: `.html` for typst/wkhtml, `.yaml` (or `.json`) for xlsx. A layout is never a program: the html sidecar is a template the renderer fills, the workbook sidecar is data the renderer interprets."
+    },
+    "page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "size",
+        "orientation",
+        "margins"
+      ],
+      "properties": {
+        "size": {
+          "enum": [
+            "A4",
+            "A5",
+            "Letter"
+          ]
+        },
+        "orientation": {
+          "enum": [
+            "portrait",
+            "landscape"
+          ]
+        },
+        "margins": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "top",
+            "right",
+            "bottom",
+            "left"
+          ],
+          "properties": {
+            "top": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 60
+            },
+            "right": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 60
+            },
+            "bottom": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 60
+            },
+            "left": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 60
+            }
+          }
+        }
+      },
+      "description": "The page box, in millimetres. Required for every template so a variant is a data change, not a code change; an xlsx template declares it anyway (its paper intent) and the workbook renderer ignores it."
+    },
+    "blocks": {
+      "type": "array",
+      "minItems": 1,
+      "description": "The document's content, in order, from a closed vocabulary. Never free-form HTML.",
+      "items": {
+        "description": "A block. An unknown `type` matches no branch and is refused.",
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "text"
+            ],
+            "properties": {
+              "type": {
+                "const": "heading"
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1
+              },
+              "level": {
+                "enum": [
+                  1,
+                  2,
+                  3
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "text"
+            ],
+            "properties": {
+              "type": {
+                "const": "paragraph"
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "items"
+            ],
+            "properties": {
+              "type": {
+                "const": "list"
+              },
+              "items": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "ordered": {
+                "type": "boolean"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "columns"
+            ],
+            "properties": {
+              "type": {
+                "const": "table"
+              },
+              "columns": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "rows": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "asset"
+            ],
+            "properties": {
+              "type": {
+                "const": "image"
+              },
+              "asset": {
+                "type": "string",
+                "pattern": "^asset:[a-z0-9-]+$",
+                "description": "A key into the consumer's licence-checked asset library. Never a URL."
+              },
+              "alt": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type"
+            ],
+            "properties": {
+              "type": {
+                "const": "spacer"
+              },
+              "size": {
+                "enum": [
+                  "small",
+                  "medium",
+                  "large"
+                ]
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "text"
+            ],
+            "properties": {
+              "type": {
+                "const": "footer"
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "text"
+            ],
+            "properties": {
+              "type": {
+                "const": "disclaimer"
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        ]
+      }
+    },
+    "variables": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "type"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]{1,31}$",
+            "description": "Referenced from a block or the layout as {{var.<key>}}."
+          },
+          "type": {
+            "enum": [
+              "string",
+              "int",
+              "date",
+              "enum"
+            ]
+          },
+          "required": {
+            "type": "boolean",
+            "description": "A required variable with no value refuses the render, naming it."
+          },
+          "default": {
+            "description": "Used when no value is supplied. Must satisfy `type` (and `enum`)."
+          },
+          "enum": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            },
+            "description": "The allowed values, for `type: enum`."
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "type"
+              ],
+              "properties": {
+                "type": {
+                  "const": "enum"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "enum"
+              ]
+            }
+          }
+        ],
+        "description": "A typed input. A value matching a PII pattern refuses the render's checks; a value for an undeclared key refuses the import."
+      }
+    },
+    "assets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fonts"
+      ],
+      "properties": {
+        "fonts": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^asset:[a-z0-9-]+$",
+            "description": "A key into the consumer's licence-checked asset library. Never a URL."
+          },
+          "required": [
+            "heading",
+            "body"
+          ],
+          "properties": {
+            "heading": {
+              "type": "string",
+              "pattern": "^asset:[a-z0-9-]+$",
+              "description": "A key into the consumer's licence-checked asset library. Never a URL."
+            },
+            "body": {
+              "type": "string",
+              "pattern": "^asset:[a-z0-9-]+$",
+              "description": "A key into the consumer's licence-checked asset library. Never a URL."
+            }
+          },
+          "description": "Font roles (at least heading and body) -> `asset:<key>` of a usable font asset."
+        },
+        "images": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^asset:[a-z0-9-]+$",
+            "description": "A key into the consumer's licence-checked asset library. Never a URL."
+          },
+          "description": "Image roles -> `asset:<key>` of a usable image asset."
+        }
+      },
+      "description": "role -> licensed asset key. `fonts` is the only bucket a font may appear in; `images` is the only bucket an image may appear in."
+    },
+    "outputs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "enum": [
+          "pdf",
+          "xlsx"
+        ]
+      },
+      "description": "The artefact formats this template can produce; must include the renderer's own."
+    },
+    "brand": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kits"
+      ],
+      "properties": {
+        "kits": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{1,31}$"
+          },
+          "description": "Brand kit codes this template is approved to render under. The kit supplies the palette, the fonts and the mandatory disclaimers, so one template renders many variants and a kit not listed here refuses the render by name."
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "renderer"
+        ],
+        "properties": {
+          "renderer": {
+            "enum": [
+              "typst",
+              "wkhtml"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "kind": {
+            "const": "pdf"
+          },
+          "layout": {
+            "pattern": "\\.html$"
+          },
+          "outputs": {
+            "contains": {
+              "const": "pdf"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "renderer"
+        ],
+        "properties": {
+          "renderer": {
+            "const": "xlsx"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "kind": {
+            "const": "xlsx"
+          },
+          "layout": {
+            "pattern": "\\.(yaml|json)$",
+            "description": "An xlsx layout sidecar is DATA the renderer INTERPRETS, never code it executes (spec D2 amendment): sheets -> rows -> cells, a closed style vocabulary and a closed formula vocabulary. A `.py` sidecar is refused by this pattern."
+          },
+          "outputs": {
+            "contains": {
+              "const": "xlsx"
+            }
+          },
+          "blocks": {
+            "type": "array",
+            "minItems": 1,
+            "description": "An xlsx template declares cell groups: heading (a sheet's title cell), paragraph (a note cell), list (a checklist), table (a grid), footer (a footer row), disclaimer (a notice cell). `image` and `spacer` have no workbook meaning and are refused.",
+            "items": {
+              "description": "A block. An unknown `type` matches no branch and is refused.",
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "type",
+                    "text"
+                  ],
+                  "properties": {
+                    "type": {
+                      "const": "heading"
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "level": {
+                      "enum": [
+                        1,
+                        2,
+                        3
+                      ]
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "type",
+                    "text"
+                  ],
+                  "properties": {
+                    "type": {
+                      "const": "paragraph"
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "type",
+                    "items"
+                  ],
+                  "properties": {
+                    "type": {
+                      "const": "list"
+                    },
+                    "items": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "ordered": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "type",
+                    "columns"
+                  ],
+                  "properties": {
+                    "type": {
+                      "const": "table"
+                    },
+                    "columns": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "rows": {
+                      "type": "array",
+                      "items": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "type",
+                    "text"
+                  ],
+                  "properties": {
+                    "type": {
+                      "const": "footer"
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "type",
+                    "text"
+                  ],
+                  "properties": {
+                    "type": {
+                      "const": "disclaimer"
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  ]
+}

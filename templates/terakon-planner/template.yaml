@@ -1,0 +1,85 @@
+# Terakon weekly planner — the template factory's XLSX proof (Teracorp F3/TPL1, spec D10).
+#
+# EXAMPLE CONTENT. Terakon has no shipped product (brands/terakon.yaml is itself a `draft`
+# fixture), so every string below is a placeholder whose only job is to give the factory a
+# real, schema-valid workbook template: named sheets, a weekly grid, header cells fed from
+# variables, and a kit-driven palette/font. Real planner content is a founder/brand decision.
+#
+# The layout sidecar is `layout.yaml` (pinned by the schema for `renderer: xlsx`). It is DATA:
+# the consumer's renderer INTERPRETS it (sheets -> rows -> cells, a closed style vocabulary and
+# a closed formula vocabulary) and never executes it -- spec D2 amendment, 2026-09-27. A
+# `.py` sidecar is refused by the contract, not just discouraged.
+id: terakon-planner
+version: 1
+title: "Terakon Weekly Planner"
+kind: xlsx
+renderer: xlsx
+layout: layout.yaml
+
+# Declared for every template (the schema requires it) and ignored by the workbook renderer:
+# a variant's page_size/orientation are recorded on the render either way, so the same knob
+# means the same thing on every line.
+page:
+  size: A4
+  orientation: portrait
+  margins:
+    top: 12
+    right: 12
+    bottom: 12
+    left: 12
+
+blocks:
+  - type: heading
+    level: 1
+    text: "{{var.planner_title}}"
+  - type: paragraph
+    text: "Minggu ke-{{var.week_number}} · mulai {{var.week_start}} · tinjauan {{var.review_day}}"
+  - type: table
+    columns: ["Slot", "Senin", "Selasa", "Rabu", "Kamis", "Jumat"]
+    rows:
+      - ["Pagi", "", "", "", "", ""]
+      - ["Siang", "", "", "", "", ""]
+      - ["Sore", "", "", "", "", ""]
+  - type: list
+    ordered: false
+    items:
+      - "Tandai satu prioritas utama untuk minggu ini."
+      - "Catat satu keputusan yang menunggu masukan."
+      - "Tutup minggu dengan meninjau slot yang belum terisi."
+  - type: footer
+    text: "Dibuat dengan Terakon Planner"
+  - type: disclaimer
+    text: "{{kit.disclaimers}}"
+
+variables:
+  - key: planner_title
+    type: string
+    required: true
+    default: "Rencana Mingguan"
+    description: "The workbook's title, written into the first sheet's header cell."
+  - key: week_number
+    type: int
+    required: true
+    default: 39
+    description: "ISO week number the planner covers (a variant axis)."
+  - key: week_start
+    type: date
+    required: false
+    default: "2026-09-27"
+    description: "First day of the week; formatted for the render's locale."
+  - key: review_day
+    type: enum
+    enum: ["Senin", "Selasa", "Rabu", "Kamis", "Jumat"]
+    required: false
+    default: "Jumat"
+    description: "Day named in the header note as the review day."
+
+assets:
+  fonts:
+    heading: "asset:font-inter"
+    body: "asset:font-inter"
+
+outputs: [xlsx]
+
+brand:
+  kits: ["terakon"]
