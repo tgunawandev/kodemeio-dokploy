@@ -40,20 +40,20 @@ publishes to a social platform. Postiz is deliberately a later transport.
 Install the bundle group only in a disposable/local Odoo test or founder-approved environment:
 
 ```sh
-TEST_DB=odoo_test_factory_f10 ./odoo.sh dev testdb factory_publish
-TEST_DB=odoo_test_factory_f10 ./odoo.sh dev t factory_publish
+kctl-odoo local test factory_publish -d odoo_test_factory_publish_fresh --tags /factory_publish
 ```
 
 The `private-factory:publishing` group depends on the F8 `content` install group and the publication
 engine/review modules supplied by `private-content`. This bundle dependency describes module
-installation only; it is not evidence that F8 has passed acceptance or been deployed. The earlier
-serialized F10 neighbour run reported 3 failures and 44 errors of 115 tests; its full traceback
-and failing test names were not retained. On 2026-09-27 the owner reported a later updated-DB F8
-`factory_content` run red with 9 failures and 2 errors. Bohr is fixing it and preparing a rerun
-with captured output; that result is pending and has not been independently verified here. Neither
-red run is F8 acceptance evidence. Review the captured rerun before relying on F8 operationally.
-This F10 runbook makes no F8 acceptance or production-deployment claim. The group is absent from
-the default profile.
+installation only; it is not evidence that F8 has been deployed. The earlier serialized F10
+neighbour run reported 3 failures and 44 errors of 115 tests; its full traceback and failing test
+names were not retained. The later owner-captured F8 rerun is green: `factory_content`, 143
+module-stat tests, 0 failures/errors (115 Odoo post-tests). This is owner-reported evidence, not
+an F8 run performed by this F10 slice. An initial F10 attempt using a separately created
+production-mode test DB had 14 test errors because test-only `content_account.fake_api_key` was
+absent from that DB schema; direct `local test` on a fresh DB composed the test schema correctly.
+Final F10 evidence is recorded in the publishing results ledger. No red result above is current
+F8 acceptance evidence. The group is absent from the default profile.
 
 Configure accounts using the Odoo UI/API with the founder-approved company, brand kit, channel
 and mode. Do not paste credentials into source, YAML, logs, publication metadata or test
