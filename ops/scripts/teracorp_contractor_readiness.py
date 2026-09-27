@@ -16,6 +16,7 @@ _REF = re.compile(r"^[A-Za-z][A-Za-z0-9:._/-]{2,127}$")
 _GROUP = re.compile(r"^ak-[a-z0-9-]{2,80}$")
 _UTC = re.compile(r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$")
 _MAX_BYTES = 262_144
+_MAX_JSON_NESTING = 64
 _MAX_EVENTS = 100
 _PRIVILEGED = ("admin", "devops", "platform", "svc", "superuser")
 _ROOT_KEYS = {"schema_version", "policy", "trigger", "events"}
@@ -271,6 +272,30 @@ def _pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
+def _check_json_nesting(raw: str) -> None:
+    """Bound structural JSON nesting without counting brackets inside strings."""
+    depth = 0
+    in_string = False
+    escaped = False
+    for char in raw:
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            continue
+        if char == '"':
+            in_string = True
+        elif char in "[{":
+            depth += 1
+            if depth > _MAX_JSON_NESTING:
+                raise InputError(f"input JSON nesting must not exceed {_MAX_JSON_NESTING} levels")
+        elif char in "]}" and depth:
+            depth -= 1
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("bundle", type=Path, help="explicit synthetic/local G5 evidence JSON")
@@ -279,7 +304,12 @@ def main(argv: list[str] | None = None) -> int:
         raw = args.bundle.read_bytes()
         if len(raw) > _MAX_BYTES:
             raise InputError(f"input must not exceed {_MAX_BYTES} bytes")
-        payload = json.loads(raw.decode("utf-8"), object_pairs_hook=_pairs)
+        text = raw.decode("utf-8")
+        _check_json_nesting(text)
+        try:
+            payload = json.loads(text, object_pairs_hook=_pairs)
+        except RecursionError as exc:
+            raise InputError("input JSON exceeds parser safety limits") from exc
         print(json.dumps(validate_bundle(payload), sort_keys=True))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError, InputError) as exc:
         print(f"teracorp_contractor_readiness: {exc}", file=sys.stderr)
