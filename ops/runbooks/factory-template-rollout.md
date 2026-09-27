@@ -20,7 +20,7 @@ amendment** (a layout is never a program). Roadmap row: **F3** (TPL1).
 | 1 | The two templates and the contract are committed: `templates/terakidz-learning-pack/{template.yaml,layout.html}`, `templates/terakon-planner/{template.yaml,layout.yaml}`, `contracts/templates/template.v1.schema.json` (`kodemeio-dokploy` **1ca1052**) — 27 contract tests green, 0 errors | `uv run pytest deploys/tests -k contracts -q`; `git show --stat 1ca1052` |
 | 2 | The module `factory_template` is committed on `18.0` (`kodemeio-odoo` **31abc3607** T2, **2f02ce6b2** T3, **ca6cf7cf3** T4) — **130 tests, 0 failed**; `factory_base` 140 and `factory_landing` 48 stay green on the same test DB | `TEST_DB=odoo_test_factory_tpl ./odoo.sh dev t factory_template` |
 | 3 | Bundle group `templates` exists in `install/private-factory.yaml` (depends `core`, one module); `bin/validate-bundles` reports **0 errors** | `bin/validate-bundles install` |
-| 4 | 🔴 **The `typst` Python package is NOT in the image** — `python3 -c "import typst"` → `ModuleNotFoundError`. The renderer ships implemented and **refuses with the named error `typst not installed`** at materialise time | `docker exec <odoo> python3 -c "import typst"` (dev image, 2026-09-27) |
+| 4 | 🔴 **The `typst` Python package is NOT in the image** — `python3 -c "import typst"` → `ModuleNotFoundError`. The renderer ships implemented and **refuses with the named error `typst not installed`** at materialise time. It renders the same closed block vocabulary as `wkhtml` (`image` and `spacer` included) and refuses a block it cannot render **by name**, but it does **not** interpret the `.html` layout sidecar — it builds its document from the blocks, the kit's tokens and the page box | `docker exec <odoo> python3 -c "import typst"` (dev image, 2026-09-27); `factory_template/tests/test_formats.py` |
 | 5 | `wkhtmltopdf 0.12.6.1`, `openpyxl 3.1.2` and `pypdf 6.18.1` ARE in the image; `wkhtmltox.deb` is installed in the **base** image (`docker/Dockerfile.base:222`), and Python deps come from `requirements-oca.txt` (`docker/Dockerfile.base:116`) | same image; `docker/Dockerfile.base` |
 | 6 | The `factory` bucket is already on the addons path in the rendered `/etc/odoo/odoo.conf` (`/opt/odoo/src/private/factory`) — the base image that carries it is built and deployed | `grep factory /etc/odoo/odoo.conf` in the dev image |
 | 7 | The four module-level RPC shapes this runbook uses are the ones the F2 runbook already proved: `kctl-odoo shell call <model> <method> '<args json>'` takes **positional args as a JSON array**, `-k` takes kwargs, and it calls **model-level** methods | `kctl-odoo shell call --help` |
@@ -39,7 +39,7 @@ second person.
 | Question | Options | Cost |
 |---|---|---|
 | Which Odoo instance | `./odoo.sh kod prod` (erp.kodeme.io) is the default here; `kod-desk` for the desk instance | one `-p` profile per instance; nothing else changes |
-| Renderer for the PDF printable | **`wkhtml` (works today, no image change)** or **`typst`** (needs a base-image rebuild) | Typst is the blueprint's intent; wkhtml is the fleet's existing engine. A template names its renderer, so switching later is a data change in kodemeio-dokploy — not a code change |
+| Renderer for the PDF printable | **`wkhtml` (works today, no image change)** or **`typst`** (needs a base-image rebuild) | Typst is the blueprint's intent; wkhtml is the fleet's existing engine. A template names its renderer, so switching later is a data change in kodemeio-dokploy — not a code change. It is **not a no-op**: typst ignores the html sidecar (its look comes from the kit's tokens and the block vocabulary), so expect a different document |
 | Workbook | `xlsx` (openpyxl, in the image) | nothing to decide |
 
 **Founder decision to record here (fill in and commit):**
@@ -237,14 +237,17 @@ Factory → Work Orders → New:
 
 ```bash
 kctl-odoo -p kodemeio-kod-odoo-erp shell call factory.template.render search_read '[[]]' \
-  -k '{"fields":["template_id","brand_kit_id","state","renderer","page_count","byte_count","input_sha256"],"order":"id desc","limit":5}'
+  -k '{"fields":["template_id","brand_kit_id","state","renderer","page_count","byte_count","input_sha256","artefact_sha256"],"order":"id desc","limit":5}'
 kctl-odoo -p kodemeio-kod-odoo-erp shell call factory.work.order search_read \
   '[["line_id.code","=","template"]]' -k '{"fields":["work_order_id","state","bound_ref","published_ref"],"order":"id desc","limit":5}'
 # expect: a released render, and its order done with published_ref == bound_ref
 ```
 
 The artefact itself is on the render record (Factory → Renders → *Artefact*); the released
-render is immutable for every environment, including an administrator's.
+render is immutable for every environment, including an administrator's — the **row** (state,
+artefact, hashes, options) and the **artefact's bytes**: `artefact_sha256` is what the release
+path re-reads, and a released render's attachment can no longer be written, repointed, re-created
+or deleted. A tampered artefact refuses the next submit/release by name.
 
 ---
 
@@ -283,12 +286,12 @@ verified `font` asset.
 
 | What | Command / action | What it does / does not do |
 |---|---|---|
-| One released render | none — a released render is immutable and is evidence | Supersede it with a new render (materialise a new variant) and release that |
+| One released render | none — a released render is immutable and is evidence (its row AND its artefact's bytes) | Supersede it with a new render (materialise a new variant) and release that |
 | A template that is wrong | import a newer version (M4) or, as an administrator, clear `active` | Nothing already released changes; a new render under the archived template refuses |
 | An asset's licence withdrawn | Assets → **Revoke** with a reason | Every later submit/release refuses by name; released artefacts stay |
 | The whole line | `./odoo.sh addon kod prod uninstall factory_template --yes` | Only while nothing must be kept: it drops the templates, the renders and the artefacts. `factory_base` (and the ledger) stays |
 | One image tag back | set `IMAGE_TAG` to the previous tag, then `compose redeploy <id>` | The previous image serves again |
-| Typst was a mistake | set the templates' `renderer` back to `wkhtml` in kodemeio-dokploy and re-import a newer version | Data change; no code change, no rollback of the image needed |
+| Typst was a mistake | set the templates' `renderer` back to `wkhtml` in kodemeio-dokploy and re-import a newer version | Data change; no code change, no rollback of the image needed. The styling changes again (typst ignores the html sidecar) — re-render and re-release, never edit a released render |
 
 ---
 
