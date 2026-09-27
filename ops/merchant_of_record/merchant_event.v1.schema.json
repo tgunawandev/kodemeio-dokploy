@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://kodeme.io/candidates/merchant_of_record/merchant_event.v1.schema.json",
   "title": "Normalized merchant-of-record event v1 (offline candidate)",
-  "description": "Provider-neutral synthetic observation. It cannot attest webhook authenticity; verification is structurally fixed to unverified and no provider adapter is defined.",
+  "description": "Provider-neutral synthetic observation. It cannot attest webhook authenticity; verification is structurally fixed to unverified and no provider adapter is defined. Consumers must assert date-time format; the runtime validator remains authoritative for canonical UTC timestamps.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -32,7 +32,11 @@
         "payment.chargeback"
       ]
     },
-    "occurred_at": { "type": "string", "format": "date-time", "pattern": "Z$" },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.(?!000000)\\d{6})?Z$"
+    },
     "order_ref": { "type": "string", "pattern": "^(?!.*://)[a-zA-Z0-9][a-zA-Z0-9:._/-]{0,127}$" },
     "payment_ref": { "type": "string", "pattern": "^(?!.*://)[a-zA-Z0-9][a-zA-Z0-9:._/-]{0,127}$" },
     "amount_minor": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },

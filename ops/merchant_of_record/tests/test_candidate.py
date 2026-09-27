@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import importlib.util
 import json
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, FormatChecker
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location("mor_candidate", ROOT / "candidate.py")
@@ -36,7 +37,19 @@ def order(*, amount: int = 1000, currency: str = "USD") -> dict:
 def test_contract_is_strict_and_requires_unverified_state() -> None:
     schema = json.loads((ROOT / "merchant_event.v1.schema.json").read_text())
     Draft202012Validator.check_schema(schema)
-    validator = Draft202012Validator(schema)
+    format_checker = FormatChecker()
+
+    @format_checker.checks("date-time")
+    def canonical_utc_timestamp(value: object) -> bool:
+        if not isinstance(value, str) or not value.endswith("Z"):
+            return False
+        try:
+            parsed = datetime.fromisoformat(value[:-1] + "+00:00")
+        except ValueError:
+            return False
+        return parsed.utcoffset() == timedelta(0) and parsed.isoformat().replace("+00:00", "Z") == value
+
+    validator = Draft202012Validator(schema, format_checker=format_checker)
     valid = event("e1", "payment.captured", "10:00")
     assert validator.is_valid(valid)
     for invalid in (
@@ -47,6 +60,9 @@ def test_contract_is_strict_and_requires_unverified_state() -> None:
         {**valid, "amount_minor": 0},
         {**valid, "currency": "usd"},
         {**valid, "payment_ref": "https://example.test/payment"},
+        {**valid, "occurred_at": "not-a-dateZ"},
+        {**valid, "occurred_at": "2026-09-28T10:00:00.123456789Z"},
+        {**valid, "occurred_at": "2026-99-40T10:00:00Z"},
         {**valid, "extra": "refused"},
     ):
         assert not validator.is_valid(invalid)
