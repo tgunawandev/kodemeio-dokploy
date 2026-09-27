@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "as_of_date": "2026-09-28",
+  "evidence": [
+    {
+      "evidence_ref": "ev-synth-01",
+      "captured_on": "2026-09-27",
+      "source_domain": "survey.example.test",
+      "source_type": "public_report",
+      "captured_claim": "Synthetic source asserts: test users requested a sample workflow.",
+      "captured_claim_sha256": "8bf3de8086ea714d50730919ec47529489beb422df65164e919e4aee2510f975"
+    }
+  ],
+  "opportunities": [
+    {
+      "opportunity_ref": "opp-synth-01",
+      "claim": {
+        "text": "Synthetic candidate: investigate a sample workflow for test users.",
+        "sha256": "2137cde45e24b7353fd2c2b624791ea546c3e2a866a5614961fde58becbc5029"
+      },
+      "evidence_refs": ["ev-synth-01"],
+      "status": "unreviewed",
+      "source_assertion_status": "unverified",
+      "owner_review": {
+        "owner_ref": "owner-founder",
+        "status": "pending",
+        "reviewed_on": null
+      }
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.kodeme.io/opportunity_research.v1.schema.json",
+  "title": "Teracorp opportunity research evidence ledger candidate",
+  "description": "Strict local input shape. Source assertions remain unverified and require owner review.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "as_of_date", "evidence", "opportunities"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "as_of_date": {"type": "string", "format": "date", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"},
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {"$ref": "#/$defs/evidence"}
+    },
+    "opportunities": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 40,
+      "items": {"$ref": "#/$defs/opportunity"}
+    }
+  },
+  "$defs": {
+    "opaque_ref": {"type": "string", "pattern": "^[a-z][a-z0-9_-]{2,63}$"},
+    "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "claim_text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500,
+      "pattern": "^Synthetic (?:source asserts|candidate): [^\\n\\r]+$",
+      "description": "Synthetic-only claim text; the validator also rejects common PII, credential, and URL patterns."
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_ref", "captured_on", "source_domain", "source_type", "captured_claim", "captured_claim_sha256"],
+      "properties": {
+        "evidence_ref": {"$ref": "#/$defs/opaque_ref"},
+        "captured_on": {"type": "string", "format": "date", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"},
+        "source_domain": {
+          "type": "string",
+          "maxLength": 253,
+          "pattern": "^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+test$"
+        },
+        "source_type": {"enum": ["public_page", "public_report", "public_dataset", "internal_aggregate", "other_public"]},
+        "captured_claim": {"$ref": "#/$defs/claim_text"},
+        "captured_claim_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "opportunity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["opportunity_ref", "claim", "evidence_refs", "status", "source_assertion_status", "owner_review"],
+      "properties": {
+        "opportunity_ref": {"$ref": "#/$defs/opaque_ref"},
+        "claim": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["text", "sha256"],
+          "properties": {"text": {"$ref": "#/$defs/claim_text"}, "sha256": {"$ref": "#/$defs/sha256"}}
+        },
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "uniqueItems": true,
+          "items": {"$ref": "#/$defs/opaque_ref"}
+        },
+        "status": {"enum": ["unreviewed", "reviewed_unverified", "rejected"]},
+        "source_assertion_status": {"const": "unverified"},
+        "owner_review": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["owner_ref", "status", "reviewed_on"],
+          "properties": {
+            "owner_ref": {"$ref": "#/$defs/opaque_ref"},
+            "status": {"enum": ["pending", "reviewed_unverified", "rejected"]},
+            "reviewed_on": {"oneOf": [{"type": "null"}, {"type": "string", "format": "date", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"}]}
+          }
+        }
+      }
+    }
+  }
+}
