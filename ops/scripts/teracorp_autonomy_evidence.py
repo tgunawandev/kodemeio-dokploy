@@ -20,7 +20,20 @@ _ID = re.compile(r"^[a-z][a-z0-9_-]{0,63}$")
 _DATE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
 _ROOT = Path(__file__).resolve().parents[2]
 _POLICY = _ROOT / "contracts/approvals/policy.v1.yaml"
-_EXPECTED_DRAFT_RULE = "auto-approvable when the profile sets auto_approve_draft"
+_MAX_JSON_INT = 1_000_000_000
+_EXPECTED_ALWAYS_HUMAN = [
+    "production_deploy",
+    "schema_migration",
+    "dns_security_permission",
+    "destructive_delete",
+    "money_movement",
+]
+_EXPECTED_RISK_MAPPING = {
+    "draft": "auto-approvable when the profile sets auto_approve_draft",
+    "operational": "human approver, distinct from requester when require_distinct_approver",
+    "financial": "human approver; never auto",
+    "admin": "human approver; never auto",
+}
 
 
 class InputError(ValueError):
@@ -62,23 +75,47 @@ def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
+def _bounded_json_int(token: str) -> int:
+    digits = token[1:] if token.startswith("-") else token
+    if len(digits) > len(str(_MAX_JSON_INT)):
+        raise InputError("JSON integer token exceeds the supported numeric bound")
+    value = int(token)
+    if value > _MAX_JSON_INT or value < -_MAX_JSON_INT:
+        raise InputError("JSON integer token exceeds the supported numeric bound")
+    return value
+
+
 def _validate_policy(policy: Any) -> dict[str, Any]:
-    if type(policy) is not dict:
+    if type(policy) is not dict or set(policy) != {"version", "always_human", "risk_mapping"}:
         raise InputError("approval policy must be an object")
+    if type(policy["version"]) is not int or policy["version"] != 1:
+        raise InputError("approval policy version changed; refuse pending contract update")
     always_human = policy.get("always_human")
     mapping = policy.get("risk_mapping")
-    if not isinstance(always_human, list) or any(not isinstance(item, str) for item in always_human):
-        raise InputError("approval policy always_human must be a string list")
-    if type(mapping) is not dict or mapping.get("draft") != _EXPECTED_DRAFT_RULE:
-        raise InputError("approval policy's draft rule changed; refuse pending contract update")
-    if set(mapping) != {"draft", "operational", "financial", "admin"}:
-        raise InputError("approval policy risk classes changed; refuse pending contract update")
-    return {"always_human": always_human, "risk_mapping": mapping}
+    if always_human != _EXPECTED_ALWAYS_HUMAN:
+        raise InputError("approval policy always_human contract changed; refuse pending review")
+    if mapping != _EXPECTED_RISK_MAPPING:
+        raise InputError("approval policy risk mapping changed; refuse pending review")
+    return {"version": 1, "always_human": list(always_human), "risk_mapping": dict(mapping)}
 
 
 def _load_policy(path: Path = _POLICY) -> dict[str, Any]:
     try:
         import yaml
+
+        class UniqueKeyLoader(yaml.SafeLoader):
+            pass
+
+        def unique_mapping(loader: Any, node: Any, deep: bool = False) -> dict[Any, Any]:
+            result: dict[Any, Any] = {}
+            for key_node, value_node in node.value:
+                key = loader.construct_object(key_node, deep=deep)
+                if key in result:
+                    raise yaml.constructor.ConstructorError("duplicate YAML mapping key")
+                result[key] = loader.construct_object(value_node, deep=deep)
+            return result
+
+        UniqueKeyLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, unique_mapping)
 
         with path.open("rb") as stream:
             raw = stream.read(65_537)
@@ -89,7 +126,7 @@ def _load_policy(path: Path = _POLICY) -> dict[str, Any]:
     except ImportError as exc:
         raise InputError("PyYAML is required to read the checked-in approval policy") from exc
     try:
-        policy = yaml.safe_load(raw)
+        policy = yaml.load(raw, Loader=UniqueKeyLoader)
     except yaml.YAMLError as exc:
         raise InputError("approval policy YAML is invalid") from exc
     return _validate_policy(policy)
@@ -217,7 +254,11 @@ def main(argv: list[str] | None = None) -> int:
             raw = stream.read(_MAX_INPUT_BYTES + 1)
         if len(raw) > _MAX_INPUT_BYTES:
             raise InputError(f"evidence input exceeds {_MAX_INPUT_BYTES} bytes")
-        evidence = json.loads(raw.decode("utf-8"), object_pairs_hook=_reject_duplicate_keys)
+        evidence = json.loads(
+            raw.decode("utf-8"),
+            object_pairs_hook=_reject_duplicate_keys,
+            parse_int=_bounded_json_int,
+        )
         result = evaluate(evidence, _load_policy())
     except (OSError, UnicodeDecodeError, json.JSONDecodeError, InputError, RecursionError) as exc:
         print(f"error: {exc}", file=sys.stderr)

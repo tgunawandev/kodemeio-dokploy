@@ -37,14 +37,32 @@ def test_always_human_class_refuses_even_with_caller_supplied_good_evidence(acti
 def test_always_human_policy_addition_overrides_draft_candidate() -> None:
     policy = copy.deepcopy(POLICY)
     policy["always_human"].append("draft")
-    result = AUTONOMY.evaluate(copy.deepcopy(SAMPLE), policy)
-    assert result["status"] == "always_human_refused"
+    with pytest.raises(AUTONOMY.InputError, match="always_human contract changed"):
+        AUTONOMY.evaluate(copy.deepcopy(SAMPLE), policy)
+
+
+def test_policy_cannot_remove_always_human_classes_or_weaken_risk_mappings() -> None:
+    policy = copy.deepcopy(POLICY)
+    policy["always_human"].remove("money_movement")
+    with pytest.raises(AUTONOMY.InputError, match="always_human contract changed"):
+        AUTONOMY.evaluate(copy.deepcopy(SAMPLE), policy)
+    policy = copy.deepcopy(POLICY)
+    policy["risk_mapping"]["financial"] = "auto-approvable"
+    with pytest.raises(AUTONOMY.InputError, match="risk mapping changed"):
+        AUTONOMY.evaluate(copy.deepcopy(SAMPLE), policy)
+
+
+def test_checked_in_policy_rejects_duplicate_yaml_keys(tmp_path: Path) -> None:
+    path = tmp_path / "policy.yaml"
+    path.write_text(AUTONOMY._POLICY.read_text(encoding="utf-8") + "\nversion: 99\n", encoding="utf-8")
+    with pytest.raises(AUTONOMY.InputError, match="YAML is invalid"):
+        AUTONOMY._load_policy(path)
 
 
 def test_policy_rule_drift_fails_closed() -> None:
     policy = copy.deepcopy(POLICY)
     policy["risk_mapping"]["draft"] = "auto-approvable with good score"
-    with pytest.raises(AUTONOMY.InputError, match="draft rule changed"):
+    with pytest.raises(AUTONOMY.InputError, match="risk mapping changed"):
         AUTONOMY.evaluate(copy.deepcopy(SAMPLE), policy)
 
 
@@ -114,6 +132,15 @@ def test_cli_rejects_oversized_input(tmp_path, capsys) -> None:
     path.write_bytes(b" " * (AUTONOMY._MAX_INPUT_BYTES + 1))
     assert AUTONOMY.main([str(path)]) == 2
     assert "exceeds" in capsys.readouterr().err
+
+
+def test_cli_rejects_huge_json_integer_without_traceback(tmp_path, capsys) -> None:
+    path = tmp_path / "huge-integer.json"
+    path.write_text('{"incident_count_90d":' + "9" * 5000 + "}", encoding="utf-8")
+    assert AUTONOMY.main([str(path)]) == 2
+    error = capsys.readouterr().err
+    assert "numeric bound" in error
+    assert "Traceback" not in error
 
 
 def test_script_has_no_network_database_or_process_execution_dependencies() -> None:
