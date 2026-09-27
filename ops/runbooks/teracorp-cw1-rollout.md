@@ -55,6 +55,16 @@ and this note is deleted from the next person's copy of this runbook.
    `Kodemeio`, item "CW1 — Chatwoot/kido_chat/order_intake production":
    - Chatwoot core: `SECRET_KEY_BASE`, `ACTIVE_RECORD_ENCRYPTION_*` (3),
      `POSTGRES_PASSWORD`, `REDIS_PASSWORD`, SMTP credentials.
+   - **`WHATSAPP_APP_SECRET` — REQUIRED, and the stack will not start without
+     it** (`:?` in the compose). It is the Meta app secret from
+     `teracorp-cw1-meta-whatsapp.md` step 6, and it is what makes Chatwoot
+     verify `X-Hub-Signature-256` on inbound webhooks at all: with none
+     configured, the webhook accepts a FORGED signature as genuine.
+   - **`SAFE_FETCH_ALLOW_PRIVATE_NETWORK=true` — REQUIRED for the agent bot to
+     reach `kido-chat`, and a deliberate SSRF relaxation.** Read the section
+     below ("SafeFetch and the agent bot") before setting it; the compose's
+     default is `false` so that forgetting it fails at the webhook instead of
+     silently opening the process up.
    - kido_chat: `LITELLM_KEY`, `KIDO_CHAT_MCP_TOKEN`,
      `CHATWOOT_CONTACT_TOKEN`, `KIDO_INTAKE_SECRET`,
      `KIDO_BOT_SECRET_TERAKIDZ`, `KIDO_BOT_TOKEN_TERAKIDZ` (the last two come
@@ -157,6 +167,51 @@ a vetted-LLM route entirely, `classification.yaml`'s
 `personal.allowed_to_vetted_llm` reverts to `false` and KIDO falls back to a
 non-LLM menu flow (ruling R1) — a contract change and a `kido_chat` code
 change, not something this runbook can flip.
+
+## SafeFetch and the agent bot: a deliberate, founder-gated SSRF relaxation
+
+**What breaks without it.** Chatwoot delivers an agent-bot webhook through
+`Webhooks::Trigger` → `SafeFetch.fetch` (`kodemeio-chatwoot` pins
+`chatwoot/chatwoot:v4.18.0`). SafeFetch resolves the URL's host and refuses one
+with no **public** address, so the working URL in this design —
+`http://kido-chat:8080/chatwoot/bot`, a service on the `cw-internal` bridge —
+is rejected with `Hostname 'kido-chat' has no public ip addresses` and the
+customer waits forever. Chatwoot logs it as a WARN on the worker and moves on.
+
+**The switch.** `SAFE_FETCH_ALLOW_PRIVATE_NETWORK=true`
+(`lib/safe_fetch.rb:36`, consumed at `lib/safe_fetch/fetcher.rb:47`). When set,
+SafeFetch uses `SafeFetch::PrivateNetworkRequest`, which **skips the address
+resolution check entirely** — not "allows this one host". Measured against the
+pinned image: `ssrf_filter` 1.5.0 offers only a scheme whitelist and redirect
+handling (`lib/ssrf_filter.rb:132`), and Chatwoot exposes no host allowlist or
+per-inbox equivalent, so there is **no narrower setting** at this version. What
+the boolean therefore permits, for every SafeFetch caller in the process:
+
+| Range | Why it matters |
+|---|---|
+| RFC1918 (`10/8`, `172.16/12`, `192.168/16`) | the whole `cw-internal` bridge, plus any other private network the container can route to |
+| Loopback (`127.0.0.0/8`, `::1`) | anything listening inside the Chatwoot container itself |
+| Link-local / metadata (`169.254.0.0/16`, `fe80::/10`) | cloud instance-metadata endpoints — the classic SSRF target |
+
+SafeFetch is used for more than the agent-bot URL (attachment and media
+fetches, whose URLs can come from a customer's own WhatsApp message via Meta),
+so this is a real widening, not a formality.
+
+**Why it is accepted here.** The alternative is not "the bot works without it" —
+it is "the bot does not work", because the design puts `kido-chat` off the
+public network on purpose. The mitigation is the network boundary: `cw-internal`
+publishes no port (`no ports:` on every service but `chatwoot-web`), the ingress
+is reachable only from this compose, and the host runs no other tenant. The
+founder must set it explicitly (default in the compose is `false`, so a stack
+that forgets it fails loudly at the webhook rather than silently opening up),
+and re-visit this line if Chatwoot ever ships a host allowlist — then the
+narrow form (only `kido-chat`) replaces the boolean. Residual risk is recorded
+in the CW1 results document's security notes.
+
+**How to verify the bot path is live** after a deploy: send one WhatsApp
+message to the number and watch the kido-chat container log for
+`"msg": "bot webhook ..."` within a few seconds. If instead the Chatwoot worker
+logs `Invalid webhook URL ... no public ip addresses`, this variable is unset.
 
 ## CHATWOOT_CONTACT_TOKEN scope risk (ruling R6)
 

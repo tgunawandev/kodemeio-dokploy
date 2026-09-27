@@ -40,6 +40,21 @@ it.
    **skips signature verification entirely** for a `whatsapp_cloud` channel
    with no app secret configured — this value is not optional, get it
    before connecting the inbox, not after).
+
+   **It is also an environment variable, `WHATSAPP_APP_SECRET`, and the
+   production compose REFUSES TO START without it** (`:?` — see
+   `kodemeio-chatwoot/docker-compose.prod.yml`). Two places, one value:
+   Chatwoot reads the env var as the global fallback for every WhatsApp
+   channel, and the inbox's own `provider_config.app_secret` (set when the
+   inbox is created) as the channel-specific one. Set the env var from
+   1Password in Dokploy's env store as part of M6; a stack that boots
+   without it would accept a **forged** webhook as genuine, which is exactly
+   what CW-11 tests against locally. Never paste the value into this runbook,
+   a ticket or a chat — name only.
+
+   *Local equivalent:* `scripts/setup-local.sh` writes
+   `WHATSAPP_APP_SECRET=test-app-secret-not-real` into the gitignored `.env`
+   (the local compose is fail-closed the same way).
 7. **Payment method on the WABA.** Required before Meta will bill/deliver
    messages at any real volume — add a payment method in WhatsApp Manager's
    billing settings.
