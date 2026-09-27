@@ -2,22 +2,28 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://contracts.kodeme.io/teracorp/privacy-inventory.v1.schema.json",
   "title": "Teracorp G7 Privacy Inventory v1",
-  "description": "Offline structural inventory only; not legal advice, verification, compliance, or deletion proof.",
+  "description": "Offline structural inventory only; not legal advice, verification, compliance, or deletion proof. JSON Schema checks shape and basic conditions; use the Python validator for cross-record references, uniqueness, and chronology.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "as_of_date", "processor_inventory_status", "processors", "evidence_refs", "products"],
+  "required": ["schema_version", "as_of_date", "processor_inventory_status", "processors", "evidence_refs", "purpose_registry", "products"],
   "properties": {
     "schema_version": {"const": 1},
     "as_of_date": {"$ref": "#/$defs/date"},
     "processor_inventory_status": {"enum": ["complete", "none_declared", "unknown"]},
     "processors": {"type": "array", "maxItems": 128, "items": {"$ref": "#/$defs/processor"}},
     "evidence_refs": {"type": "array", "maxItems": 1024, "items": {"$ref": "#/$defs/evidence"}},
+    "purpose_registry": {"type": "array", "maxItems": 2048, "items": {"$ref": "#/$defs/purpose"}},
     "products": {"type": "array", "minItems": 1, "maxItems": 128, "items": {"$ref": "#/$defs/product"}}
   },
   "$defs": {
     "id": {"type": "string", "pattern": "^[a-z][a-z0-9_-]{0,63}$"},
     "date": {"type": "string", "format": "date", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"},
     "refs": {"type": "array", "minItems": 1, "maxItems": 32, "uniqueItems": true, "items": {"$ref": "#/$defs/id"}},
+    "purpose": {
+      "type": "object", "additionalProperties": false,
+      "required": ["product_id", "purpose_id"],
+      "properties": {"product_id": {"$ref": "#/$defs/id"}, "purpose_id": {"$ref": "#/$defs/id"}}
+    },
     "processor": {
       "type": "object", "additionalProperties": false,
       "required": ["processor_id", "inventory_status", "evidence_refs"],
@@ -25,7 +31,11 @@
         "processor_id": {"$ref": "#/$defs/id"},
         "inventory_status": {"enum": ["identified", "unknown"]},
         "evidence_refs": {"type": "array", "maxItems": 32, "items": {"$ref": "#/$defs/id"}}
-      }
+      },
+      "allOf": [{
+        "if": {"properties": {"inventory_status": {"const": "identified"}}, "required": ["inventory_status"]},
+        "then": {"properties": {"evidence_refs": {"$ref": "#/$defs/refs"}}}
+      }]
     },
     "evidence": {
       "type": "object", "additionalProperties": false,
@@ -66,7 +76,15 @@
         "pia_status": {"enum": ["completed", "pending", "not_required_asserted", "unknown"]},
         "pia_evidence_refs": {"type": "array", "maxItems": 32, "items": {"$ref": "#/$defs/id"}},
         "data_flows": {"type": "array", "maxItems": 512, "items": {"$ref": "#/$defs/dataFlow"}}
-      }
+      },
+      "allOf": [
+        {"if": {"properties": {"inventory_status": {"const": "complete"}}, "required": ["inventory_status"]}, "then": {"properties": {"data_flows": {"minItems": 1}}}},
+        {"if": {"properties": {"consent_status": {"const": "documented"}}, "required": ["consent_status"]}, "then": {"properties": {"consent_evidence_refs": {"$ref": "#/$defs/refs"}}}},
+        {"if": {"properties": {"retention_status": {"const": "documented"}}, "required": ["retention_status"]}, "then": {"properties": {"retention_evidence_refs": {"$ref": "#/$defs/refs"}}}},
+        {"if": {"properties": {"pia_status": {"const": "completed"}}, "required": ["pia_status"]}, "then": {"properties": {"pia_evidence_refs": {"$ref": "#/$defs/refs"}}}},
+        {"if": {"properties": {"deletion_test_status": {"enum": ["passed", "failed"]}}, "required": ["deletion_test_status"]}, "then": {"properties": {"deletion_tested_on": {"$ref": "#/$defs/date"}, "deletion_evidence_refs": {"$ref": "#/$defs/refs"}}}},
+        {"if": {"properties": {"deletion_test_status": {"enum": ["not_run", "unknown"]}}, "required": ["deletion_test_status"]}, "then": {"properties": {"deletion_tested_on": {"type": "null"}, "deletion_evidence_refs": {"maxItems": 0}}}}
+      ]
     }
   }
 }

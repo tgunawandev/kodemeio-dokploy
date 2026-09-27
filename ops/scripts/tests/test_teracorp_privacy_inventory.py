@@ -33,6 +33,21 @@ def test_schema_and_synthetic_inventory_are_valid_but_never_verified() -> None:
     assert report["deletion_verified"] is False
 
 
+def test_schema_rejects_basic_evidence_state_mismatches() -> None:
+    schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
+    validator = Draft202012Validator(schema, format_checker=FormatChecker())
+    cases = [
+        lambda p: p["processors"][0].update(evidence_refs=[]),
+        lambda p: p["products"][0].update(consent_evidence_refs=[]),
+        lambda p: p["products"][0].update(deletion_evidence_refs=[]),
+        lambda p: p["products"][0].update(data_flows=[]),
+    ]
+    for mutate in cases:
+        data = payload()
+        mutate(data)
+        assert list(validator.iter_errors(data))
+
+
 def test_unknown_or_asserted_states_are_not_promoted_to_complete() -> None:
     data = payload()
     data["processor_inventory_status"] = "unknown"
@@ -81,6 +96,7 @@ def test_identified_processor_requires_source_reference() -> None:
         lambda p: p["products"][0].update(deletion_tested_on="2026-09-29"),
         lambda p: p["evidence_refs"][0].update(sha256="bad"),
         lambda p: p["products"][0]["data_flows"][0].update(data_categories=["account_profile", "account_profile"]),
+        lambda p: p["products"][0]["data_flows"][0].update(purpose_id="undeclared-purpose"),
     ],
 )
 def test_broken_references_or_inconsistent_evidence_fail_closed(mutate) -> None:
@@ -140,8 +156,28 @@ def test_cli_json_depth_is_bounded_but_string_brackets_are_ignored(tmp_path: Pat
         load(too_deep)
 
     quoted = tmp_path / "quoted.json"
-    quoted.write_text('{"note":"' + "[" * 64 + '"}', encoding="utf-8")
-    assert load(quoted) == {"note": "[" * 64}
+    quoted.write_text('{"note":"escaped \\" [ ] { } ' + "[" * 64 + '"}', encoding="utf-8")
+    assert load(quoted) == {"note": 'escaped " [ ] { } ' + "[" * 64}
+
+
+def test_purpose_registry_rejects_cross_product_and_dangling_product_references() -> None:
+    data = payload()
+    data["purpose_registry"].append({"product_id": "synthetic-product", "purpose_id": "other-purpose"})
+    data["products"][0]["data_flows"][0]["purpose_id"] = "purpose-other-product"
+    with pytest.raises(InputError, match="cross-product purpose"):
+        validate(data, AS_OF)
+    data = payload()
+    data["purpose_registry"].append({"product_id": "missing-product", "purpose_id": "purpose-orphan"})
+    with pytest.raises(InputError, match="unknown product"):
+        validate(data, AS_OF)
+
+
+def test_future_caller_as_of_does_not_authenticate_or_verify_inventory() -> None:
+    data = payload()
+    data["as_of_date"] = "2099-01-01"
+    report = validate(data, "2099-01-01")
+    assert report["as_of_date"] == "2099-01-01"
+    assert report["verified"] is False and report["legal_reviewed"] is False
 
 
 def test_cli_has_no_network_and_emits_only_structural_unverified_status() -> None:

@@ -14,6 +14,9 @@
     {"evidence_ref_id": "ev-delete", "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "observed_on": "2026-09-24"},
     {"evidence_ref_id": "ev-pia", "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "observed_on": "2026-09-22"}
   ],
+  "purpose_registry": [
+    {"product_id": "synthetic-product", "purpose_id": "purpose-synthetic"}
+  ],
   "products": [
     {
       "product_id": "synthetic-product",

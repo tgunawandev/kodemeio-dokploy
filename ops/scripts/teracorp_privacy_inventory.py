@@ -70,7 +70,15 @@ def validate(payload: Any, as_of: str) -> dict[str, Any]:
     root = _object(
         payload,
         "inventory",
-        {"schema_version", "as_of_date", "processor_inventory_status", "processors", "evidence_refs", "products"},
+        {
+            "schema_version",
+            "as_of_date",
+            "processor_inventory_status",
+            "processors",
+            "evidence_refs",
+            "purpose_registry",
+            "products",
+        },
     )
     if type(root["schema_version"]) is not int or root["schema_version"] != 1:
         raise InputError("schema_version must be integer 1")
@@ -79,11 +87,14 @@ def validate(payload: Any, as_of: str) -> dict[str, Any]:
     processor_state = root["processor_inventory_status"]
     if not isinstance(processor_state, str) or processor_state not in {"complete", "none_declared", "unknown"}:
         raise InputError("processor_inventory_status is invalid")
-    processors_in, evidence_in, products_in = root["processors"], root["evidence_refs"], root["products"]
+    processors_in, evidence_in = root["processors"], root["evidence_refs"]
+    purpose_registry, products_in = root["purpose_registry"], root["products"]
     if type(processors_in) is not list or len(processors_in) > 128:
         raise InputError("processors must be a bounded array")
     if type(evidence_in) is not list or len(evidence_in) > 1024:
         raise InputError("evidence_refs must be a bounded array")
+    if type(purpose_registry) is not list or len(purpose_registry) > 2048:
+        raise InputError("purpose_registry must be a bounded array")
     if type(products_in) is not list or not 1 <= len(products_in) <= 128:
         raise InputError("products must contain 1..128 products")
     processors: dict[str, str] = {}
@@ -121,6 +132,17 @@ def validate(payload: Any, as_of: str) -> dict[str, Any]:
     for index, item in enumerate(processors_in):
         if not set(item["evidence_refs"]) <= evidence.keys():
             raise InputError(f"processors[{index}] references missing evidence")
+
+    purposes_by_product: dict[str, set[str]] = {}
+    for index, raw in enumerate(purpose_registry):
+        where = f"purpose_registry[{index}]"
+        item = _object(raw, where, {"product_id", "purpose_id"})
+        product_id = _id(item["product_id"], f"{where}.product_id")
+        purpose_id = _id(item["purpose_id"], f"{where}.purpose_id")
+        purposes = purposes_by_product.setdefault(product_id, set())
+        if purpose_id in purposes:
+            raise InputError("purpose_id values must be unique within their product scope")
+        purposes.add(purpose_id)
 
     product_ids: set[str] = set()
     flow_ids: set[str] = set()
@@ -210,7 +232,9 @@ def validate(payload: Any, as_of: str) -> dict[str, Any]:
                 raise InputError(f"{flow_where} references an unknown processor")
             if processors[processor_id] == "unknown":
                 unresolved.add(f"{product_id}:processor:{processor_id}:unknown")
-            _id(flow["purpose_id"], f"{flow_where}.purpose_id")
+            purpose_id = _id(flow["purpose_id"], f"{flow_where}.purpose_id")
+            if purpose_id not in purposes_by_product.get(product_id, set()):
+                raise InputError(f"{flow_where} references an unknown or cross-product purpose")
             categories = flow["data_categories"]
             if (
                 type(categories) is not list
@@ -231,6 +255,8 @@ def validate(payload: Any, as_of: str) -> dict[str, Any]:
             unresolved.add(f"{product_id}:consent_status:founder_asserted_unverified")
         if item["pia_status"] == "not_required_asserted":
             unresolved.add(f"{product_id}:pia_status:founder_asserted_unverified")
+    if not set(purposes_by_product) <= product_ids:
+        raise InputError("purpose_registry references an unknown product")
     if processor_state == "unknown":
         unresolved.add("processor_inventory_status:unknown")
     if processor_state == "none_declared":
@@ -260,7 +286,8 @@ def _reject_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 
 
 def _check_json_depth(text: str) -> None:
-    depth = 0
+    stack: list[str] = []
+    closing_for = {"]": "[", "}": "{"}
     in_string = False
     escaped = False
     for char in text:
@@ -274,11 +301,11 @@ def _check_json_depth(text: str) -> None:
         elif char == '"':
             in_string = True
         elif char in "[{":
-            depth += 1
-            if depth > MAX_JSON_DEPTH:
+            stack.append(char)
+            if len(stack) > MAX_JSON_DEPTH:
                 raise InputError("input_too_deep")
-        elif char in "]}":
-            depth -= 1
+        elif char in closing_for and stack and stack[-1] == closing_for[char]:
+            stack.pop()
 
 
 def load(path: Path) -> Any:
