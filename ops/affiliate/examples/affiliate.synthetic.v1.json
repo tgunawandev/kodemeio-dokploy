@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "candidate_id": "synthetic-affiliate-demo",
+  "as_of": "2026-09-28",
+  "advertiser": {
+    "advertiser_id": "synthetic-advertiser",
+    "display_name": "Synthetic Advertiser Example",
+    "approval": {
+      "status": "approved",
+      "approved_by_role": "synthetic-founder-approver",
+      "approval_ref": "synthetic-approval-001",
+      "approved_on": "2026-09-01",
+      "valid_until": "2026-12-31"
+    },
+    "commission_terms": {
+      "status": "approved",
+      "model": "percentage_of_order_minor",
+      "rate_bps": 500,
+      "currency": "IDR",
+      "terms_ref": "synthetic-terms-001",
+      "valid_from": "2026-09-01",
+      "valid_until": "2026-12-31"
+    }
+  },
+  "destination_allowlist": ["shop.example.test"],
+  "links": [
+    {
+      "link_id": "synthetic-link-001",
+      "destination_url": "https://shop.example.test/item/1",
+      "disclosure": "Tautan afiliasi: kami dapat menerima komisi jika Anda membeli melalui tautan ini.",
+      "status": "active",
+      "expires_on": "2026-12-31",
+      "attribution": {"source": "synthetic-newsletter", "medium": "email", "campaign": "synthetic-autumn", "content": "synthetic-item-1"},
+      "attribution_sha256": "5dc5503c6f88978323dd3968856fe57700c9551551df550b426f352fddd3e115"
+    }
+  ],
+  "events": [
+    {
+      "event_id": "synthetic-click-001",
+      "event_type": "click",
+      "synthetic": true,
+      "occurred_at": "2026-09-20T12:00:00Z",
+      "link_id": "synthetic-link-001",
+      "attribution": {"source": "synthetic-newsletter", "medium": "email", "campaign": "synthetic-autumn", "content": "synthetic-item-1"},
+      "attribution_sha256": "5dc5503c6f88978323dd3968856fe57700c9551551df550b426f352fddd3e115"
+    },
+    {
+      "event_id": "synthetic-commission-001",
+      "event_type": "commission",
+      "synthetic": true,
+      "occurred_at": "2026-09-21T12:00:00Z",
+      "click_event_id": "synthetic-click-001",
+      "order_amount_minor": 10000,
+      "commission_minor": 500,
+      "currency": "IDR"
+    }
+  ]
+}

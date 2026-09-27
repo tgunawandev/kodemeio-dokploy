@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.kodeme.io/ops/affiliate/affiliate.v1.schema.json",
+  "title": "Offline affiliate candidate v1",
+  "description": "Strict offline candidate input and synthetic reconciliation fixture. It is not a live tracking, payout, legal, or compliance system.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "candidate_id", "as_of", "advertiser", "destination_allowlist", "links", "events"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "candidate_id": {"$ref": "#/$defs/id"},
+    "as_of": {"type": "string", "format": "date", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"},
+    "advertiser": {"$ref": "#/$defs/advertiser"},
+    "destination_allowlist": {"type": "array", "minItems": 1, "maxItems": 50, "uniqueItems": true, "items": {"type": "string", "pattern": "^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z]{2,63}$"}},
+    "links": {"type": "array", "minItems": 1, "maxItems": 100, "items": {"$ref": "#/$defs/link"}},
+    "events": {"type": "array", "maxItems": 10000, "items": {"oneOf": [{"$ref": "#/$defs/click_event"}, {"$ref": "#/$defs/commission_event"}]}}
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[a-z][a-z0-9_-]{0,63}$"},
+    "text": {"type": "string", "minLength": 1, "maxLength": 1000, "pattern": "\\S"},
+    "approval": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "approved_by_role", "approval_ref", "approved_on", "valid_until"],
+      "properties": {
+        "status": {"enum": ["approved", "pending", "rejected"]},
+        "approved_by_role": {"$ref": "#/$defs/text"},
+        "approval_ref": {"$ref": "#/$defs/id"},
+        "approved_on": {"type": "string", "format": "date"},
+        "valid_until": {"type": "string", "format": "date"}
+      }
+    },
+    "commission_terms": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "model", "rate_bps", "currency", "terms_ref", "valid_from", "valid_until"],
+      "properties": {
+        "status": {"enum": ["approved", "pending", "rejected"]},
+        "model": {"const": "percentage_of_order_minor"},
+        "rate_bps": {"type": "integer", "minimum": 1, "maximum": 10000},
+        "currency": {"type": "string", "pattern": "^[A-Z]{3}$"},
+        "terms_ref": {"$ref": "#/$defs/id"},
+        "valid_from": {"type": "string", "format": "date"},
+        "valid_until": {"type": "string", "format": "date"}
+      }
+    },
+    "advertiser": {
+      "type": "object", "additionalProperties": false,
+      "required": ["advertiser_id", "display_name", "approval", "commission_terms"],
+      "properties": {
+        "advertiser_id": {"$ref": "#/$defs/id"},
+        "display_name": {"$ref": "#/$defs/text"},
+        "approval": {"$ref": "#/$defs/approval"},
+        "commission_terms": {"$ref": "#/$defs/commission_terms"}
+      }
+    },
+    "attribution": {
+      "type": "object", "additionalProperties": false,
+      "required": ["source", "medium", "campaign", "content"],
+      "properties": {
+        "source": {"$ref": "#/$defs/id"},
+        "medium": {"$ref": "#/$defs/id"},
+        "campaign": {"$ref": "#/$defs/id"},
+        "content": {"$ref": "#/$defs/id"}
+      }
+    },
+    "link": {
+      "type": "object", "additionalProperties": false,
+      "required": ["link_id", "destination_url", "disclosure", "status", "expires_on", "attribution", "attribution_sha256"],
+      "properties": {
+        "link_id": {"$ref": "#/$defs/id"},
+        "destination_url": {"type": "string", "format": "uri", "maxLength": 2048},
+        "disclosure": {"$ref": "#/$defs/text"},
+        "status": {"enum": ["active", "paused", "retired"]},
+        "expires_on": {"type": "string", "format": "date"},
+        "attribution": {"$ref": "#/$defs/attribution"},
+        "attribution_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "click_event": {
+      "type": "object", "additionalProperties": false,
+      "required": ["event_id", "event_type", "synthetic", "occurred_at", "link_id", "attribution", "attribution_sha256"],
+      "properties": {
+        "event_id": {"$ref": "#/$defs/id"}, "event_type": {"const": "click"}, "synthetic": {"const": true},
+        "occurred_at": {"type": "string", "format": "date-time"}, "link_id": {"$ref": "#/$defs/id"},
+        "attribution": {"$ref": "#/$defs/attribution"}, "attribution_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "commission_event": {
+      "type": "object", "additionalProperties": false,
+      "required": ["event_id", "event_type", "synthetic", "occurred_at", "click_event_id", "order_amount_minor", "commission_minor", "currency"],
+      "properties": {
+        "event_id": {"$ref": "#/$defs/id"}, "event_type": {"const": "commission"}, "synthetic": {"const": true},
+        "occurred_at": {"type": "string", "format": "date-time"}, "click_event_id": {"$ref": "#/$defs/id"},
+        "order_amount_minor": {"type": "integer", "minimum": 1}, "commission_minor": {"type": "integer", "minimum": 0},
+        "currency": {"type": "string", "pattern": "^[A-Z]{3}$"}
+      }
+    }
+  }
+}

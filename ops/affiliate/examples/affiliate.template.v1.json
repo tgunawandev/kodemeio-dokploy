@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "candidate_id": "replace-candidate-id",
+  "as_of": "2026-09-28",
+  "advertiser": {
+    "advertiser_id": "replace-advertiser",
+    "display_name": "Replace with approved advertiser name",
+    "approval": {
+      "status": "pending",
+      "approved_by_role": "replace-with-founder-approved-role",
+      "approval_ref": "replace-approval-reference",
+      "approved_on": "2026-09-28",
+      "valid_until": "2026-09-28"
+    },
+    "commission_terms": {
+      "status": "pending",
+      "model": "percentage_of_order_minor",
+      "rate_bps": 1,
+      "currency": "IDR",
+      "terms_ref": "replace-terms-reference",
+      "valid_from": "2026-09-28",
+      "valid_until": "2026-09-28"
+    }
+  },
+  "destination_allowlist": ["replace.example.test"],
+  "links": [
+    {
+      "link_id": "replace-link",
+      "destination_url": "https://replace.example.test/path",
+      "disclosure": "TODO: replace with approved disclosure text",
+      "status": "paused",
+      "expires_on": "2026-09-28",
+      "attribution": {"source": "replace-source", "medium": "replace-medium", "campaign": "replace-campaign", "content": "replace-content"},
+      "attribution_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "events": []
+}
