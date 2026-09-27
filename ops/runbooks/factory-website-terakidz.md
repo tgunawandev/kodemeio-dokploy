@@ -174,6 +174,14 @@ kctl-odoo -p kodemeio-kod-odoo-erp users create expert@terakidz.id \
 `group_factory_founder` can approve anything, and the tier's second signature is what makes
 the gate a gate. Grant it to exactly the people who may publish.
 
+🔴 **Founder decision, recorded (2026-09-27): a submitter who also holds `group_factory_founder`
+may approve the founder tier of their own order.** The gate bars cycle submitters from the
+*expert* tier and bars one person from approving both tiers, which is what the spec requires;
+the founder tier stays open to the producer because on a single-brand estate the founder is
+often the producer. This is a founder ruling, **not a defect** — revisit it when a second
+factory line reuses this adapter, where the second signature will have to come from the founder
+tier rather than the expert tier.
+
 **Verify**
 
 ```bash
