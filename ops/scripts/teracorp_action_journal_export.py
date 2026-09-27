@@ -12,6 +12,7 @@ import hashlib
 import json
 import os
 import re
+import resource
 import selectors
 import stat
 import subprocess
@@ -167,6 +168,12 @@ def _child_environment(access_key: str, secret_key: str, home: Path) -> dict[str
 
 def _default_runner(argv: Sequence[str], env: Mapping[str, str], timeout: float) -> subprocess.CompletedProcess[str]:
     command = list(argv)
+    download_path = Path(command[-1]) if "s3api" in command and "get-object" in command else None
+    download_limit = MAX_SNAPSHOT_BYTES
+
+    def enforce_download_limit() -> None:
+        resource.setrlimit(resource.RLIMIT_FSIZE, (download_limit, download_limit))
+
     try:
         process = subprocess.Popen(
             command,
@@ -176,14 +183,13 @@ def _default_runner(argv: Sequence[str], env: Mapping[str, str], timeout: float)
             env=dict(env),
             shell=False,
             bufsize=0,
+            preexec_fn=enforce_download_limit if download_path is not None else None,
         )
     except OSError:
         raise RuntimeError("provider process could not be started") from None
 
     captured = {"stdout": bytearray(), "stderr": bytearray()}
     deadline = time.monotonic() + timeout
-    download_path = Path(command[-1]) if "s3api" in command and "get-object" in command else None
-    download_limit = MAX_SNAPSHOT_BYTES + MAX_PROVIDER_OUTPUT_BYTES
 
     def stop_child() -> None:
         if process.poll() is None:
@@ -351,7 +357,7 @@ def _upload_and_verify(
     )
     try:
         info = download_path.lstat()
-        if not stat.S_ISREG(info.st_mode) or info.st_size > MAX_SNAPSHOT_BYTES + MAX_PROVIDER_OUTPUT_BYTES:
+        if not stat.S_ISREG(info.st_mode) or info.st_size > MAX_SNAPSHOT_BYTES:
             raise ExportError("B2 readback exceeded its size limit")
         os.chmod(download_path, 0o600)
         digest = hashlib.sha256()
@@ -359,7 +365,7 @@ def _upload_and_verify(
         readback_fd = os.open(download_path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
         try:
             opened = os.fstat(readback_fd)
-            if not stat.S_ISREG(opened.st_mode) or opened.st_size > MAX_SNAPSHOT_BYTES + MAX_PROVIDER_OUTPUT_BYTES:
+            if not stat.S_ISREG(opened.st_mode) or opened.st_size > MAX_SNAPSHOT_BYTES:
                 raise ExportError("B2 readback exceeded its size limit")
             remote = os.fdopen(readback_fd, "rb")
             readback_fd = -1

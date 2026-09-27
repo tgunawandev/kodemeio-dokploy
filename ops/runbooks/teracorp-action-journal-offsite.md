@@ -60,6 +60,11 @@ retention. Review these primary sources at execution time:
    shorten retention, bypass governance, or delete versions. A scheduled production exporter,
    alerting, authenticated event producers, and operational ownership are still unimplemented;
    do not register a schedule yet.
+7. Install a supported AWS CLI v2 executable at `/usr/local/bin/aws` or `/usr/bin/aws`; the
+   exporter's child environment intentionally excludes user-local binary directories. Before an
+   authorized test-bucket drill, verify the executable's `aws --version` output identifies
+   `aws-cli/2.x`. The implementation uses the v2 `--no-cli-pager` option and must refuse if that
+   exact executable path is unavailable.
 
 ## Synthetic acceptance before scheduling
 

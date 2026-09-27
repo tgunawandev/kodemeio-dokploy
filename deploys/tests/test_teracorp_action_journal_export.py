@@ -514,6 +514,21 @@ def test_default_subprocess_runner_uses_bounded_shell_free_capture() -> None:
     assert result.stderr == ""
 
 
+def test_default_subprocess_runner_enforces_readback_file_size_in_child(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(EXPORTER, "MAX_SNAPSHOT_BYTES", 64)
+    destination = tmp_path / "readback.bin"
+    source = (
+        "import signal, sys; "
+        "signal.signal(signal.SIGXFSZ, signal.SIG_IGN); "
+        "f = open(sys.argv[-1], 'wb'); f.write(b'x' * 1024); f.flush()"
+    )
+    result = EXPORTER._default_runner(
+        [sys.executable, "-c", source, "s3api", "get-object", str(destination)], {"PATH": "/bin"}, 5.0
+    )
+    assert result.returncode != 0
+    assert destination.stat().st_size <= 64
+
+
 def test_exporter_does_not_read_snapshot_content_to_terminal(tmp_path, capsys) -> None:
     path = tmp_path / "actions.jsonl"
     seed_journal(path)
