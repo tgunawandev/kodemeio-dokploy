@@ -109,13 +109,27 @@ def test_cli_maps_parser_recursion_error_to_sanitized_input_error(
     assert "internal parser details" not in error
 
 
-def test_role_approval_must_precede_event_and_access_start() -> None:
+@pytest.mark.parametrize(
+    ("approved_at", "occurred_at", "access_starts"),
+    [
+        ("2026-09-28T08:01:00Z", "2026-09-28T08:00:00Z", "2026-09-28T08:02:00Z"),
+        ("2026-09-28T08:01:00Z", "2026-09-28T08:02:00Z", "2026-09-28T08:00:00Z"),
+    ],
+)
+def test_role_approval_must_precede_event_and_access_start(
+    approved_at: str, occurred_at: str, access_starts: str
+) -> None:
     payload = valid_bundle()
     role_mapping = payload["events"][0]["role_mapping"]  # type: ignore[index]
-    role_mapping["approved_at_utc"] = "2026-09-28T08:01:00Z"
+    role_mapping["approved_at_utc"] = approved_at
 
     with pytest.raises(G5.InputError, match="approval must precede"):
-        G5.validate_bundle(payload)
+        G5._mapping(
+            role_mapping,
+            "actor:founder",
+            G5._utc(occurred_at, "test.event"),
+            G5._utc(access_starts, "test.access"),
+        )
 
 
 def test_role_approval_must_match_event_approver_claim() -> None:
@@ -127,10 +141,19 @@ def test_role_approval_must_match_event_approver_claim() -> None:
         G5.validate_bundle(payload)
 
 
-def test_role_mapping_evidence_cannot_be_reused_for_mfa_claim() -> None:
+@pytest.mark.parametrize(
+    "claim_path",
+    [
+        ("mfa", "evidence_ref"),
+        ("mattermost", "privacy_evidence_ref"),
+        ("mattermost", "membership_evidence_ref"),
+        ("access", "expiry_evidence_ref"),
+    ],
+)
+def test_role_mapping_evidence_cannot_be_reused_for_other_claims(claim_path: tuple[str, str]) -> None:
     payload = valid_bundle()
     event = payload["events"][0]  # type: ignore[index]
-    event["role_mapping"]["mapping_evidence_ref"] = event["mfa"]["evidence_ref"]
+    event["role_mapping"]["mapping_evidence_ref"] = event[claim_path[0]][claim_path[1]]
 
     with pytest.raises(G5.InputError, match="must identify role-mapping evidence only"):
         G5.validate_bundle(payload)
