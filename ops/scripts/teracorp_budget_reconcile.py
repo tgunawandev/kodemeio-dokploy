@@ -13,7 +13,6 @@ import json
 import re
 import sys
 from datetime import date
-from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +22,9 @@ _DECIMAL = re.compile(r"^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$")
 _REFERENCE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9:._/-]{0,127}$")
 _MAX_INPUT_BYTES = 1_048_576
 _MAX_DECIMAL_CHARS = 64
+_MAX_FRACTIONAL_DIGITS = _MAX_DECIMAL_CHARS - 2  # `0.` plus 62 fractional digits.
+_SCALE_FACTOR = 10**_MAX_FRACTIONAL_DIGITS
+_MAX_JSON_INTEGER_DIGITS = 64
 _MAX_ENTITIES = 50
 _MAX_INVOICES = 2_000
 
@@ -47,17 +49,17 @@ def _identifier(value: Any, where: str) -> str:
     return value
 
 
-def _amount(value: Any, where: str, *, positive: bool = False) -> tuple[Decimal, str]:
+def _amount(value: Any, where: str, *, positive: bool = False) -> tuple[int, str, int]:
     if not isinstance(value, str) or len(value) > _MAX_DECIMAL_CHARS or not _DECIMAL.fullmatch(value):
         raise InputError(f"{where} must be a non-negative decimal string of at most {_MAX_DECIMAL_CHARS} characters")
-    try:
-        parsed = Decimal(value)
-    except InvalidOperation as exc:
-        raise InputError(f"{where} must be a valid decimal amount") from exc
-    if not parsed.is_finite() or (positive and parsed <= 0):
-        qualifier = "positive" if positive else "non-negative"
-        raise InputError(f"{where} must be finite and {qualifier}")
-    return parsed, value
+    whole, separator, fraction = value.partition(".")
+    places = len(fraction) if separator else 0
+    scaled = int(whole) * _SCALE_FACTOR
+    if fraction:
+        scaled += int(fraction) * 10 ** (_MAX_FRACTIONAL_DIGITS - places)
+    if positive and scaled <= 0:
+        raise InputError(f"{where} must be positive")
+    return scaled, value, places
 
 
 def _opaque_reference(value: Any, where: str) -> str:
@@ -78,8 +80,14 @@ def _date(value: Any, where: str) -> date:
     return parsed
 
 
-def _money(value: Decimal) -> str:
-    return format(value, "f")
+def _money(value: int, places: int) -> str:
+    """Format a scaled integer without Decimal context rounding."""
+    sign = "-" if value < 0 else ""
+    whole, fraction = divmod(abs(value), _SCALE_FACTOR)
+    if places == 0:
+        return f"{sign}{whole}"
+    fractional_text = str(fraction).zfill(_MAX_FRACTIONAL_DIGITS)[:places]
+    return f"{sign}{whole}.{fractional_text}"
 
 
 def reconcile_month(payload: Any) -> dict[str, Any]:
@@ -97,8 +105,9 @@ def reconcile_month(payload: Any) -> dict[str, Any]:
     raw_entities = root["entities"]
     if type(raw_entities) is not list or not 1 <= len(raw_entities) <= _MAX_ENTITIES:
         raise InputError(f"budget.entities must contain 1..{_MAX_ENTITIES} entities")
-    budgets: dict[str, tuple[Decimal, str]] = {}
-    actuals: dict[str, Decimal] = {}
+    budgets: dict[str, tuple[int, str, int]] = {}
+    actuals: dict[str, int] = {}
+    actual_places: dict[str, int] = {}
     for index, raw_entity in enumerate(raw_entities):
         where = f"entities[{index}]"
         entity = _object(raw_entity, where, {"entity_id", "budget_amount"})
@@ -106,14 +115,17 @@ def reconcile_month(payload: Any) -> dict[str, Any]:
         if entity_id in budgets:
             raise InputError("entity_id values must be unique")
         budgets[entity_id] = _amount(entity["budget_amount"], f"{where}.budget_amount")
-        actuals[entity_id] = Decimal(0)
+        actuals[entity_id] = 0
+        actual_places[entity_id] = 0
 
     invoices = root["invoices"]
     if type(invoices) is not list or len(invoices) > _MAX_INVOICES:
         raise InputError(f"budget.invoices must contain 0..{_MAX_INVOICES} invoices")
     invoice_refs: set[str] = set()
-    invoice_total = Decimal(0)
-    allocated_total = Decimal(0)
+    invoice_total = 0
+    invoice_total_places = 0
+    allocated_total = 0
+    allocated_total_places = 0
     for invoice_index, raw_invoice in enumerate(invoices):
         where = f"invoices[{invoice_index}]"
         invoice = _object(raw_invoice, where, {"invoice_ref", "invoice_date", "amount", "allocations"})
@@ -124,13 +136,14 @@ def reconcile_month(payload: Any) -> dict[str, Any]:
         invoice_date = _date(invoice["invoice_date"], f"{where}.invoice_date")
         if invoice_date.isoformat()[:7] != period:
             raise InputError(f"{where}.invoice_date must fall within budget.period")
-        amount, _ = _amount(invoice["amount"], f"{where}.amount", positive=True)
+        amount, _, amount_places = _amount(invoice["amount"], f"{where}.amount", positive=True)
         invoice_total += amount
+        invoice_total_places = max(invoice_total_places, amount_places)
 
         allocations = invoice["allocations"]
         if type(allocations) is not list or not 1 <= len(allocations) <= len(budgets):
             raise InputError(f"{where}.allocations must contain 1..{len(budgets)} entity allocations")
-        allocation_total = Decimal(0)
+        allocation_total = 0
         allocated_entities: set[str] = set()
         for allocation_index, raw_allocation in enumerate(allocations):
             allocation_where = f"{where}.allocations[{allocation_index}]"
@@ -141,28 +154,34 @@ def reconcile_month(payload: Any) -> dict[str, Any]:
             if entity_id in allocated_entities:
                 raise InputError(f"{where} must not allocate twice to one entity")
             allocated_entities.add(entity_id)
-            share, _ = _amount(allocation["amount"], f"{allocation_where}.amount", positive=True)
+            share, _, share_places = _amount(allocation["amount"], f"{allocation_where}.amount", positive=True)
             allocation_total += share
             actuals[entity_id] += share
+            actual_places[entity_id] = max(actual_places[entity_id], share_places)
             allocated_total += share
+            allocated_total_places = max(allocated_total_places, share_places)
         if allocation_total != amount:
             raise InputError(f"{where}.allocations must sum exactly to invoice amount")
 
     entity_results: list[dict[str, str]] = []
-    total_budget = Decimal(0)
-    total_variance = Decimal(0)
+    total_budget = 0
+    total_budget_places = 0
+    total_variance = 0
+    total_variance_places = 0
     for entity_id in sorted(budgets):
-        budget, budget_text = budgets[entity_id]
+        budget, budget_text, budget_places = budgets[entity_id]
         actual = actuals[entity_id]
         variance = budget - actual
         total_budget += budget
+        total_budget_places = max(total_budget_places, budget_places)
         total_variance += variance
+        total_variance_places = max(total_variance_places, budget_places, actual_places[entity_id])
         entity_results.append(
             {
                 "entity_id": entity_id,
                 "budget_amount": budget_text,
-                "invoice_total": _money(actual),
-                "variance_amount": _money(variance),
+                "invoice_total": _money(actual, actual_places[entity_id]),
+                "variance_amount": _money(variance, max(budget_places, actual_places[entity_id])),
                 "budget_position": "within_budget" if variance >= 0 else "over_budget",
             }
         )
@@ -172,10 +191,12 @@ def reconcile_month(payload: Any) -> dict[str, Any]:
         "currency": currency,
         "entities": entity_results,
         "invoice_count": len(invoices),
-        "unallocated_amount": _money(invoice_total - allocated_total),
-        "total_budget": _money(total_budget),
-        "total_invoice_amount": _money(invoice_total),
-        "total_variance": _money(total_variance),
+        "unallocated_amount": _money(
+            invoice_total - allocated_total, max(invoice_total_places, allocated_total_places)
+        ),
+        "total_budget": _money(total_budget, total_budget_places),
+        "total_invoice_amount": _money(invoice_total, invoice_total_places),
+        "total_variance": _money(total_variance, total_variance_places),
     }
 
 
@@ -188,6 +209,13 @@ def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
+def _parse_json_integer(value: str) -> int:
+    digits = value[1:] if value.startswith("-") else value
+    if len(digits) > _MAX_JSON_INTEGER_DIGITS:
+        raise InputError(f"JSON integer must not exceed {_MAX_JSON_INTEGER_DIGITS} digits")
+    return int(value)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("input", type=Path, help="explicit JSON budget input path")
@@ -197,7 +225,11 @@ def main(argv: list[str] | None = None) -> int:
             raw = stream.read(_MAX_INPUT_BYTES + 1)
         if len(raw) > _MAX_INPUT_BYTES:
             raise InputError(f"input file must not exceed {_MAX_INPUT_BYTES} bytes")
-        payload = json.loads(raw.decode("utf-8"), object_pairs_hook=_reject_duplicate_keys)
+        payload = json.loads(
+            raw.decode("utf-8"),
+            object_pairs_hook=_reject_duplicate_keys,
+            parse_int=_parse_json_integer,
+        )
         result = reconcile_month(payload)
     except (OSError, UnicodeDecodeError, json.JSONDecodeError, InputError, RecursionError) as exc:
         print(f"error: {exc}", file=sys.stderr)

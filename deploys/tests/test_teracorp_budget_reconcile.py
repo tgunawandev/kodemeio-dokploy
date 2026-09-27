@@ -82,6 +82,60 @@ def test_reports_over_budget_without_recommending_action() -> None:
     assert "decision" not in result
 
 
+def test_exactly_reconciles_29_digit_amount() -> None:
+    amount = "12345678901234567890123456789"
+    data = monthly_budget()
+    data["entities"] = [{"entity_id": "terakidz", "budget_amount": amount}]
+    data["invoices"] = [
+        {
+            "invoice_ref": "invoice:large-exact",
+            "invoice_date": "2026-09-05",
+            "amount": amount,
+            "allocations": [{"entity_id": "terakidz", "amount": amount}],
+        }
+    ]
+
+    result = BUDGET.reconcile_month(data)
+
+    assert result["entities"][0]["invoice_total"] == amount
+    assert result["entities"][0]["variance_amount"] == "0"
+    assert result["total_invoice_amount"] == amount
+    assert result["total_variance"] == "0"
+
+
+def test_aggregate_boundaries_preserve_max_integer_and_fractional_precision() -> None:
+    largest_integer = "9" * 63
+    smallest_fraction = "0." + "0" * 61 + "1"
+    invoices = [
+        {
+            "invoice_ref": f"invoice:boundary-{index:04d}",
+            "invoice_date": "2026-09-05",
+            "amount": largest_integer if index % 2 == 0 else smallest_fraction,
+            "allocations": [
+                {"entity_id": "terakidz", "amount": largest_integer if index % 2 == 0 else smallest_fraction}
+            ],
+        }
+        for index in range(BUDGET._MAX_INVOICES)
+    ]
+    data = {
+        "schema_version": 1,
+        "period": "2026-09",
+        "currency": "IDR",
+        "entities": [{"entity_id": "terakidz", "budget_amount": "0"}],
+        "invoices": invoices,
+    }
+    fractional_total = str(BUDGET._MAX_INVOICES // 2).zfill(BUDGET._MAX_FRACTIONAL_DIGITS)
+    expected_total = f"{int(largest_integer) * (BUDGET._MAX_INVOICES // 2)}.{fractional_total}"
+
+    result = BUDGET.reconcile_month(data)
+
+    assert result["invoice_count"] == BUDGET._MAX_INVOICES
+    assert result["total_invoice_amount"] == expected_total
+    assert result["entities"][0]["invoice_total"] == expected_total
+    assert result["unallocated_amount"] == "0." + "0" * BUDGET._MAX_FRACTIONAL_DIGITS
+    assert result["total_variance"] == f"-{expected_total}"
+
+
 @pytest.mark.parametrize(
     "mutate",
     [
@@ -158,6 +212,17 @@ def test_cli_rejects_invalid_utf8_without_traceback(tmp_path, capsys) -> None:
     path.write_bytes(b"\xff")
     assert BUDGET.main([str(path)]) == 2
     assert "Traceback" not in capsys.readouterr().err
+
+
+def test_cli_rejects_oversized_json_integer_without_traceback(tmp_path, capsys) -> None:
+    path = tmp_path / "large-integer.json"
+    path.write_text('{"schema_version":' + "9" * 5_000 + "}", encoding="utf-8")
+
+    assert BUDGET.main([str(path)]) == 2
+
+    error = capsys.readouterr().err
+    assert "JSON integer must not exceed 64 digits" in error
+    assert "Traceback" not in error
 
 
 def test_script_has_no_network_or_database_dependencies() -> None:
