@@ -90,7 +90,7 @@
       "properties": {
         "event_id": {"$ref": "#/$defs/id"}, "event_type": {"const": "commission"}, "synthetic": {"const": true},
         "occurred_at": {"type": "string", "format": "date-time"}, "click_event_id": {"$ref": "#/$defs/id"},
-        "order_amount_minor": {"type": "integer", "minimum": 1}, "commission_minor": {"type": "integer", "minimum": 0},
+        "order_amount_minor": {"type": "integer", "minimum": 1, "maximum": 1000000000000}, "commission_minor": {"type": "integer", "minimum": 0, "maximum": 1000000000000},
         "currency": {"type": "string", "pattern": "^[A-Z]{3}$"}
       }
     }

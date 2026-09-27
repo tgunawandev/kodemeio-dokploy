@@ -31,6 +31,11 @@ def test_schema_and_synthetic_candidate_are_valid_but_not_operational() -> None:
     assert report["status"] == "candidate-ready-unverified"
     assert report["verified"] is False
     assert report["live_integration"] is False
+    assert report["manual_review_required"] is True
+    assert report["approval_authenticated"] is False
+    assert report["consent_captured"] is False
+    assert report["consent_authenticated"] is False
+    assert report["as_of_authenticated"] is False
 
 
 def test_template_fails_closed_until_approval_and_disclosure_are_supplied() -> None:
@@ -108,6 +113,10 @@ def test_reconciliation_is_idempotent_and_commission_math_is_evidence_only() -> 
     assert result["commission_count"] == 1
     assert result["commission_total_minor"] == 500
     assert result["payments_created"] is False
+    assert result["manual_review_required"] is True
+    assert result["approval_authenticated"] is False
+    assert result["consent_captured"] is False
+    assert result["consent_authenticated"] is False
 
 
 def test_exact_duplicate_synthetic_events_are_deduplicated() -> None:
@@ -138,6 +147,24 @@ def test_commission_mismatch_or_orphan_click_is_rejected() -> None:
     doc["events"][1]["click_event_id"] = "missing-click"
     with pytest.raises(InputError, match="commission_click_missing"):
         reconcile(doc)
+
+
+@pytest.mark.parametrize(
+    "order_amount,rate_bps,commission",
+    [(1, 5000, 1), (1, 4999, 0)],
+)
+def test_commission_rounding_uses_explicit_half_up_minor_unit_rule(order_amount, rate_bps, commission):
+    doc = payload()
+    doc["advertiser"]["commission_terms"]["rate_bps"] = rate_bps
+    doc["events"][1]["order_amount_minor"] = order_amount
+    doc["events"][1]["commission_minor"] = commission
+    assert evaluate(doc)["status"] == "candidate-ready-unverified"
+
+
+def test_click_attribution_must_match_the_link_snapshot():
+    doc = payload()
+    doc["events"][0]["attribution"]["campaign"] = "altered-campaign"
+    assert "events[0]:attribution_mismatch" in evaluate(doc)["issues"]
 
 
 def test_cli_emits_synthetic_evidence_and_duplicate_json_is_rejected(tmp_path: Path) -> None:
@@ -181,3 +208,67 @@ def test_loader_normalizes_recursion_error_to_sanitized_input_error(tmp_path: Pa
     monkeypatch.setattr(affiliate.json, "loads", raise_recursion_error)
     with pytest.raises(InputError, match="^input_unreadable_or_invalid_json$"):
         load_document(document)
+
+
+def test_loader_rejects_oversized_integer_tokens_without_traceback(tmp_path: Path):
+    document = tmp_path / "oversized-integer.json"
+    document.write_text("1" * 5000, encoding="utf-8")
+    with pytest.raises(InputError, match="^json_integer_out_of_range$"):
+        load_document(document)
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "affiliate.py"), "validate", str(document)],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 1
+    assert "Traceback" not in result.stderr
+    assert json.loads(result.stdout)["manual_review_required"] is True
+
+
+def test_amount_bounds_and_aggregate_total_fail_closed():
+    document = payload()
+    document["events"][1]["order_amount_minor"] = affiliate.MAX_AMOUNT_MINOR + 1
+    assert evaluate(document)["status"] == "blocked"
+
+    document = payload()
+    document["events"][1]["commission_minor"] = affiliate.MAX_AMOUNT_MINOR + 1
+    assert evaluate(document)["status"] == "blocked"
+
+    document = payload()
+    event = document["events"][1]
+    event["order_amount_minor"] = affiliate.MAX_AMOUNT_MINOR
+    event["commission_minor"] = affiliate.MAX_AMOUNT_MINOR
+    document["events"].extend(
+        [
+            {
+                **copy.deepcopy(event),
+                "event_id": f"commission-{index:04d}",
+                "click_event_id": document["events"][0]["event_id"],
+                "commission_minor": affiliate.MAX_AMOUNT_MINOR,
+            }
+            for index in range(2)
+        ]
+    )
+    assert "events:aggregate_commission_amount_out_of_range" in evaluate(document)["issues"]
+
+
+def test_exact_per_event_and_aggregate_amount_limit_is_inclusive():
+    document = payload()
+    document["advertiser"]["commission_terms"]["rate_bps"] = 10000
+    document["events"][1]["order_amount_minor"] = affiliate.MAX_AMOUNT_MINOR
+    document["events"][1]["commission_minor"] = affiliate.MAX_TOTAL_MINOR
+    report = evaluate(document)
+    assert report["status"] == "candidate-ready-unverified"
+    assert report["issues"] == []
+
+
+def test_backdated_snapshot_is_always_explicitly_unauthenticated():
+    document = payload()
+    document["as_of"] = "2026-09-27"
+    report = evaluate(document)
+    assert report["status"] == "candidate-ready-unverified"
+    assert report["manual_review_required"] is True
+    assert report["approval_authenticated"] is False
+    assert report["consent_authenticated"] is False
+    assert report["as_of_authenticated"] is False

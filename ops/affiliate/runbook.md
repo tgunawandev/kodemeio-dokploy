@@ -13,6 +13,13 @@ founder authorization, advertiser verification, a publication gate, or permissio
 clicks. `synthetic-evidence-only` is a deterministic calculation over explicitly synthetic rows,
 not a payable balance or verified transaction record.
 
+The document's `as_of` is a caller-selected evaluation cutoff used to check approval, terms, link
+expiry, and event timestamps. It can describe a historical/backdated snapshot; the tool neither
+authenticates it nor compares it with the system clock. Every report requires manual review and
+explicitly sets `as_of_authenticated`, `approval_authenticated`, and `consent_authenticated` to
+false. Per-event amount ceilings in the schema and the aggregate commission ceiling in Python are
+defensive safety bounds only, not founder-approved order, commission, or payout limits.
+
 ## Input review
 
 Start with `examples/affiliate.template.v1.json`. Before using non-synthetic values, the owner must
@@ -32,6 +39,9 @@ snapshot digest and review.
 The digest is a consistency check, not a signature or tamper-proof audit log: a party who can edit
 the document can replace both attribution fields and digest. The output hash provides a stable
 reference to the synthetic input rows only.
+
+For each click event, both its attribution fields and digest must exactly match the referenced
+link's attribution snapshot. This linkage check does not authenticate the click source.
 
 The validator requires HTTPS, no user information, non-default ports, query, or fragment, and an
 exact hostname match. It never fetches the URL, follows redirects, checks DNS/TLS, or verifies that

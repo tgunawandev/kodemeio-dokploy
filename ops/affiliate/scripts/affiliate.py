@@ -20,6 +20,9 @@ ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_PATH = ROOT / "contracts" / "affiliate.v1.schema.json"
 MAX_INPUT_BYTES = 1_000_000
 MAX_JSON_DEPTH = 32
+MAX_JSON_INTEGER_DIGITS = 16
+MAX_AMOUNT_MINOR = 1_000_000_000_000
+MAX_TOTAL_MINOR = 1_000_000_000_000
 PLACEHOLDER_PREFIXES = ("todo", "replace", "tbd")
 
 
@@ -34,6 +37,13 @@ def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
             raise InputError("duplicate_json_key")
         result[key] = value
     return result
+
+
+def _bounded_json_integer(token: str) -> int:
+    digits = token[1:] if token.startswith("-") else token
+    if len(digits) > MAX_JSON_INTEGER_DIGITS:
+        raise InputError("json_integer_out_of_range")
+    return int(token)
 
 
 def _validate_json_depth(text: str) -> None:
@@ -66,7 +76,7 @@ def load_document(path: Path) -> Any:
             raise InputError("input_too_large")
         text = path.read_text(encoding="utf-8")
         _validate_json_depth(text)
-        return json.loads(text, object_pairs_hook=_unique_object)
+        return json.loads(text, object_pairs_hook=_unique_object, parse_int=_bounded_json_integer)
     except InputError:
         raise
     except (OSError, UnicodeError, json.JSONDecodeError, RecursionError) as exc:
@@ -230,6 +240,13 @@ def _semantic_issues(payload: dict[str, Any]) -> list[str]:
                 expected = (event["order_amount_minor"] * terms["rate_bps"] + 5000) // 10000
                 if event.get("commission_minor") != expected:
                     issues.append(f"events[{index}]:commission_amount_mismatch")
+    commission_total = sum(
+        event.get("commission_minor", 0)
+        for event in unique_events
+        if event.get("event_type") == "commission" and type(event.get("commission_minor")) is int
+    )
+    if commission_total > MAX_TOTAL_MINOR:
+        issues.append("events:aggregate_commission_amount_out_of_range")
     return issues
 
 
@@ -241,6 +258,11 @@ def evaluate(payload: Any) -> dict[str, Any]:
             "issues": ["document:object_required"],
             "verified": False,
             "live_integration": False,
+            "manual_review_required": True,
+            "approval_authenticated": False,
+            "consent_captured": False,
+            "consent_authenticated": False,
+            "as_of_authenticated": False,
         }
     try:
         validator = Draft202012Validator(_load_schema(), format_checker=FormatChecker())
@@ -250,6 +272,11 @@ def evaluate(payload: Any) -> dict[str, Any]:
             "issues": ["validator:schema_unavailable"],
             "verified": False,
             "live_integration": False,
+            "manual_review_required": True,
+            "approval_authenticated": False,
+            "consent_captured": False,
+            "consent_authenticated": False,
+            "as_of_authenticated": False,
         }
     errors = sorted(
         validator.iter_errors(payload), key=lambda error: (list(map(str, error.absolute_path)), error.validator or "")
@@ -262,6 +289,11 @@ def evaluate(payload: Any) -> dict[str, Any]:
         "issues": issues,
         "verified": False,
         "live_integration": False,
+        "manual_review_required": True,
+        "approval_authenticated": False,
+        "consent_captured": False,
+        "consent_authenticated": False,
+        "as_of_authenticated": False,
     }
 
 
@@ -320,6 +352,11 @@ def reconcile(payload: Any) -> dict[str, Any]:
         "source_events_sha256": digest,
         "payments_created": False,
         "verified": False,
+        "manual_review_required": True,
+        "approval_authenticated": False,
+        "consent_captured": False,
+        "consent_authenticated": False,
+        "as_of_authenticated": False,
     }
 
 
@@ -332,7 +369,17 @@ def main() -> int:
         document = load_document(args.input)
         result = evaluate(document) if args.command == "validate" else reconcile(document)
     except InputError as exc:
-        result = {"status": "blocked", "issues": [str(exc)], "verified": False, "live_integration": False}
+        result = {
+            "status": "blocked",
+            "issues": [str(exc)],
+            "verified": False,
+            "live_integration": False,
+            "manual_review_required": True,
+            "approval_authenticated": False,
+            "consent_captured": False,
+            "consent_authenticated": False,
+            "as_of_authenticated": False,
+        }
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0 if result.get("status") in {"candidate-ready-unverified", "synthetic-evidence-only"} else 1
 
