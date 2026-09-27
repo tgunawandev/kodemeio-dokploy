@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "event_id": "evt-synthetic-001",
+  "occurred_at": "2026-09-28T08:30:00Z",
+  "tenant_id": "kodemeio",
+  "actor_kind": "agent",
+  "actor_id": "karen",
+  "action": "workflow.requested",
+  "work_order_ref": "odoo:work.order/123",
+  "target_ref": "factory:template/terakidz-kit",
+  "approval_ref": null,
+  "payload_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+}
