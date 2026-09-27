@@ -95,7 +95,10 @@ env_overrides:
 #                       has had over an hour to land.
 #
 # ALL THREE SHIP DISABLED (`enabled: false`). Per this task's rulings, the
-# founder must NOT flip them to `enabled: true` / deploy until:
+# founder must NOT flip them to `enabled: true` / deploy until ALL FOUR hold
+# (final review I5 added the last two, which Task 6 introduced after this list
+# was written -- without them the first runs alarm on backups that were never
+# deployed, not on anything broken):
 #   - G2: a B2 key without deleteFiles, a lifecycle rule, and a hard-delete
 #     test that returns 401 -- measured on the idtpp/tpp+mac keys 2026-09-25
 #     (ops/runbooks/b2-offsite-backup.md), NOT yet measured on the kod
@@ -107,8 +110,16 @@ env_overrides:
 #     confirmed kod-odoo-desk/ in a bucket listing; kod-odoo-erp/ and
 #     kod-odoo-hrms/ are the brief's asserted shape, unconfirmed by a direct
 #     listing).
+#   - G5 + G6 have DEPLOYED the backups both freshness jobs check: the
+#     erp/hrms filestore jobs (G5) and the Authentik media sidecar's bucket
+#     `kodemeio-authentik-backup` (G6). Without them the mirror's
+#     `kodemeio-authentik-backup` source lists empty and the freshness jobs
+#     correctly report STALE for prefixes that have never been written.
+#   - The Mattermost `mm-files-backup` sidecar is DEPLOYED (mattermost
+#     redeploy), or `mattermost/files/` is a prefix nothing ever writes.
 # See this task's report (task-4-report.md, same dir as the Wave-0 brief)
-# for the full gate list and reasoning.
+# for the original gate list and reasoning; the runbook G4 step 4 lists which
+# alarms are EXPECTED on a first run before those deploys land.
 schedules:
   - {name: kod-offsite-mirror, cron: "45 */2 * * *", command: "jobrun kod-offsite-mirror", service: kctl, shell: sh, timezone: UTC, enabled: false}
   - {name: kod-hz-fresh,       cron: "40 23 * * *",  command: "jobrun kod-hz-fresh",       service: kctl, shell: sh, timezone: UTC, enabled: false}
