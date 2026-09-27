@@ -65,6 +65,13 @@ def test_none_declared_processor_inventory_is_distinct_and_unverified() -> None:
     assert "processor_inventory_status:none_declared_unverified" in report["unresolved"]
 
 
+def test_identified_processor_requires_source_reference() -> None:
+    data = payload()
+    data["processors"][0]["evidence_refs"] = []
+    with pytest.raises(InputError, match="non-empty"):
+        validate(data, AS_OF)
+
+
 @pytest.mark.parametrize(
     "mutate",
     [

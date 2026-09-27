@@ -94,7 +94,12 @@ def validate(payload: Any, as_of: str) -> dict[str, Any]:
         status = item["inventory_status"]
         if not isinstance(status, str) or status not in {"identified", "unknown"} or key in processors:
             raise InputError(f"{where} has invalid or duplicate processor identity/status")
-        _ids(item["evidence_refs"], f"{where}.evidence_refs", maximum=32)
+        _ids(
+            item["evidence_refs"],
+            f"{where}.evidence_refs",
+            required=status == "identified",
+            maximum=32,
+        )
         processors[key] = status
     if (processor_state == "none_declared") != (len(processors) == 0):
         raise InputError("none_declared must correspond exactly to an empty processor inventory")
