@@ -225,6 +225,19 @@ def course_problems(course: dict) -> list[str]:
             problems += source_problems(course, key, slides=(role == "slides"))
     for key in sorted(declared - used):
         problems.append(f"source {key} is declared and never used by a lesson")
+    # A declared variable nobody places is a variant axis that does nothing -- and it would make
+    # "two locales, two documents" silently untrue (found by this check on the first run of the
+    # locale variant test, 2026-09-27).
+    used_variables = set()
+    for key in sorted(used & declared):
+        text = source_text(course, key)
+        for name in placeholders(text):
+            head, _sep, rest = name.partition(".")
+            if head == "var":
+                used_variables.add(rest)
+    declared_variables = {variable["key"] for variable in course["variables"]}
+    for key in sorted(declared_variables - used_variables):
+        problems.append(f"variable {key} is declared and no source places it")
     for module in course["modules"]:
         for lesson in module["lessons"]:
             video = lesson.get("video")

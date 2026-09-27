@@ -2,6 +2,8 @@
 
 {{lesson.module}} — {{course.title}}
 
+Sesi: {{var.session_date}}
+
 ---
 
 ## Lima menit, setiap hari

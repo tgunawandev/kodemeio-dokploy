@@ -2,6 +2,8 @@
 
 {{course.title}} — {{lesson.module}}
 
+Sesi: {{var.session_date}}
+
 ---
 
 ## Satu kesempatan, lalu tunggu

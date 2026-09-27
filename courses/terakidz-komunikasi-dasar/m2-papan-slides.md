@@ -2,6 +2,8 @@
 
 {{lesson.module}}
 
+Sesi: {{var.session_date}}
+
 ---
 
 ## Mengapa papan komunikasi
