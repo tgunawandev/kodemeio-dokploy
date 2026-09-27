@@ -63,4 +63,22 @@ Owners: this repo holds the schemas; each service repo implements them.
   `templates/terakon-planner/` (workbook); `deploys/tests/test_contracts_templates.py` checks
   both the schema and the semantics it cannot express (every placeholder resolves, every image
   block names a declared role).
+- `ebooks/ebook.v1.schema.json` is an e-book (Teracorp e-book factory, F4): a committed
+  `ebooks/<id>/ebook.yaml` plus `book.md`, the book's **canonical Markdown source** — the ONE
+  artefact both renderers consume (Typst → PDF, Pandoc → EPUB, `renderers.pdf`/`renderers.epub`
+  naming each as data; a renderer the consumer lacks refuses by name, `typst not installed` /
+  `pandoc not installed`, and there is no fallback). `book.md` is **derived** from the chapters,
+  never authored, and the derivation is pinned byte for byte in both repos
+  (`deploys/tests/test_contracts_ebooks.py::render_markdown` and the consumer's
+  `factory_ebook._fe_markdown`), so the prose a human reads and the data the factory renders
+  from cannot drift. It pins the book metadata (`title`/`subtitle`/`author`/`locale` — the human
+  labels are not `name`, which the shared PII denylist refuses), the page box, a **typed cover
+  block set** (the book's own metadata plus `cover.logo`, an `asset:<key>` reference, and
+  `cover.palette`, a KIT colour ROLE — never a hex value, never free-form HTML), the chapter
+  tree, typed `variables`, licensed `assets`, `outputs` (`pdf` required, `epub` optional — a
+  single-format release must be an explicit recorded choice on the work order, spec A5) and the
+  `brand.kits` a book is approved to render under. The chapter block vocabulary is F3's
+  `template.v1` vocabulary **shared by reference as a pinned copy**:
+  `test_the_block_vocabulary_is_f3s_pinned_copy` fails the moment the two contracts disagree.
+  The one shipped book is `ebooks/terakidz-example/`.
 - Tests: `uv run pytest deploys/tests -k contracts`.

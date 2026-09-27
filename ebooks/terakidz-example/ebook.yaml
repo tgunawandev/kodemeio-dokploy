@@ -1,0 +1,156 @@
+# Terakidz example book — the e-book factory's one shipped proof (Teracorp F4/EBK1, spec D6).
+#
+# EXAMPLE CONTENT. Nothing here is approved Terakidz product copy: the chapters are plausible
+# placeholder prose so the factory has a real, schema-valid book to render into BOTH formats
+# (roadmap gate F4: "expert-reviewed book renders both formats"). The real catalogue is the
+# factory's job later (spec section 7, out of scope).
+#
+# `book.md` beside this file is the book's canonical MARKDOWN SOURCE — the artefact both
+# renderers consume (Typst for the PDF, Pandoc for the EPUB). It is DERIVED from this file and
+# the derivation is pinned in both repos (deploys/tests/test_contracts_ebooks.py here, the
+# `factory_ebook` module in kodemeio-odoo), so the prose in book.md and the data here cannot
+# drift. Read book.md to read the book; edit this file to change it.
+#
+# Every asset reference is an `asset:<key>` into the consumer's licence-checked library (Odoo
+# `factory.asset`); no URL appears anywhere in a book, because the licence lives with the asset
+# and never with the document. `fonts.heading`/`fonts.body` resolve to the Terakidz kit's own
+# refs (asset:font-nunito, OFL-1.1) — a font that is not a verified, commercial, non-expired
+# `font` asset refuses the render by name.
+#
+# Placeholders (see contracts/ebooks/ebook.v1.schema.json):
+#   {{var.<key>}}      a declared variable, typed and validated at render time
+#   {{theme.<token>}}  a brand-kit token (the kit's palette and font families)
+#   {{page.<token>}}   the page box (size, orientation, margin_top/right/bottom/left)
+#   {{option.<name>}}  a render option (locale, palette, page_size, orientation)
+#   {{kit.<key>}}      kit content the book must carry (disclaimers, ai_disclosure)
+id: terakidz-example
+version: 1
+title: "Kata Pertama"
+subtitle: "Panduan Pendamping untuk Membangun Komunikasi Sehari-hari"
+author: "Tim Terakidz"
+locale: id_ID
+
+page:
+  size: A5
+  orientation: portrait
+  margins:
+    top: 16
+    right: 14
+    bottom: 16
+    left: 14
+
+# The cover is a TYPED BLOCK SET (spec D3), never free-form HTML: the cover page is built by the
+# renderers from this book's title/subtitle/author plus the two fields below. `logo` is an
+# `asset:<key>` reference and `palette` names a KIT colour role (never a hex value), so the kit
+# stays the single source of the look.
+cover:
+  logo: "asset:image-terakidz-book-logo"
+  palette: primary
+
+chapters:
+  - id: mengapa-komunikasi
+    title: "Mengapa Komunikasi Awal Penting"
+    blocks:
+      - type: paragraph
+        text: >-
+          Komunikasi bukan hanya soal berbicara. Bagi anak usia {{var.age_band}} tahun, ia juga
+          soal menunjuk, menatap, menunggu, dan merasa didengar. Buku kecil ini disusun untuk
+          {{var.reader_role}} yang ingin memulai dari kebiasaan sehari-hari, tanpa target dan
+          tanpa tekanan.
+      - type: list
+        items:
+          - "Pilih satu waktu yang sama setiap hari, saat anak paling tenang."
+          - "Sediakan satu alat bantu yang sama: papan komunikasi, kartu gambar, atau buku ini."
+          - "Akhiri setiap sesi dengan hal yang anak sukai, bukan dengan latihan."
+      - type: image
+        asset: "asset:image-terakidz-learning-hero"
+        alt: "Pendamping dan anak menggunakan papan komunikasi"
+      - type: disclaimer
+        text: "{{kit.disclaimers}}"
+
+  - id: tiga-langkah
+    title: "Tiga Langkah Memulai"
+    blocks:
+      - type: heading
+        level: 2
+        text: "Langkah Pertama: Kenali Minat Anak"
+      - type: paragraph
+        text: >-
+          Mulai dari {{var.start_date}}. Catat tiga hal yang paling sering anak dekati sendiri
+          selama satu minggu — bukan yang paling sering diminta orang lain.
+      - type: list
+        ordered: true
+        items:
+          - "Amati: catat minat, waktu, dan suasana hati anak."
+          - "Ulangi: pakai kata yang sama setiap kali minat itu muncul."
+          - "Perluas: tambahkan satu kata baru setelah kata pertama dipakai dengan mantap."
+      - type: table
+        columns: ["Hari", "Kegiatan", "Durasi"]
+        rows:
+          - ["Senin", "Papan komunikasi", "10 menit"]
+          - ["Rabu", "Kartu kosakata", "10 menit"]
+          - ["Jumat", "Cerita sosial", "15 menit"]
+      - type: spacer
+        size: medium
+
+  - id: menjaga-ritme
+    title: "Menjaga Ritme di Rumah"
+    blocks:
+      - type: heading
+        level: 2
+        text: "Ketika Latihan Terasa Berat"
+      - type: paragraph
+        text: >-
+          Berhenti lebih cepat dari yang direncanakan bukan kegagalan. Rencana {{var.session_count}}
+          sesi ini adalah pegangan, bukan jadwal yang harus dituntaskan; yang penting anak tetap
+          merasa aman saat mencoba.
+      - type: footer
+        text: "Dibaca dari Kata Pertama — {{var.session_count}} sesi pendampingan"
+      - type: disclaimer
+        text: "{{kit.disclaimers}}"
+
+variables:
+  - key: reader_role
+    type: string
+    required: true
+    default: "orang tua"
+    description: "Who the book addresses (a variant axis: orang tua, pengasuh, terapis)."
+  - key: age_band
+    type: enum
+    enum: ["3-5", "6-7", "8-9"]
+    required: true
+    default: "3-5"
+    description: "Age band the chapters are pitched at (a variant axis)."
+  - key: session_count
+    type: int
+    required: true
+    default: 6
+    description: "How many companion sessions the book proposes."
+  - key: start_date
+    type: date
+    required: false
+    default: "2026-10-01"
+    description: "The date the plan starts; formatted for the render's locale."
+
+assets:
+  fonts:
+    heading: "asset:font-nunito"
+    body: "asset:font-nunito"
+  images:
+    logo: "asset:image-terakidz-book-logo"
+    hero: "asset:image-terakidz-learning-hero"
+
+# Both formats (spec D2): the PDF through Typst, the EPUB through Pandoc. Either renderer that
+# is not in the consuming image REFUSES with its own named error, and a release that ships only
+# one format must carry the work order's explicit recorded choice (spec A5).
+outputs: [pdf, epub]
+renderers:
+  pdf: typst
+  epub: pandoc
+
+# The book is brand-neutral by construction — it prints the KIT's tokens, fonts, palette and
+# mandatory disclaimers — so it is approved for both committed kits. That is what makes the
+# two-kit proof a real render rather than a special case: one Markdown source, two kits, two
+# covers and two themes. A kit not listed here refuses the render by name.
+brand:
+  kits: ["terakidz", "terakon"]

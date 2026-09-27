@@ -1,0 +1,186 @@
+{
+  "id": "terakidz-example",
+  "version": 1,
+  "title": "Kata Pertama",
+  "subtitle": "Panduan Pendamping untuk Membangun Komunikasi Sehari-hari",
+  "author": "Tim Terakidz",
+  "locale": "id_ID",
+  "page": {
+    "size": "A5",
+    "orientation": "portrait",
+    "margins": {
+      "top": 16,
+      "right": 14,
+      "bottom": 16,
+      "left": 14
+    }
+  },
+  "cover": {
+    "logo": "asset:image-terakidz-book-logo",
+    "palette": "primary"
+  },
+  "chapters": [
+    {
+      "id": "mengapa-komunikasi",
+      "title": "Mengapa Komunikasi Awal Penting",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Komunikasi bukan hanya soal berbicara. Bagi anak usia {{var.age_band}} tahun, ia juga soal menunjuk, menatap, menunggu, dan merasa didengar. Buku kecil ini disusun untuk {{var.reader_role}} yang ingin memulai dari kebiasaan sehari-hari, tanpa target dan tanpa tekanan."
+        },
+        {
+          "type": "list",
+          "items": [
+            "Pilih satu waktu yang sama setiap hari, saat anak paling tenang.",
+            "Sediakan satu alat bantu yang sama: papan komunikasi, kartu gambar, atau buku ini.",
+            "Akhiri setiap sesi dengan hal yang anak sukai, bukan dengan latihan."
+          ]
+        },
+        {
+          "type": "image",
+          "asset": "https://cdn.example.test/hero.png",
+          "alt": "Pendamping dan anak menggunakan papan komunikasi"
+        },
+        {
+          "type": "disclaimer",
+          "text": "{{kit.disclaimers}}"
+        }
+      ]
+    },
+    {
+      "id": "tiga-langkah",
+      "title": "Tiga Langkah Memulai",
+      "blocks": [
+        {
+          "type": "heading",
+          "level": 2,
+          "text": "Langkah Pertama: Kenali Minat Anak"
+        },
+        {
+          "type": "paragraph",
+          "text": "Mulai dari {{var.start_date}}. Catat tiga hal yang paling sering anak dekati sendiri selama satu minggu — bukan yang paling sering diminta orang lain."
+        },
+        {
+          "type": "list",
+          "ordered": true,
+          "items": [
+            "Amati: catat minat, waktu, dan suasana hati anak.",
+            "Ulangi: pakai kata yang sama setiap kali minat itu muncul.",
+            "Perluas: tambahkan satu kata baru setelah kata pertama dipakai dengan mantap."
+          ]
+        },
+        {
+          "type": "table",
+          "columns": [
+            "Hari",
+            "Kegiatan",
+            "Durasi"
+          ],
+          "rows": [
+            [
+              "Senin",
+              "Papan komunikasi",
+              "10 menit"
+            ],
+            [
+              "Rabu",
+              "Kartu kosakata",
+              "10 menit"
+            ],
+            [
+              "Jumat",
+              "Cerita sosial",
+              "15 menit"
+            ]
+          ]
+        },
+        {
+          "type": "spacer",
+          "size": "medium"
+        }
+      ]
+    },
+    {
+      "id": "menjaga-ritme",
+      "title": "Menjaga Ritme di Rumah",
+      "blocks": [
+        {
+          "type": "heading",
+          "level": 2,
+          "text": "Ketika Latihan Terasa Berat"
+        },
+        {
+          "type": "paragraph",
+          "text": "Berhenti lebih cepat dari yang direncanakan bukan kegagalan. Rencana {{var.session_count}} sesi ini adalah pegangan, bukan jadwal yang harus dituntaskan; yang penting anak tetap merasa aman saat mencoba."
+        },
+        {
+          "type": "footer",
+          "text": "Dibaca dari Kata Pertama — {{var.session_count}} sesi pendampingan"
+        },
+        {
+          "type": "disclaimer",
+          "text": "{{kit.disclaimers}}"
+        }
+      ]
+    }
+  ],
+  "variables": [
+    {
+      "key": "reader_role",
+      "type": "string",
+      "required": true,
+      "default": "orang tua",
+      "description": "Who the book addresses (a variant axis: orang tua, pengasuh, terapis)."
+    },
+    {
+      "key": "age_band",
+      "type": "enum",
+      "enum": [
+        "3-5",
+        "6-7",
+        "8-9"
+      ],
+      "required": true,
+      "default": "3-5",
+      "description": "Age band the chapters are pitched at (a variant axis)."
+    },
+    {
+      "key": "session_count",
+      "type": "int",
+      "required": true,
+      "default": 6,
+      "description": "How many companion sessions the book proposes."
+    },
+    {
+      "key": "start_date",
+      "type": "date",
+      "required": false,
+      "default": "2026-10-01",
+      "description": "The date the plan starts; formatted for the render's locale."
+    }
+  ],
+  "assets": {
+    "fonts": {
+      "heading": "asset:font-nunito",
+      "body": "asset:font-nunito"
+    },
+    "images": {
+      "logo": "asset:image-terakidz-book-logo",
+      "hero": "asset:image-terakidz-learning-hero"
+    }
+  },
+  "outputs": [
+    "pdf",
+    "epub"
+  ],
+  "renderers": {
+    "pdf": "typst",
+    "epub": "pandoc"
+  },
+  "brand": {
+    "kits": [
+      "terakidz",
+      "terakon"
+    ]
+  }
+}
