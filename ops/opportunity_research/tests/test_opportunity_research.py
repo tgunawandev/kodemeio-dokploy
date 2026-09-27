@@ -184,6 +184,17 @@ def test_deep_json_is_refused_but_brackets_in_strings_are_ordinary_text(
     quoted.write_text('{"text":"' + "[" * 64 + '"}', encoding="utf-8")
     assert load_document(quoted) == {"text": "[" * 64}
 
+    escaped_quote = tmp_path / "escaped-quote.json"
+    escaped_quote.write_text('{"text":"escaped \\" [ ] { }"}', encoding="utf-8")
+    assert load_document(escaped_quote) == {"text": 'escaped " [ ] { }'}
+
+    at_limit = tmp_path / "at-limit.json"
+    at_limit.write_text("[" * 32 + "0" + "]" * 32, encoding="utf-8")
+    expected = 0
+    for _ in range(32):
+        expected = [expected]
+    assert load_document(at_limit) == expected
+
 
 def test_cli_is_deterministic_and_never_marks_assertions_verified() -> None:
     command = [sys.executable, str(SCRIPT), "validate", str(EXAMPLE_PATH)]
@@ -194,3 +205,5 @@ def test_cli_is_deterministic_and_never_marks_assertions_verified() -> None:
     report = json.loads(first.stdout)
     assert report["source_assertions_verified"] is False
     assert report["external_access"] is False
+    assert report["manual_review_required"] is True
+    assert report["owner_review_authenticated"] is False
