@@ -67,8 +67,51 @@ Campaign host:                  go.terakidz.id      (confirm or replace)
 
 ## M1 — Install the factory + landing modules on the chosen instance (M)
 
-The modules ship in the image, so this is an in-place install (no build, no redeploy).
-`addon install` verifies image presence first and refuses rather than drifting.
+🔴 **The install is the LAST step of a build chain, not a push.** `factory_base`/`factory_landing`
+are new modules AND the `factory` bucket was added to `docker/odoo.conf.template`
+(`addons_path`), and **that template is baked into the BASE image** (`Dockerfile.base`;
+`docker/entrypoint.sh` renders `/etc/odoo/odoo.conf` from it at start). An app image inherits
+whichever base it was built from, and **nothing in this repository builds on a push** (owner
+rule, 2026-09-26: `build-base.yml` is manual-only). So on a target whose base predates this
+slice, the modules are not on the addons path at all and M1's install refuses — correctly
+(`✘ not in the running image: …`, "a not-yet-shipped module can't be RPC-installed (would
+drift)"). The artefact order is:
+
+| # | Artefact | How it is made | Must exist before |
+|---|---|---|---|
+| 1 | the pushed commit on `origin/18.0` | `git push` of the founder's checkout | everything below |
+| 2 | the **BASE** image (carries `odoo.conf.template` → the `factory` addons path) | `gh workflow run build-base.yml --ref 18.0` (~7 min, **manual only**) | step 3 |
+| 3 | the **APP** image (`FROM base` + `src/private`) | `./odoo.sh release … install …` (triggers `build-only.yml` and waits), or `gh workflow run build-only.yml --ref 18.0` (~3 min) | step 4 |
+| 4 | the **redeploy** of the compose onto that image | inside `release … install`, or `--no-build` after step 3 | step 5 |
+| 5 | the modules **installed** | M1's `addon install` (RPC) or the same `release … install` | M2 onwards |
+
+### M1.0 — Build and deploy the image that carries them (M)
+
+```bash
+cd kodemeio-odoo                                   # the founder's checkout, on 18.0
+git push origin 18.0                               # 1: `release` builds from origin/18.0, not the working tree
+
+# 2: the BASE image -- MANUAL BY DESIGN, and the step that is easy to miss. The factory bucket
+#    lives in docker/odoo.conf.template, which is baked into the base; without this build the
+#    app image below inherits a base whose addons_path has no /opt/odoo/src/private/factory.
+gh workflow run build-base.yml --ref 18.0
+gh run list --workflow build-base.yml --branch 18.0 -L 1     # verify: completed / success
+
+# 3+4+5: app image (build-only.yml, waited on), redeploy, and `-i` for the modules -- one command.
+#    `install` mode (not `reliable`): `-u` cannot install a module the target does not have yet.
+./odoo.sh release kod prod install factory_base,factory_landing,landing_base,landing_crm,api_landing --yes
+# (or ./odoo.sh release kod-desk prod install … for the desk instance from M0)
+```
+
+`release … install` is the whole chain: it triggers the app-image build, waits for the run it
+started, redeploys with `ODOO_INSTALL_MODULES` armed and clears that variable afterwards.
+`--dry-run` prints the resolved plan and changes nothing (verified:
+`Compose: y0gfh3PIrT9lDn_OdSUEI (dokploy: kodemeio)`, `Action: CI build → ODOO_INSTALL_MODULES
+redeploy (-i)`). If the app image was already built, `--no-build` skips step 3 — and refuses
+unless the tree is clean and `HEAD == origin/18.0`.
+
+**Then the ordinary one-liner below works**, because the modules are in the image. It is the
+same install over RPC, and it verifies image presence first (refusing rather than drifting):
 
 ```bash
 cd kodemeio-odoo                                   # the founder's checkout, on 18.0
@@ -407,6 +450,11 @@ licence revoked, an asset expired, the document re-compiled (a new sha), the WIP
 released, or an approver who has since lost the group. Each refusal names the work order and
 its state — the fix is a new submission, never `force` (which is refused outright on a
 governed page).
+
+⚠️ The version is re-checked against the **site as it is now**, at submit and again at publish,
+not only when it was frozen: a document compiled while the site was still free (raw image URLs,
+the site's own theme) or compiled under a **different brand kit** is refused by name — re-compile
+it on the governed site instead of approving it.
 
 ---
 
