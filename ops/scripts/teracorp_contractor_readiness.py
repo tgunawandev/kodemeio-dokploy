@@ -106,7 +106,7 @@ def _trigger(value: Any, threshold: int | float, policy_approved_at: datetime, m
         raise InputError("founder-hours trigger has not been exceeded; onboarding is refused")
 
 
-def _mapping(value: Any) -> None:
+def _mapping(value: Any, approver_ref: str, occurred: datetime, access_starts: datetime) -> str:
     mapping = _obj(
         value,
         "role_mapping",
@@ -120,7 +120,12 @@ def _mapping(value: Any) -> None:
         raise InputError("privileged or service groups are forbidden for contractor onboarding")
     for key in ("mapping_evidence_ref", "approved_by_ref", "resource_scope_ref"):
         _ref(mapping[key], f"role_mapping.{key}")
-    _utc(mapping["approved_at_utc"], "role_mapping.approved_at_utc")
+    if mapping["approved_by_ref"] != approver_ref:
+        raise InputError("role_mapping.approved_by_ref must match the lifecycle event approver_ref")
+    approved_at = _utc(mapping["approved_at_utc"], "role_mapping.approved_at_utc")
+    if approved_at >= occurred or approved_at >= access_starts:
+        raise InputError("role_mapping approval must precede the lifecycle event and access start")
+    return mapping["mapping_evidence_ref"]
 
 
 def _event(value: Any, index: int) -> None:
@@ -148,8 +153,7 @@ def _event(value: Any, index: int) -> None:
         raise InputError(f"{where}.action must be joiner, mover, or leaver")
     for key in ("event_id", "subject_ref", "operator_ref", "approver_ref", "verifier_ref"):
         _ref(event[key], f"{where}.{key}")
-    _utc(event["occurred_at_utc"], f"{where}.occurred_at_utc")
-    _mapping(event["role_mapping"])
+    occurred = _utc(event["occurred_at_utc"], f"{where}.occurred_at_utc")
 
     mfa = _obj(event["mfa"], f"{where}.mfa", {"status", "evidence_ref", "verified_at_utc"})
     if mfa["status"] != "verified_enrolled":
@@ -185,7 +189,16 @@ def _event(value: Any, index: int) -> None:
     if starts >= expires:
         raise InputError(f"{where}.access expiry must be after access start")
     _ref(access["expiry_evidence_ref"], f"{where}.access.expiry_evidence_ref")
-    occurred = _utc(event["occurred_at_utc"], f"{where}.occurred_at_utc")
+    mapping_evidence_ref = _mapping(event["role_mapping"], event["approver_ref"], occurred, starts)
+    # Evidence references are claim-specific in this contract. Reusing the
+    # role-mapping evidence for MFA or expiry would leave those claims ambiguous.
+    if mapping_evidence_ref in {
+        mfa["evidence_ref"],
+        mm["privacy_evidence_ref"],
+        mm["membership_evidence_ref"],
+        access["expiry_evidence_ref"],
+    }:
+        raise InputError(f"{where}.role_mapping.mapping_evidence_ref must identify role-mapping evidence only")
     if event["action"] in {"joiner", "mover"} and not starts <= occurred < expires:
         raise InputError(f"{where}.access must be active at the joiner/mover event time")
     if _utc(mfa["verified_at_utc"], f"{where}.mfa.verified_at_utc") > starts:
@@ -296,19 +309,30 @@ def _check_json_nesting(raw: str) -> None:
             depth -= 1
 
 
+def _read_bounded(path: Path) -> bytes:
+    """Read only enough bytes to accept a valid input or detect an oversized one."""
+    with path.open("rb") as stream:
+        raw = stream.read(_MAX_BYTES + 1)
+    if len(raw) > _MAX_BYTES:
+        raise InputError(f"input must not exceed {_MAX_BYTES} bytes")
+    return raw
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("bundle", type=Path, help="explicit synthetic/local G5 evidence JSON")
     args = parser.parse_args(argv)
     try:
-        raw = args.bundle.read_bytes()
-        if len(raw) > _MAX_BYTES:
-            raise InputError(f"input must not exceed {_MAX_BYTES} bytes")
+        raw = _read_bounded(args.bundle)
         text = raw.decode("utf-8")
         _check_json_nesting(text)
         try:
             payload = json.loads(text, object_pairs_hook=_pairs)
-        except RecursionError as exc:
+        except json.JSONDecodeError:
+            raise
+        except InputError:
+            raise
+        except (RecursionError, ValueError) as exc:
             raise InputError("input JSON exceeds parser safety limits") from exc
         print(json.dumps(validate_bundle(payload), sort_keys=True))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError, InputError) as exc:
