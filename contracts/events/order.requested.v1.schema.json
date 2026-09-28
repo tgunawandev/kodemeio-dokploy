@@ -15,7 +15,10 @@
         "work_order_id": {"type": "string", "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"},
         "brand": {"const": "terakidz"},
         "customer_ref": {"type": "string", "pattern": "^odoo:res\\.partner/[0-9]+$"},
-        "channel": {"enum": ["webhook", "chatwoot", "web", "marketplace"]},
+        "channel": {
+          "enum": ["webhook", "chatwoot", "web", "marketplace"],
+          "description": "Channel the order arrived through. For marketplace, the intake event id (so idempotency_key = '<source>:<event_id>') MUST be the stable '<provider>:<order_id>', never a delivery, poll or attempt id: dedup and the work_order_id derive from it."
+        },
         "lines": {
           "type": "array",
           "minItems": 1,

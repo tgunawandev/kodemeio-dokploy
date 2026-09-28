@@ -31,6 +31,11 @@ Owners: this repo holds the schemas; each service repo implements them.
   gains optional `odoo_factory_work_order` and `odoo_landing_page_version`, pointing at the
   Odoo-side ledger record (`factory.work.order`) and the landing page version it materialises.
   The pre-existing `order` shape is untouched.
+- `events/order.requested.v1.schema.json`'s `payload.channel` carries an annotation-only
+  `description` (no validation change): for `marketplace`, the intake event id — and so
+  `idempotency_key = <source>:<event_id>` — MUST be the stable `<provider>:<order_id>`, never a
+  delivery, poll or attempt id. `kodemeio-hatchet` `order_intake` enforces the shape at intake
+  and vendors a byte-identical copy of this schema.
 - `brands/brand_kit.v1.schema.json` is a brand's or niche channel's voice, audience, do/don't
   rules, forbidden phrases, required disclaimers (incl. AI and affiliate disclosure), a subset
   of the renderer's 13 colour/radius tokens, fonts (`asset:<key>` references — every referenced
