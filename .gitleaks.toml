@@ -1,0 +1,20 @@
+# Gitleaks configuration: the full default ruleset, plus one narrowly scoped
+# exception. Nothing here weakens a rule for any other file or key.
+
+title = "kodemeio-dokploy gitleaks config"
+
+[extend]
+useDefault = true
+
+# The app_checkout.v1 contract examples carry a synthetic, ULID-shaped
+# idempotency key ("chk-" + 26 Crockford base32 chars). It is test data, not a
+# credential, but it matches generic-api-key. The exception applies only when
+# BOTH the path and the idempotency_key line match.
+[[rules]]
+id = "generic-api-key"
+[[rules.allowlists]]
+description = "Synthetic idempotency keys in app_checkout contract examples"
+condition = "AND"
+paths = ['''(^|/)contracts/examples/entitlements/app_checkout\.v1\.[a-z-]+\.json$''']
+regexTarget = "line"
+regexes = ['''^\s*"idempotency_key":\s*"chk-[0-9A-HJKMNP-TV-Z]{26}",?\s*$''']
