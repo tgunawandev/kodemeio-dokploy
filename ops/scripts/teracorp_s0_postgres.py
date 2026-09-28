@@ -42,6 +42,8 @@ KOD_PREFIXES = ("kod-", "tkz-")
 POSTGRES_REPO = "kodemeio-postgres"
 DEFAULT_COMPOSE = "docker-compose.yml"  # kctl-dokploy SourceConfig default
 EXTRA_COMPOSE = ("docker-compose.prod.yml",)
+# `${VAR:+alt}` is not supported: it stays literal, fails port parsing and is
+# reported as an "unresolved" finding -- closed, never a silent pass.
 _VAR_RE = re.compile(r"\$\$|\$\{([A-Za-z_][A-Za-z0-9_]*)(?:(:?[-?])([^}]*))?\}|\$([A-Za-z_][A-Za-z0-9_]*)")
 
 

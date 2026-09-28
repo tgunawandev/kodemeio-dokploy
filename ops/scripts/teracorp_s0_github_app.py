@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import contextlib
 import fnmatch
 import hashlib
 import json
@@ -191,6 +192,8 @@ def verify(
 
 # A real key body is long (RSA-2048 PEM ~1.6k base64 chars; ed25519 OpenSSH
 # ~400). A header followed by less than this is a doc/test mention, not a key.
+# Tuned for the RSA keys GitHub Apps use; a small EC key (P-256 PKCS#8 ~180
+# chars) could fall under it -- lower it before reusing this as a general scanner.
 MIN_BODY_B64 = 200
 _BODY_RE = re.compile(KEY_HEADER_RE + r"((?:[A-Za-z0-9+/=\s]|\\n|\\r)*)")
 
@@ -214,22 +217,31 @@ def scan(repos: list, allow: list[str] | None = None) -> dict:
         )
         if inside.returncode != 0 or Path(inside.stdout.strip()).resolve() != repo.resolve():
             raise InputError(f"not a git repository root: {repo}")
-        r = subprocess.run(
-            ["git", "-C", str(repo), "grep", "-I", "-l", "-E", "-e", KEY_HEADER_RE],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-        if r.returncode not in (0, 1):
-            raise InputError(f"git grep failed in {repo}")
-        for path in r.stdout.splitlines():
+        # Tracked content in BOTH places: the index (what the next commit
+        # carries) and the worktree copy of tracked files (unstaged edits).
+        # A key in either is key material (final review I1).
+        paths: set[str] = set()
+        for extra in ([], ["--cached"]):
+            r = subprocess.run(
+                ["git", "-C", str(repo), "grep", *extra, "-I", "-l", "-E", "-e", KEY_HEADER_RE],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if r.returncode not in (0, 1):
+                raise InputError(f"git grep failed in {repo}")
+            paths.update(r.stdout.splitlines())
+        for path in sorted(paths):
             if any(fnmatch.fnmatch(path, glob) for glob in allow):
                 continue
             blob = subprocess.run(
                 ["git", "-C", str(repo), "show", f":{path}"], capture_output=True, text=True, check=False
             )
-            # Unreadable tracked content is treated as key material: fail closed.
-            kind = "key_material" if blob.returncode != 0 or _has_key_body(blob.stdout) else "header_only"
+            texts = [blob.stdout] if blob.returncode == 0 else []
+            with contextlib.suppress(OSError):  # deleted in the worktree: the index copy still counts
+                texts.append((repo / path).read_text(errors="replace"))
+            # Nothing readable at all is treated as key material: fail closed.
+            kind = "key_material" if not texts or any(_has_key_body(t) for t in texts) else "header_only"
             found[kind].append(f"{repo.name}:{path}")
     return {k: sorted(v) for k, v in found.items()}
 

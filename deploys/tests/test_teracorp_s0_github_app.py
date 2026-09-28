@@ -325,6 +325,20 @@ def test_scan_reads_the_tracked_version_not_the_worktree(tmp_path, keys):
     assert GH.scan([repo])["key_material"] == [f"{repo.name}:a.pem"]
 
 
+def test_scan_catches_a_key_added_to_the_worktree_of_a_clean_tracked_file(tmp_path, keys):
+    # Final review I1: `git grep` (worktree) and `git show :path` (index) must
+    # not disagree in the key's favour.
+    repo = git_repo(tmp_path / "r2d", {"f.txt": "no secret here"})
+    (repo / "f.txt").write_text((keys / "old.pem").read_text())  # unstaged
+    assert GH.scan([repo])["key_material"] == [f"{repo.name}:f.txt"]
+
+
+def test_scan_catches_a_staged_key_whose_worktree_copy_was_removed(tmp_path, keys):
+    repo = git_repo(tmp_path / "r2e", {"f.pem": (keys / "old.pem").read_text()})
+    (repo / "f.pem").unlink()
+    assert GH.scan([repo])["key_material"] == [f"{repo.name}:f.pem"]
+
+
 def test_scan_clean_and_allow_glob(tmp_path, keys):
     repo = git_repo(tmp_path / "r3", {"tests/fixtures/dummy.pem": (keys / "old.pem").read_text()})
     assert GH.scan([repo], allow=["tests/fixtures/*"]) == {"key_material": [], "header_only": []}

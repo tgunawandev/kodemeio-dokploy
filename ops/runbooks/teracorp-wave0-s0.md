@@ -161,7 +161,8 @@ secrets. That is how this leak happened.
      kodemeio-dokploy/ops/scripts/teracorp_s0_github_app.py scan "${repos[@]}"
    ```
 
-   `CLEAN` expected. Header-only mentions (test fixtures that `printf` a key
+   `CLEAN` expected. It reads both the index and the working-tree copy of
+   every tracked file. Header-only mentions (test fixtures that `printf` a key
    header) are listed as notes. On 2026-09-28 the local scan of 15 kod repos
    was CLEAN with 5 header-only notes.
 
@@ -216,8 +217,10 @@ outside (no monitoring stack runs); confirm before you apply.
    restart:
 
    ```bash
-   kctl-dokploy -p kodemeio deploy apply -f deploys/instances/production/kod-infra-postgres.yaml --dry-run
-   kctl-dokploy -p kodemeio deploy apply -f deploys/instances/production/kod-infra-postgres.yaml
+   M=deploys/instances/production/kod-infra-postgres.yaml
+   ./dokploy.sh kodemeio deploy apply -f $M --dry-run --yes       # door: prints the resolved command, runs nothing
+   ./dokploy.sh kodemeio deploy apply -f $M --kctl-dry-run --yes  # kctl-dokploy's own preview against the API, no write
+   ./dokploy.sh kodemeio deploy apply -f $M --yes                 # the redeploy
    ```
 
    `tkz-infra-postgres` targets the old kod-prod-02 (deleted); do **not**
@@ -251,7 +254,9 @@ uv run python ops/scripts/teracorp_s0_postgres.py protection \
   --export kodemeio=$S0/hz-kodemeio.json --export abcfood=$S0/hz-abcfood.json
 ```
 
-`PROTECTED`, exit 0. Other servers in those projects print as notes only.
+`PROTECTED`, exit 0. Other servers in those projects print as notes only —
+read them every time: a note that is a kod server means the desired state is
+stale (add it to `ops/wave0/s0/protection.kod.yaml`, commit, protect it).
 
 **Rollback:** disable the flag in the Console (needed before any intended
 delete/rebuild).
