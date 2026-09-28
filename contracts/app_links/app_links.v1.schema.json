@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kodeme.io/contracts/app_links/app_links.v1.schema.json",
+  "title": "App links v1",
+  "description": "The activity deep links one app's printed material may carry (Track B B2, TB-D4 (a)): each link is OPEN -- `<base>/a/<activity id>`, no activation code, no per-copy secret -- because the physical product is what was bought. `base` is the app's deep-link host and is the ONLY host a link may use; while it is unconfirmed it must be a `.test` host, so a placeholder can never print a live-looking link. Ids are resolved against the app's committed catalog snapshot (contracts/app_links/<app>.catalog-ids.json) by deploys/tests/test_app_links.py. The schema is deliberately SELF-CONTAINED (no $ref).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["app", "base", "base_status", "activities"],
+  "properties": {
+    "app": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{1,31}$",
+      "description": "The app slug; equals the file stem before `.v1.json`."
+    },
+    "base": {
+      "type": "string",
+      "pattern": "^https://[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$",
+      "description": "The app's deep-link origin: https, a host name, nothing else (no path, port, query or trailing slash). FOUNDER: confirm."
+    },
+    "base_status": {
+      "enum": ["placeholder", "confirmed"],
+      "description": "placeholder: `base` is a `.test` host awaiting the founder; confirmed: the founder named the live host (then the QR images are regenerated)."
+    },
+    "base_note": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300,
+      "description": "Free text for the operator. Required while `base_status` is placeholder, and then starts with `FOUNDER: confirm`."
+    },
+    "activities": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 50,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9-]{0,63}$"
+      },
+      "description": "Activity ids in print order; each must be a playable activity of the app's catalog."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": ["base_status"],
+        "properties": { "base_status": { "const": "placeholder" } }
+      },
+      "then": {
+        "required": ["base_note"],
+        "properties": {
+          "base": { "pattern": "\\.test$" },
+          "base_note": { "pattern": "^FOUNDER: confirm" }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": ["base_status"],
+        "properties": { "base_status": { "const": "confirmed" } }
+      },
+      "then": {
+        "properties": { "base": { "not": { "pattern": "\\.test$" } } }
+      }
+    }
+  ]
+}

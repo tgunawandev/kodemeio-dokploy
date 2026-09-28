@@ -1,0 +1,37 @@
+# Terakidz task box line B2 — a physical task box and the printed insert that ships inside it
+# (Track B, slice TB2; spec section 4 "B2"). EXAMPLE CONTENT — not approved product copy: the
+# insert carries Claude-authored example copy (TB-D9) until the named special-education reviewer
+# and the founder approve real copy at the operational gate.
+#
+# TB-D4 (a): the insert's QR codes are OPEN links to companion activities in the Terakidz app
+# (contracts/app_links/terakidz.v1.json) -- no single-use activation code; the box is the
+# product. Nothing here is sold digitally (`publish: none`): the box is a stockable product sold
+# through the order-intake path, and the insert is a released printable that goes in the box.
+#
+# Schema: contracts/product_lines/product_line.v1.schema.json (B2 shape:
+# deploys/tests/test_app_links.py). Consumer: kodemeio-odoo `bin/product-line-acceptance
+# terakidz-box --db odoo_test_tb_<name>` (its `physical` step). Rollout:
+# ops/runbooks/terakidz-b2-task-box.md.
+id: terakidz-box
+brand_kit: terakidz
+
+items:
+  # The box itself: a stockable product. The ref, upper-cased, is its order-intake product_ref
+  # (default code). The price is a placeholder until suppliers and packaging are costed.
+  - kind: physical
+    ref: terakidz-task-box
+    variants:
+      - key: default
+    price_idr: 189000
+    publish: none
+
+  # The insert printed for the box (released, never sold on its own).
+  - kind: template
+    ref: terakidz-box-insert
+    variants:
+      - key: usia-3-5
+        vars: {age_band: "3-5"}
+    price_idr: 0
+    publish: none
+
+launch: []

@@ -1,0 +1,13 @@
+{
+  "app": "terakidz",
+  "base": "https://app.terakidz.test",
+  "base_status": "placeholder",
+  "base_note": "FOUNDER: confirm the Terakidz app's deep-link host (e.g. the app subdomain that serves /a/<id> and its Android/iOS app-link files); then set base_status to confirmed and regenerate the QR images (ops/runbooks/terakidz-b2-task-box.md).",
+  "activities": [
+    "hewan-match-pairs",
+    "buah-sayur-learn",
+    "pakaian-memory",
+    "washing-hands",
+    "jam"
+  ]
+}

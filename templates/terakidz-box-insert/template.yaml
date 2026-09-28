@@ -1,0 +1,124 @@
+# Terakidz task box insert — the printed card inside a physical task box, Terakidz product line
+# B2 (Track B, TB2; spec section 4 "B2").
+#
+# EXAMPLE CONTENT — not approved product copy. Claude-authored example copy (Track B TB-D9) in
+# the Terakidz kit's voice; the named special-education reviewer and the founder replace it at
+# the operational gate (ops/runbooks/terakidz-b2-task-box.md). No medical claim, no promised
+# outcome, no development timeline (the kit's `dont` rules; deploys/tests/test_app_links.py).
+#
+# Five box tasks, each paired with a companion activity in the Terakidz app. The pairing is an
+# OPEN link (TB-D4 (a)): each QR opens `<app host>/a/<activity id>` -- no activation code, the
+# box is the product. template.v1 has no QR element, so every QR is an own-work IMAGE asset
+# (`asset:image-qr-terakidz-<activity id>`) generated deterministically by
+# ops/app_links/gen_app_qr.py from contracts/app_links/terakidz.v1.json; its licence evidence is
+# assets/own-work.json. The renderer draws a labelled placeholder for each image and records the
+# asset's public URL for the printer (factory_template renders no image bytes).
+#
+# Placeholders (contracts/templates/template.v1.schema.json): {{var.*}} declared variables,
+# {{theme.*}} kit tokens, {{page.*}}, {{option.*}}, {{kit.*}} kit content, {{blocks}} (layout).
+id: terakidz-box-insert
+version: 1
+title: "Terakidz Task Box Insert"
+kind: pdf
+renderer: wkhtml
+layout: layout.html
+
+page:
+  size: A5
+  orientation: portrait
+  margins:
+    top: 10
+    right: 10
+    bottom: 10
+    left: 10
+
+blocks:
+  - type: heading
+    level: 1
+    text: "{{var.box_title}}"
+  - type: paragraph
+    text: >-
+      Isi kotak ini untuk anak usia {{var.age_band}} tahun. Kerjakan satu tugas setiap kali,
+      pada saat anak sedang tenang. Setiap tugas punya aktivitas pendamping di aplikasi Terakidz:
+      pindai kode QR di bawah tugasnya dengan kamera ponsel.
+  - type: heading
+    level: 2
+    text: "Tugas 1 — Cocokkan kartu hewan"
+  - type: paragraph
+    text: "Susun kartu hewan berpasangan di atas meja, lalu main versi layarnya bersama."
+  - type: image
+    asset: "asset:image-qr-terakidz-hewan-match-pairs"
+    alt: "Kode QR: Cocokkan Hewan"
+  - type: heading
+    level: 2
+    text: "Tugas 2 — Kenali buah dan sayur"
+  - type: paragraph
+    text: "Pegang buah atau sayur sungguhan, sebut namanya, lalu lihat fotonya di aplikasi."
+  - type: image
+    asset: "asset:image-qr-terakidz-buah-sayur-learn"
+    alt: "Kode QR: Belajar Buah dan Sayur"
+  - type: heading
+    level: 2
+    text: "Tugas 3 — Ingat pakaian"
+  - type: paragraph
+    text: "Balik kartu pakaian dan cari pasangannya, pelan-pelan dan bergiliran."
+  - type: image
+    asset: "asset:image-qr-terakidz-pakaian-memory"
+    alt: "Kode QR: Ingatan Pakaian"
+  - type: heading
+    level: 2
+    text: "Tugas 4 — Cerita mencuci tangan"
+  - type: paragraph
+    text: "Baca cerita bergambar tentang mencuci tangan, lalu praktikkan di wastafel."
+  - type: image
+    asset: "asset:image-qr-terakidz-washing-hands"
+    alt: "Kode QR: Mencuci Tangan"
+  - type: heading
+    level: 2
+    text: "Tugas 5 — Atur jam"
+  - type: paragraph
+    text: "Putar jarum jam kertas ke waktu makan atau mandi, lalu atur jam di aplikasi."
+  - type: image
+    asset: "asset:image-qr-terakidz-jam"
+    alt: "Kode QR: Atur Jam"
+  - type: list
+    ordered: false
+    items:
+      - "Tidak perlu kode atau pendaftaran khusus: setiap kode QR langsung membuka aktivitasnya."
+      - "Berhenti kapan saja jika anak lelah; tugas bisa dilanjutkan esok hari."
+      - "Ikuti saran terapis anak Anda tentang urutan dan lama bermain."
+  - type: disclaimer
+    text: "{{kit.disclaimers}}"
+  - type: footer
+    text: "Kotak Tugas Terakidz — usia {{var.age_band}} tahun"
+
+variables:
+  - key: box_title
+    type: string
+    required: true
+    default: "Kotak Tugasku"
+    description: "The insert's title as printed."
+  - key: age_band
+    type: enum
+    enum: ["3-5", "6-7", "8-9"]
+    required: true
+    default: "3-5"
+    description: "Age band the box is pitched at (a variant axis)."
+
+assets:
+  fonts:
+    heading: "asset:font-nunito"
+    body: "asset:font-nunito"
+  images:
+    qr_hewan_match_pairs: "asset:image-qr-terakidz-hewan-match-pairs"
+    qr_buah_sayur_learn: "asset:image-qr-terakidz-buah-sayur-learn"
+    qr_pakaian_memory: "asset:image-qr-terakidz-pakaian-memory"
+    qr_washing_hands: "asset:image-qr-terakidz-washing-hands"
+    qr_jam: "asset:image-qr-terakidz-jam"
+
+outputs: [pdf]
+
+# Terakidz content, approved for the Terakidz kit only: a kit not listed here refuses the
+# render by name.
+brand:
+  kits: ["terakidz"]
