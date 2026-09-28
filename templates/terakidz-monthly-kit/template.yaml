@@ -1,0 +1,88 @@
+# Terakidz monthly kit — the paid digital kit of the Terakidz product line B1 (Teracorp Track B, TB1).
+#
+# EXAMPLE CONTENT — not approved product copy. Claude-authored example copy (Track B TB-D9) in
+# the Terakidz kit's voice; the named special-education reviewer and the founder replace it at
+# the operational gate (ops/runbooks/teracorp-b1-terakidz-line.md). No medical claim, no promised
+# outcome, no development timeline (the kit's `dont` rules; deploys/tests/test_terakidz_line.py).
+#
+# One edition per month: `edition_month` is the variant axis, so each month is its own render
+# (its own `input_sha256`), its own released artefact and its own sellable item through R6
+# (`factory_digital`). A new month is a new enum value (a template version bump), never a code
+# change. Every asset reference is an `asset:<key>` already registered for the Terakidz sources;
+# the fonts are the kit's own (asset:font-nunito, OFL-1.1).
+#
+# Placeholders (contracts/templates/template.v1.schema.json): {{var.*}} declared variables,
+# {{theme.*}} kit tokens, {{page.*}}, {{option.*}}, {{kit.*}} kit content, {{blocks}} (layout).
+id: terakidz-monthly-kit
+version: 1
+title: "Terakidz Monthly Kit"
+kind: pdf
+renderer: wkhtml
+layout: layout.html
+
+page:
+  size: A4
+  orientation: portrait
+  margins:
+    top: 18
+    right: 16
+    bottom: 18
+    left: 16
+
+blocks:
+  - type: heading
+    level: 1
+    text: "Kit Bulanan Terakidz — {{var.edition_month}}"
+  - type: paragraph
+    text: >-
+      Empat minggu kegiatan komunikasi singkat untuk anak usia {{var.age_band}} tahun. Setiap
+      kegiatan cukup sepuluh sampai lima belas menit, dikerjakan bersama pendamping di rumah,
+      dan boleh diulang atau dilewati sesuai suasana hati anak.
+  - type: heading
+    level: 2
+    text: "Rencana empat minggu"
+  - type: table
+    columns: ["Minggu", "Fokus", "Kegiatan singkat"]
+    rows:
+      - ["1", "Meminta", "Taruh mainan kesukaan sedikit di luar jangkauan, lalu tunggu anak meminta dengan kata, isyarat, atau kartu."]
+      - ["2", "Memilih", "Tawarkan dua pilihan camilan atau mainan, dan sebutkan nama pilihan yang anak tunjuk."]
+      - ["3", "Bergiliran", "Mainkan permainan sederhana yang bergantian, sambil berkata giliranku dan giliranmu."]
+      - ["4", "Bercerita", "Lihat foto kegiatan minggu ini bersama, lalu ceritakan satu kalimat untuk setiap foto."]
+  - type: heading
+    level: 2
+    text: "Catatan pendamping"
+  - type: list
+    items:
+      - "Catat kegiatan yang paling disukai anak bulan ini, untuk dibawa saat bertemu terapisnya."
+      - "Tidak apa-apa melewatkan satu hari; ritme yang tenang lebih penting daripada jadwal yang penuh."
+      - "Pakai papan komunikasi atau kartu yang sudah anak kenal agar setiap kegiatan terasa akrab."
+  - type: disclaimer
+    text: "{{kit.disclaimers}}"
+  - type: footer
+    text: "Kit Bulanan Terakidz — edisi {{var.edition_month}}, usia {{var.age_band}} tahun"
+
+variables:
+  - key: edition_month
+    type: enum
+    enum: ["Oktober 2026", "November 2026", "Desember 2026"]
+    required: true
+    default: "Oktober 2026"
+    description: "The month this edition is for (the variant axis: one render per month)."
+  - key: age_band
+    type: enum
+    enum: ["3-5", "6-7", "8-9"]
+    required: true
+    default: "3-5"
+    description: "Age band the activities are pitched at."
+
+assets:
+  fonts:
+    heading: "asset:font-nunito"
+    body: "asset:font-nunito"
+
+outputs: [pdf]
+
+# Terakidz content, approved for the Terakidz kit only: a kit not listed here refuses the
+# render by name.
+brand:
+  kits: ["terakidz"]

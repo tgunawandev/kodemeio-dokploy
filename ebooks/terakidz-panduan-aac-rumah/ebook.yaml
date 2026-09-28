@@ -1,0 +1,133 @@
+# Terakidz starter guide "AAC di Rumah" — the free guide of the Terakidz product line B1
+# (Teracorp Track B, TB1).
+#
+# EXAMPLE CONTENT — not approved product copy. Claude-authored example copy (Track B TB-D9) in
+# the Terakidz kit's voice; the named special-education reviewer and the founder replace it at
+# the operational gate (ops/runbooks/teracorp-b1-terakidz-line.md). No medical claim, no promised
+# outcome, no development timeline (the kit's `dont` rules; deploys/tests/test_terakidz_line.py).
+# The guide always sends clinical questions back to the child's own professionals.
+#
+# `book.md` beside this file is DERIVED from it (the canonical Markdown both renderers consume,
+# pinned by deploys/tests/test_terakidz_line.py with the same derivation as
+# test_contracts_ebooks.py). Edit this file, then regenerate book.md; never edit book.md alone.
+#
+# Every asset reference is an `asset:<key>` already registered for the Terakidz sources (no new
+# asset, no URL); the fonts are the kit's own (asset:font-nunito, OFL-1.1).
+#
+# Placeholders (contracts/ebooks/ebook.v1.schema.json): {{var.*}} declared variables, {{theme.*}}
+# kit tokens, {{page.*}}, {{option.*}}, {{kit.*}} kit content.
+id: terakidz-panduan-aac-rumah
+version: 1
+title: "AAC di Rumah"
+subtitle: "Panduan Awal Komunikasi Augmentatif dan Alternatif untuk Keluarga"
+author: "Tim Terakidz"
+locale: id_ID
+
+page:
+  size: A5
+  orientation: portrait
+  margins:
+    top: 16
+    right: 14
+    bottom: 16
+    left: 14
+
+cover:
+  logo: "asset:image-terakidz-book-logo"
+  palette: primary
+
+chapters:
+  - id: apa-itu-aac
+    title: "Apa Itu AAC"
+    blocks:
+      - type: paragraph
+        text: >-
+          AAC (Augmentative and Alternative Communication, atau komunikasi augmentatif dan
+          alternatif) adalah semua cara berkomunikasi selain ucapan: menunjuk gambar, memakai
+          kartu, isyarat, papan komunikasi, atau aplikasi. Panduan singkat ini ditulis untuk
+          {{var.reader_role}} yang ingin mulai memakai AAC di rumah bersama anak usia
+          {{var.age_band}} tahun.
+      - type: list
+        items:
+          - "AAC bisa sederhana: satu lembar papan bergambar pun sudah termasuk AAC."
+          - "AAC dipakai berdampingan dengan ucapan, isyarat, dan ekspresi anak."
+          - "Setiap anak berbeda; pilihan alat sebaiknya dibicarakan dengan terapis wicara anak."
+      - type: disclaimer
+        text: "{{kit.disclaimers}}"
+
+  - id: memulai
+    title: "Memulai dari Kebiasaan Sehari-hari"
+    blocks:
+      - type: heading
+        level: 2
+        text: "Pilih Tiga Kata Pertama"
+      - type: paragraph
+        text: >-
+          Mulailah dari kata yang sering dibutuhkan anak setiap hari, misalnya mau, lagi, dan
+          selesai. Taruh papan atau kartu di tempat kegiatan itu terjadi: di meja makan, di dekat
+          rak mainan, atau di kamar mandi.
+      - type: heading
+        level: 2
+        text: "Tunjukkan, Jangan Menuntut"
+      - type: paragraph
+        text: >-
+          Saat berbicara, tunjuk simbol yang sesuai di papan. Anak belajar dari melihat orang
+          dewasa memakai AAC, bukan dari diminta menunjuk. Beri waktu menunggu yang cukup, lalu
+          terima setiap cara anak menjawab.
+      - type: table
+        columns: ["Waktu", "Kata di papan", "Contoh kalimat pendamping"]
+        rows:
+          - ["Makan", "mau, lagi", "Mau nasi? Lagi?"]
+          - ["Bermain", "giliran, selesai", "Giliranmu. Sudah selesai?"]
+          - ["Mandi", "air, dingin", "Airnya dingin."]
+
+  - id: menjaga-ritme
+    title: "Menjaga Ritme dan Bekerja Sama"
+    blocks:
+      - type: paragraph
+        text: >-
+          Banyak keluarga khawatir AAC membuat anak enggan berbicara. Kekhawatiran ini wajar;
+          bicarakan dengan terapis wicara anak Anda, yang mengenal tujuan terapi anak dan dapat
+          menyesuaikan papan dengan kebutuhannya.
+      - type: list
+        ordered: true
+        items:
+          - "Catat kata yang paling sering anak pakai minggu ini."
+          - "Bawa catatan itu saat bertemu tenaga profesional anak."
+          - "Tambah kosakata sedikit demi sedikit, sesuai saran mereka."
+      - type: footer
+        text: "Dibaca dari AAC di Rumah — panduan untuk {{var.reader_role}}"
+      - type: disclaimer
+        text: "{{kit.disclaimers}}"
+
+variables:
+  - key: reader_role
+    type: string
+    required: true
+    default: "orang tua"
+    description: "Who the guide addresses (a variant axis: orang tua, pengasuh)."
+  - key: age_band
+    type: enum
+    enum: ["3-5", "6-7", "8-9"]
+    required: true
+    default: "3-5"
+    description: "Age band the guide is pitched at."
+
+assets:
+  fonts:
+    heading: "asset:font-nunito"
+    body: "asset:font-nunito"
+  images:
+    logo: "asset:image-terakidz-book-logo"
+
+# Both formats (ebook.v1): the PDF through Typst, the EPUB through Pandoc. A renderer the
+# consuming image lacks REFUSES by name (see the F4 rollout runbook for the image rebuild).
+outputs: [pdf, epub]
+renderers:
+  pdf: typst
+  epub: pandoc
+
+# Terakidz content, approved for the Terakidz kit only: a kit not listed here refuses the
+# render by name.
+brand:
+  kits: ["terakidz"]

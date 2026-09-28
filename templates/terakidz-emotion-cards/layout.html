@@ -1,0 +1,78 @@
+<!doctype html>
+<!--
+  Terakidz emotion cards -- the wkhtml layout source named by template.yaml (`layout`), Terakidz line B1
+  (Teracorp Track B, TB1). EXAMPLE CONTENT: the copy lives in template.yaml, never here.
+
+  The layout is a SKELETON, never content: it places the block flow and pulls the brand from the
+  kit. Every {{...}} placeholder is one of the five namespaces template.v1 defines; a
+  placeholder the renderer cannot supply refuses the import, so a typo never reaches a released
+  PDF. It is the terakidz-learning-pack skeleton with this sheet's own title and table rhythm.
+
+  Styling notes: wkhtmltopdf is the fleet's PDF engine (WebKit) -- no flexbox, no CSS grid. Page
+  geometry comes from the render options (template.v1 `page`), never from CSS `@page`. Colours,
+  radius and font families all come from {{theme.*}}.
+-->
+<html lang="{{option.locale}}">
+<head>
+  <meta charset="utf-8"/>
+  <title>{{var.set_title}}</title>
+  <style>
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: "{{theme.font_body}}", sans-serif;
+      color: {{theme.foreground}};
+      background: {{theme.background}};
+      font-size: 12pt;
+      line-height: 1.55;
+    }
+    .rule-band { height: 5mm; background: {{theme.primary}}; }
+    .sheet { padding: 0 0 0 0; }
+    h1, h2, h3 { font-family: "{{theme.font_heading}}", sans-serif; color: {{theme.primary}}; margin: 0 0 4mm 0; }
+    h1 { font-size: 22pt; }
+    h2 { font-size: 16pt; }
+    h3 { font-size: 13pt; }
+    p { margin: 0 0 4mm 0; }
+    ol, ul { margin: 0 0 4mm 8mm; padding: 0; }
+    li { margin: 0 0 2mm 0; }
+    table { border-collapse: collapse; width: 100%; margin: 0 0 4mm 0; }
+    th { background: {{theme.muted}}; color: {{theme.muted_foreground}}; text-align: left; }
+    th, td { border: 1px solid {{theme.border}}; padding: 2mm; }
+    .asset-box {
+      border: 1mm dashed {{theme.accent}};
+      border-radius: {{theme.radius}};
+      background: {{theme.card}};
+      color: {{theme.card_foreground}};
+      padding: 8mm;
+      text-align: center;
+      margin: 0 0 4mm 0;
+    }
+    .asset-box .role { display: block; color: {{theme.muted_foreground}}; font-size: 9pt; }
+    .disclaimer {
+      background: {{theme.card}};
+      color: {{theme.card_foreground}};
+      border-left: 3mm solid {{theme.accent}};
+      padding: 4mm;
+      margin: 0 0 5mm 0;
+    }
+    td { height: 22mm; vertical-align: middle; }
+    th, td { border-style: dashed; }
+    .footer { color: {{theme.muted_foreground}}; font-size: 9pt; margin: 0 0 4mm 0; }
+    .colophon {
+      margin-top: 8mm;
+      padding-top: 3mm;
+      border-top: 1px solid {{theme.border}};
+      color: {{theme.muted_foreground}};
+      font-size: 8pt;
+    }
+  </style>
+</head>
+<body>
+  <div class="rule-band"></div>
+  <div class="sheet">
+    {{blocks}}
+    <div class="colophon">
+      {{option.palette}} &middot; {{theme.font_heading}} &middot; {{theme.primary}} &middot; {{option.locale}}
+    </div>
+  </div>
+</body>
+</html>

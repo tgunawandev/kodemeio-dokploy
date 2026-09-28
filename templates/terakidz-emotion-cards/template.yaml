@@ -1,0 +1,86 @@
+# Terakidz emotion cards — a free printable of the Terakidz product line B1 (Teracorp Track B, TB1).
+#
+# EXAMPLE CONTENT — not approved product copy. Claude-authored example copy (Track B TB-D9) in
+# the Terakidz kit's voice; the named special-education reviewer and the founder replace it at
+# the operational gate (ops/runbooks/teracorp-b1-terakidz-line.md). No medical claim, no promised
+# outcome, no development timeline (the kit's `dont` rules; deploys/tests/test_terakidz_line.py).
+#
+# One sheet of word cards for naming feelings: cut along the grid, then use one card at a time.
+# The cards are words and short sentences only; pictures are the adult's own (or the app's), so
+# this template places no image and needs no new licence. Every asset reference is an
+# `asset:<key>` already registered for the Terakidz sources; the fonts are the kit's own.
+#
+# Placeholders (contracts/templates/template.v1.schema.json): {{var.*}} declared variables,
+# {{theme.*}} kit tokens, {{page.*}}, {{option.*}}, {{kit.*}} kit content, {{blocks}} (layout).
+id: terakidz-emotion-cards
+version: 1
+title: "Terakidz Emotion Cards"
+kind: pdf
+renderer: wkhtml
+layout: layout.html
+
+page:
+  size: A4
+  orientation: portrait
+  margins:
+    top: 14
+    right: 14
+    bottom: 14
+    left: 14
+
+blocks:
+  - type: heading
+    level: 1
+    text: "{{var.set_title}}"
+  - type: paragraph
+    text: >-
+      Kartu perasaan untuk anak usia {{var.age_band}} tahun. Gunting di sepanjang garis, lalu
+      pakai satu kartu setiap kali membicarakan perasaan: tunjuk kartunya, ucapkan kalimatnya,
+      dan beri anak waktu untuk menunjuk atau menjawab dengan caranya sendiri.
+  - type: table
+    columns: ["Perasaan", "Kalimat pendek", "Yang bisa kita lakukan"]
+    rows:
+      - ["Senang", "Aku senang.", "Tersenyum dan bertepuk tangan bersama."]
+      - ["Sedih", "Aku sedih.", "Duduk berdekatan dan menunggu dengan tenang."]
+      - ["Marah", "Aku marah.", "Menarik napas pelan bersama, lalu memilih tempat yang tenang."]
+      - ["Takut", "Aku takut.", "Memegang benda kesukaan dan mendengar suara yang akrab."]
+      - ["Lelah", "Aku lelah.", "Berhenti sebentar dan minum air."]
+      - ["Bingung", "Aku bingung.", "Menunjuk kartu jadwal untuk melihat langkah berikutnya."]
+  - type: heading
+    level: 2
+    text: "Cara memakai kartu"
+  - type: list
+    ordered: true
+    items:
+      - "Kenalkan satu atau dua perasaan dulu, saat anak sedang tenang."
+      - "Sebut perasaan yang terlihat pada tokoh buku atau pada diri Anda sendiri."
+      - "Terima setiap jawaban anak; tidak ada jawaban yang salah tentang perasaan."
+  - type: disclaimer
+    text: "{{kit.disclaimers}}"
+  - type: footer
+    text: "Kartu Perasaan Terakidz — usia {{var.age_band}} tahun"
+
+variables:
+  - key: set_title
+    type: string
+    required: true
+    default: "Kartu Perasaanku"
+    description: "The card sheet's title as printed."
+  - key: age_band
+    type: enum
+    enum: ["3-5", "6-7", "8-9"]
+    required: true
+    default: "3-5"
+    description: "Age band the sheet is pitched at (a variant axis)."
+
+assets:
+  fonts:
+    heading: "asset:font-nunito"
+    body: "asset:font-nunito"
+
+outputs: [pdf]
+
+# Terakidz content, approved for the Terakidz kit only: a kit not listed here refuses the
+# render by name.
+brand:
+  kits: ["terakidz"]

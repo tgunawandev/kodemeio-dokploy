@@ -1,0 +1,86 @@
+# Terakidz product line B1 — free printables and guide, paid monthly kit and course, launch
+# (Teracorp Track B, slice TB1; spec section 4 "B1"). EXAMPLE CONTENT — not approved product
+# copy: every source this line names carries Claude-authored example copy (TB-D9) until the
+# named special-education reviewer and the founder approve real copy at the operational gate.
+# Free delivery follows TB-D8: (a) a zero-price digital product through the same publish path
+# when K2's verify-first V1 shows a 0-total invoice reaches `paid` and fires the `digital_sale`
+# hook, else (b) a public download of the same released artefact on the F2 site. This file is
+# the same under both: a free item is `price_idr: 0` and is still released and published.
+
+# Schema: contracts/product_lines/product_line.v1.schema.json (resolution and typing:
+# deploys/tests/test_contracts_product_lines.py; the B1 shape: deploys/tests/test_terakidz_line.py).
+# Consumer: kodemeio-odoo `bin/teracorp-product-line terakidz --db odoo_test_tb_b1` (K2).
+# Rollout: ops/runbooks/teracorp-b1-terakidz-line.md.
+id: terakidz
+brand_kit: terakidz
+
+items:
+  # --- free (price_idr: 0; TB-D8) -------------------------------------------------------
+  - kind: template
+    ref: terakidz-learning-pack
+    variants:
+      - key: usia-3-5
+        vars: {age_band: "3-5"}
+      - key: usia-6-7
+        vars: {age_band: "6-7"}
+    price_idr: 0
+    digital_kind: template_pack
+    publish: factory_digital
+
+  - kind: template
+    ref: terakidz-routine-chart
+    variants:
+      - key: pagi
+        vars: {routine_period: "pagi"}
+      - key: malam
+        vars: {routine_period: "malam"}
+    price_idr: 0
+    digital_kind: template_pack
+    publish: factory_digital
+
+  - kind: template
+    ref: terakidz-emotion-cards
+    variants:
+      - key: usia-3-5
+        vars: {age_band: "3-5"}
+    price_idr: 0
+    digital_kind: template_pack
+    publish: factory_digital
+
+  - kind: ebook
+    ref: terakidz-panduan-aac-rumah
+    variants:
+      - key: orang-tua
+        vars: {reader_role: "orang tua"}
+    price_idr: 0
+    digital_kind: book
+    publish: digital
+
+  # --- paid ------------------------------------------------------------------------------
+  # Two month editions of one kit: two renders with distinct inputs (distinct `input_sha256`).
+  - kind: template
+    ref: terakidz-monthly-kit
+    variants:
+      - key: edisi-2026-10
+        vars: {edition_month: "Oktober 2026"}
+      - key: edisi-2026-11
+        vars: {edition_month: "November 2026"}
+    price_idr: 29000
+    digital_kind: template_pack
+    publish: factory_digital
+
+  - kind: course
+    ref: terakidz-komunikasi-dasar
+    variants:
+      - key: default
+    price_idr: 149000
+    digital_kind: course
+    publish: digital
+
+# Five F8 briefs; F10 manual schedule (creator_handoff: a human posts after approval).
+launch:
+  - {platform: instagram, shape: carousel, brief_key: routine-chart-launch, publish_mode: creator_handoff}
+  - {platform: instagram, shape: carousel, brief_key: emotion-cards-launch, publish_mode: creator_handoff}
+  - {platform: facebook, shape: caption, brief_key: panduan-aac-launch, publish_mode: creator_handoff}
+  - {platform: tiktok, shape: caption, brief_key: monthly-kit-launch, publish_mode: creator_handoff}
+  - {platform: instagram, shape: caption, brief_key: course-launch, publish_mode: creator_handoff}
