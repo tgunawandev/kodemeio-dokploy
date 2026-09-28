@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://contracts.kodeme.io/approvals/autonomy-grant.v1.schema.json",
+  "$id": "https://kodeme.io/contracts/approvals/autonomy-grant.v1.schema.json",
   "title": "Earned-autonomy grant v1",
   "description": "Founder-signed promotion of ONE promotable action class (autonomy.v1.yaml) to auto-approval for explicit profiles until expiry. The Ed25519 signature covers 'kodemeio.autonomy-grant.v1\\n' + canonical JSON (sorted keys, compact, ASCII) of every field except signature. Verification, class eligibility and expiry are enforced by ops/scripts/teracorp_autonomy_grant.py; always_human classes are refused even when validly signed.",
   "type": "object",
