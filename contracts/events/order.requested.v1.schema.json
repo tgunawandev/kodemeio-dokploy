@@ -17,7 +17,7 @@
         "customer_ref": {"type": "string", "pattern": "^odoo:res\\.partner/[0-9]+$"},
         "channel": {
           "enum": ["webhook", "chatwoot", "web", "marketplace"],
-          "description": "Channel the order arrived through. For marketplace, the intake event id (so idempotency_key = '<source>:<event_id>') MUST be the stable '<provider>:<order_id>', never a delivery, poll or attempt id: dedup and the work_order_id derive from it."
+          "description": "Channel the order arrived through. For marketplace, the intake event id MUST be the stable '<provider>:<order_id>', never a delivery, poll or attempt id, and identity is company-scoped (idempotency_key = 'marketplace:<company>:<event_id>'; other channels '<source>:<event_id>'): dedup and the work_order_id derive from it, so the same order arriving via several sources lands once."
         },
         "lines": {
           "type": "array",
