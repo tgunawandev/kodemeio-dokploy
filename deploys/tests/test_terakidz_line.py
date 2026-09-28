@@ -209,13 +209,13 @@ def test_the_layout_is_a_skeleton_that_places_the_blocks_once(template_id):
         assert needle not in lowered, f"{template_id} layout carries {needle!r}"
 
 
-STYLE_SCOPES_RE = re.compile(r"<style\b.*?</style>|<script\b.*?</script>|\bstyle\s*=\s*\"[^\"]*\"", re.S | re.I)
+STYLE_SCOPES_RE = re.compile(r"<(style|script)\b.*?(?:</\1\s*>|\Z)|\bstyle\s*=\s*(?:\"[^\"]*\"|'[^']*')", re.S | re.I)
 
 
 def var_in_style_or_script(text: str) -> bool:
     """factory_template refuses a `{{var.*}}` inside a <style>/<script> element or a style=""
     attribute: a variable value must never reach CSS or script context."""
-    return any("{{var." in scope for scope in STYLE_SCOPES_RE.findall(text))
+    return any("{{var." in match.group(0) for match in STYLE_SCOPES_RE.finditer(text))
 
 
 @pytest.mark.parametrize("template_id", NEW_TEMPLATES)
@@ -226,6 +226,8 @@ def test_no_variable_reaches_a_style_or_script_context(template_id):
 def test_the_style_scope_scanner_is_not_vacuous():
     assert var_in_style_or_script("<style>h1 { content: '{{var.chart_title}}'; }</style>")
     assert var_in_style_or_script('<div style="color: {{var.x}}"></div>')
+    assert var_in_style_or_script("<body style='color:{{var.x}}'>")
+    assert var_in_style_or_script("<style>h1 { color: red; } {{var.x}}")
     assert not var_in_style_or_script("<style>h1 { color: {{theme.primary}}; }</style><title>{{var.x}}</title>")
 
 
