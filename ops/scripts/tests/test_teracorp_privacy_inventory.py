@@ -246,7 +246,7 @@ def test_record_cannot_be_reused_across_products_or_dates() -> None:
 def test_tampered_record_no_longer_matches_inventory_digest() -> None:
     raw = load(RECORD_FILES[0])
     raw["body"]["stores"][0]["residue_count"] = 0
-    raw["body"]["valid_until"] = "2099-01-01"
+    raw["body"]["valid_until"] = "2027-01-01"
     tampered = [parse_record(raw), parse_record(load(RECORD_FILES[1]))]
     report = validate(payload(), AS_OF, tampered, allow_local_fake=True)
     assert "products[0]:deletion_record:missing" in report["unresolved"]
@@ -427,3 +427,71 @@ def test_deprecated_data_map_entry_warns_and_delegates() -> None:
     legacy_style = run_cli(str(SAMPLE), script=LEGACY)
     assert legacy_style.returncode != 0
     assert "deprecated" in legacy_style.stderr
+
+
+# ---------------------------------------------------------------- review fixwave: self-declared record claims
+
+
+EVIDENCE_SCHEMA = ROOT / "ops/contracts/teracorp_g7_deletion_evidence.v1.schema.json"
+
+
+def test_evidence_schema_accepts_emitted_records_and_rejects_contradictions() -> None:
+    schema = json.loads(EVIDENCE_SCHEMA.read_text(encoding="utf-8"))
+    Draft202012Validator.check_schema(schema)
+    validator = Draft202012Validator(schema, format_checker=FormatChecker())
+    for path in RECORD_FILES:
+        assert not list(validator.iter_errors(load(path)))
+    erase_store = next(i for i, s in enumerate(load(RECORD_FILES[0])["body"]["stores"]) if s["erasure_mode"] == "erase")
+    for mutate in (
+        lambda r: r["body"]["stores"][erase_store].update(outcome="tombstoned"),
+        lambda r: r["body"]["stores"][erase_store].update(residue_count=5),
+    ):
+        raw = load(RECORD_FILES[0])
+        mutate(raw)
+        assert list(validator.iter_errors(raw))
+        with pytest.raises(InputError):
+            parse_record(raw)
+
+
+def test_record_validity_window_is_bounded() -> None:
+    raw = load(RECORD_FILES[0])
+    raw["body"]["valid_until"] = "2126-01-01"
+    with pytest.raises(InputError, match="exceeds 366 days"):
+        parse_record(raw)
+
+
+def _rebind(data: dict, index: int, raw: dict) -> list:
+    ref = data["products"][index]["deletion_evidence_refs"][0]
+    for item in data["evidence_refs"]:
+        if item["evidence_ref_id"] == ref:
+            item["sha256"] = inventory.record_body_digest(raw["body"])
+    return [parse_record(raw), parse_record(load(RECORD_FILES[1]))]
+
+
+def test_record_store_kind_and_mode_must_match_the_inventory_map() -> None:
+    data = payload()
+    raw = load(RECORD_FILES[0])
+    target = next(s for s in raw["body"]["stores"] if s["store_kind"] == "supabase_row")
+    target["store_kind"] = "chatwoot_contact"
+    report = validate(data, AS_OF, _rebind(data, 0, raw), allow_local_fake=True)
+    assert "products[0]:deletion_record:store_map_mismatch" in report["unresolved"]
+
+
+def test_non_fake_record_requires_a_verified_signature() -> None:
+    data = payload()
+    raw = load(RECORD_FILES[0])
+    raw["body"]["environment"] = "production_drill"
+    records_ = _rebind(data, 0, raw)
+    report = validate(data, AS_OF, records_)
+    assert report["status"] == "incomplete"
+    assert "products[0]:deletion_record:unsigned_or_unverified" in report["unresolved"]
+    key = b"q" * 32
+    raw["signature"] = {
+        "alg": "hmac-sha256",
+        "key_id": "key_" + "b" * 32,
+        "value": inventory.sign_body(raw["body"], key),
+    }
+    records_ = [parse_record(raw), parse_record(load(RECORD_FILES[1]))]
+    report = validate(data, AS_OF, records_, allow_local_fake=True, hmac_key=key)
+    assert "products[0]:deletion_record:unsigned_or_unverified" not in report["unresolved"]
+    assert not [item for item in report["unresolved"] if item.startswith("products[0]")]

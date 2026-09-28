@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.kodeme.io/teracorp/g7-deletion-evidence.v1.schema.json",
+  "title": "Teracorp G7 deletion-test evidence record v1",
+  "description": "Emitted by ops/scripts/teracorp_g7_erasure.py and consumed by teracorp_privacy_inventory.py. record_sha256 = sha256 of canonical JSON of `body` (sorted keys, no whitespace); the inventory's deletion evidence ref carries that digest. `signature` is HMAC-SHA256 over the same bytes. Contains no subject identifiers, only a digest. The Python parser is authoritative for status/outcome consistency and the validity-window bound.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["body", "signature"],
+  "properties": {
+    "body": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["record_version", "kind", "product_id", "executed_on", "valid_until", "environment", "status", "subject_digest", "store_map_sha256", "stores"],
+      "properties": {
+        "record_version": {"const": 1},
+        "kind": {"const": "teracorp_g7_deletion_evidence"},
+        "product_id": {"type": "string", "pattern": "^prod_[a-f0-9]{32}$"},
+        "executed_on": {"type": "string", "format": "date", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"},
+        "valid_until": {"type": "string", "format": "date", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"},
+        "environment": {"enum": ["local_fake", "isolated_test", "production_drill"]},
+        "status": {"enum": ["passed", "failed"]},
+        "subject_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "store_map_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "stores": {
+          "type": "array", "minItems": 1, "maxItems": 64,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["store_id", "store_kind", "erasure_mode", "outcome", "residue_count"],
+            "properties": {
+              "store_id": {"type": "string", "pattern": "^store_[a-f0-9]{32}$"},
+              "store_kind": {"enum": ["odoo_orm", "chatwoot_contact", "supabase_row", "backup_snapshot", "other"]},
+              "erasure_mode": {"enum": ["erase", "retention_bound"]},
+              "outcome": {"enum": ["absent", "tombstoned", "residue", "tombstone_missing", "retention_exceeded", "no_adapter", "seed_not_observable", "erasure_error"]},
+              "residue_count": {"type": "integer", "minimum": 0, "maximum": 1000000}
+            },
+            "allOf": [
+              {"if": {"properties": {"erasure_mode": {"const": "erase"}}, "required": ["erasure_mode"]}, "then": {"properties": {"outcome": {"not": {"const": "tombstoned"}}}}},
+              {"if": {"properties": {"outcome": {"enum": ["absent", "tombstoned"]}}, "required": ["outcome"]}, "then": {"properties": {"residue_count": {"const": 0}}}}
+            ]
+          }
+        }
+      }
+    },
+    "signature": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["alg", "key_id", "value"],
+          "properties": {
+            "alg": {"const": "hmac-sha256"},
+            "key_id": {"type": "string", "pattern": "^key_[a-f0-9]{32}$"},
+            "value": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+          }
+        }
+      ]
+    }
+  }
+}

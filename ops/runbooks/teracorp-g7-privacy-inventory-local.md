@@ -61,7 +61,11 @@ After a harness run, set the product's deletion evidence ref `sha256` to the pri
 status. The gate then checks, per product: record digest matches the inventory ref, same product,
 same date, `valid_until >= as_of`, the record's `store_map_sha256` equals the product's current store
 map (so adding or changing a store invalidates the test), every store is covered with `absent` or
-`tombstoned`, and — with `--hmac-key-file` — a valid HMAC-SHA256 signature. A `failed` record, a
+`tombstoned` with matching store kind and erasure mode, and — with `--hmac-key-file` — a valid
+HMAC-SHA256 signature. Records from any environment other than `local_fake` are unresolved
+(`unsigned_or_unverified`) unless a key is supplied and the signature verifies. Records are bounded
+to a 366-day validity window, may not pass an `erase` store by tombstone, and may not report residue
+on a passing store (`ops/contracts/teracorp_g7_deletion_evidence.v1.schema.json`). A `failed` record, a
 missing record, or a `local_fake` record without `--allow-local-fake-evidence` is unresolved.
 `--freshness-days` must come from an owner-approved policy; the tools invent no default.
 
@@ -69,7 +73,8 @@ missing record, or a `local_fake` record without `--allow-local-fake-evidence` i
 
 `teracorp_g7_erasure.ErasureAdapter` has `seed`, `observable` (a seed that cannot be observed fails
 the store, so an empty store cannot pass vacuously), `erase` (the product's erasure step for that
-store) and `verify` (independent read path returning an outcome and residue count). Adapters are
+store) and `verify` (independent read path returning an outcome and residue count). The backup fake also
+simulates a restore and fails as `residue` if the tombstone does not suppress the subject. Adapters are
 chosen by `store_kind`; a store with no adapter fails as `no_adapter`. Only the in-process fakes in
 `FAKE_ADAPTERS` exist. Adapters against live or disposable copies of real systems must be written
 and reviewed separately before use; never point this harness at production data.

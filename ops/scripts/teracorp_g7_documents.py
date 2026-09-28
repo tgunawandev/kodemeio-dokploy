@@ -228,14 +228,21 @@ def main(argv: list[str] | None = None) -> int:
     except inventory.InputError as exc:
         print(json.dumps({"status": "invalid", "error": str(exc)}))
         return 2
+    except OSError:
+        print(json.dumps({"status": "invalid", "error": "filesystem_error"}))
+        return 2
     digest = inventory.sha256_hex(inventory.canonical_json(payload))
     written = []
-    for product_id, documents in render(view, digest).items():
-        folder = args.out / product_id
-        folder.mkdir(parents=True, exist_ok=True)
-        for name, text in documents.items():
-            (folder / name).write_text(text, encoding="utf-8")
-            written.append(str(folder / name))
+    try:
+        for product_id, documents in render(view, digest).items():
+            folder = args.out / product_id
+            folder.mkdir(parents=True, exist_ok=True)
+            for name, text in documents.items():
+                (folder / name).write_text(text, encoding="utf-8")
+                written.append(str(folder / name))
+    except OSError:
+        print(json.dumps({"status": "invalid", "error": "filesystem_error"}))
+        return 2
     print(json.dumps({"inventory_status": view.report["status"], "written": written}, sort_keys=True))
     return 0
 

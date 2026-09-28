@@ -250,3 +250,44 @@ def test_cli_writes_records_and_exits_zero_only_when_all_pass(tmp_path: Path) ->
 
     result = cli(HARNESS, "--as-of", AS_OF, "--freshness-days", "30", "--out", str(out), str(tmp_path / "nope.json"))
     assert result.returncode == 2
+
+
+# --------------------------------------------------------------------------- review fixwave
+
+
+def test_adapter_factory_fault_is_recorded_not_raised() -> None:
+    def broken(spec):
+        raise RuntimeError("cannot connect")
+
+    record = run(product()["stores"], dict(erasure.FAKE_ADAPTERS, odoo_orm=broken))
+    assert record["body"]["status"] == "failed"
+    assert outcomes(record)["odoo_orm"] == "erasure_error"
+
+
+class NonSuppressingBackupAdapter(erasure.FakeBackupAdapter):
+    def erase(self, subject, as_of):
+        self.tombstones.append({"subject_digest": subject.digest, "recorded_on": as_of, "suppress_on_restore": False})
+
+
+def test_restore_must_not_resurrect_an_erased_subject() -> None:
+    record = run(product()["stores"], dict(erasure.FAKE_ADAPTERS, backup_snapshot=NonSuppressingBackupAdapter))
+    assert outcomes(record)["backup_snapshot"] == "residue"
+    backup = next(store for store in product()["stores"] if store["store_kind"] == "backup_snapshot")
+    adapter = erasure.FakeBackupAdapter(erasure._spec(backup))
+    subject = erasure.SyntheticSubject.generate()
+    adapter.seed(subject, DAY)
+    adapter.erase(subject, DAY)
+    assert adapter.restore() == []
+
+
+def test_filesystem_errors_exit_two_without_traceback(tmp_path: Path) -> None:
+    blocker = tmp_path / "file"
+    blocker.write_text("x", encoding="utf-8")
+    result = cli(HARNESS, "--as-of", AS_OF, "--freshness-days", "30", "--out", str(blocker), str(SAMPLE))
+    assert result.returncode == 2
+    assert "Traceback" not in result.stderr
+    assert json.loads(result.stdout)["error"] == "filesystem_error"
+    docs = ROOT / "ops/scripts/teracorp_g7_documents.py"
+    result = cli(docs, "--as-of", AS_OF, "--out", str(blocker), str(SAMPLE))
+    assert result.returncode == 2
+    assert "Traceback" not in result.stderr

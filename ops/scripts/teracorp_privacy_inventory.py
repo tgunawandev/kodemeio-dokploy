@@ -29,6 +29,7 @@ MAX_JSON_DEPTH = 32
 MAX_JSON_INTEGER_DIGITS = 20
 MAX_RECORDS = 256
 MAX_RETENTION_DAYS = 36_500
+MAX_FRESHNESS_DAYS = 366
 SHA256 = re.compile(r"^[a-f0-9]{64}$")
 # Every identifier is a typed, generated opaque token: a name-like label cannot match.
 ID_PATTERNS = {
@@ -201,6 +202,7 @@ class DeletionRecord:
     status: str
     store_map_sha256: str
     outcomes: dict[str, str]
+    shapes: dict[str, tuple[str, str]]
     body: dict[str, Any]
     signature: dict[str, Any] | None
 
@@ -239,6 +241,8 @@ def parse_record(raw: Any, where: str = "record") -> DeletionRecord:
     valid_until = _day(body["valid_until"], f"{where}.valid_until")
     if valid_until < executed:
         raise InputError(f"{where} validity window ends before execution")
+    if (valid_until - executed).days > MAX_FRESHNESS_DAYS:
+        raise InputError(f"{where} validity window exceeds {MAX_FRESHNESS_DAYS} days")
     environment = _enum(body["environment"], RECORD_ENVIRONMENTS, f"{where}.environment")
     status = _enum(body["status"], {"passed", "failed"}, f"{where}.status")
     for name in ("subject_digest", "store_map_sha256"):
@@ -248,6 +252,7 @@ def parse_record(raw: Any, where: str = "record") -> DeletionRecord:
     if type(stores) is not list or not 1 <= len(stores) <= 64:
         raise InputError(f"{where}.stores must contain 1..64 stores")
     outcomes: dict[str, str] = {}
+    shapes: dict[str, tuple[str, str]] = {}
     for index, item_raw in enumerate(stores):
         item = _object(
             item_raw,
@@ -257,10 +262,16 @@ def parse_record(raw: Any, where: str = "record") -> DeletionRecord:
         store_id = _typed_id(item["store_id"], "store", f"{where}.stores[{index}].store_id")
         if store_id in outcomes:
             raise InputError(f"{where}.stores contains duplicate stores")
-        _enum(item["store_kind"], STORE_KINDS, f"{where}.stores[{index}].store_kind")
-        _enum(item["erasure_mode"], ERASURE_MODES, f"{where}.stores[{index}].erasure_mode")
-        outcomes[store_id] = _enum(item["outcome"], STORE_OUTCOMES, f"{where}.stores[{index}].outcome")
-        _int(item["residue_count"], f"{where}.stores[{index}].residue_count", 0, 1_000_000)
+        kind = _enum(item["store_kind"], STORE_KINDS, f"{where}.stores[{index}].store_kind")
+        mode = _enum(item["erasure_mode"], ERASURE_MODES, f"{where}.stores[{index}].erasure_mode")
+        outcome = _enum(item["outcome"], STORE_OUTCOMES, f"{where}.stores[{index}].outcome")
+        residue = _int(item["residue_count"], f"{where}.stores[{index}].residue_count", 0, 1_000_000)
+        if mode == "erase" and outcome == "tombstoned":
+            raise InputError(f"{where}.stores[{index}] erase-mode store cannot pass by tombstone")
+        if outcome in PASSING_OUTCOMES and residue != 0:
+            raise InputError(f"{where}.stores[{index}] passing outcome must have zero residue")
+        outcomes[store_id] = outcome
+        shapes[store_id] = (kind, mode)
     all_pass = all(outcome in PASSING_OUTCOMES for outcome in outcomes.values())
     if (status == "passed") != all_pass:
         raise InputError(f"{where}.status contradicts its store outcomes")
@@ -281,6 +292,7 @@ def parse_record(raw: Any, where: str = "record") -> DeletionRecord:
         status=status,
         store_map_sha256=body["store_map_sha256"],
         outcomes=outcomes,
+        shapes=shapes,
         body=body,
         signature=signature,
     )
@@ -354,11 +366,18 @@ def _check_deletion_record(
         product.unresolved.add(f"{issue}:stale")
     if record.store_map_sha256 != store_map_digest(product.stores):
         product.unresolved.add(f"{issue}:store_map_mismatch")
-    if set(record.outcomes) != {store["store_id"] for store in product.stores}:
+    expected_shapes = {store["store_id"]: (store["store_kind"], store["erasure_mode"]) for store in product.stores}
+    if set(record.outcomes) != set(expected_shapes):
         product.unresolved.add(f"{issue}:store_coverage_mismatch")
+    elif record.shapes != expected_shapes:
+        product.unresolved.add(f"{issue}:store_map_mismatch")
     if record.environment == "local_fake" and not allow_local_fake:
         product.unresolved.add(f"{issue}:local_fake_environment")
-    if hmac_key is not None:
+    if hmac_key is None:
+        if record.environment != "local_fake":
+            # A non-fake deletion test is only as trustworthy as its signature.
+            product.unresolved.add(f"{issue}:unsigned_or_unverified")
+    else:
         signature = record.signature
         if signature is None or not hmac.compare_digest(signature["value"], sign_body(record.body, hmac_key)):
             product.unresolved.add(f"{issue}:signature_invalid")
@@ -785,6 +804,11 @@ def main(argv: list[str] | None = None) -> int:
         )
     except InputError as exc:
         print(json.dumps({"status": "invalid", "error": str(exc), "verified": False, "legal_reviewed": False}))
+        return 2
+    except OSError:
+        print(
+            json.dumps({"status": "invalid", "error": "filesystem_error", "verified": False, "legal_reviewed": False})
+        )
         return 2
     print(json.dumps(report, sort_keys=True))
     return 0 if report["status"] == OK_STATUS else 1

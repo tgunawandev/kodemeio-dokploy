@@ -31,7 +31,7 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import teracorp_privacy_inventory as inventory  # noqa: E402
 
-MAX_FRESHNESS_DAYS = 366
+MAX_FRESHNESS_DAYS = inventory.MAX_FRESHNESS_DAYS
 
 # --------------------------------------------------------------------------- core types
 
@@ -342,7 +342,7 @@ class FakeBackupAdapter(ErasureAdapter):
             {
                 "taken_on": as_of,
                 "expires_on": as_of + timedelta(days=self.snapshot_lifetime_days),
-                "rows": [{"email": subject.email, "name": subject.name}],
+                "rows": [{"subject_digest": subject.digest, "email": subject.email, "name": subject.name}],
             }
         )
 
@@ -359,6 +359,13 @@ class FakeBackupAdapter(ErasureAdapter):
     def erase(self, subject: SyntheticSubject, as_of: date) -> None:
         self.tombstones.append({"subject_digest": subject.digest, "recorded_on": as_of, "suppress_on_restore": True})
 
+    def restore(self) -> list[dict[str, Any]]:
+        """Simulate a restore: rows are re-applied, then tombstones suppress erased subjects."""
+        suppressed = {item["subject_digest"] for item in self.tombstones if item.get("suppress_on_restore") is True}
+        return [
+            row for snapshot in self.snapshots for row in snapshot["rows"] if row["subject_digest"] not in suppressed
+        ]
+
     def verify(self, subject: SyntheticSubject, as_of: date) -> tuple[str, int]:
         holding = self._holding(subject)
         tombstones = [item for item in self.tombstones if item["subject_digest"] == subject.digest]
@@ -367,6 +374,9 @@ class FakeBackupAdapter(ErasureAdapter):
             return ("residue", leaked)
         if holding and not tombstones:
             return ("tombstone_missing", len(holding))
+        resurrected = sum(1 for row in self.restore() if any(subject.mentioned_in(value) for value in row.values()))
+        if resurrected:
+            return ("residue", resurrected)
         if self.spec.retention_days is None:
             return ("retention_exceeded", len(holding))
         recorded = min((item["recorded_on"] for item in tombstones), default=as_of)
@@ -425,8 +435,8 @@ def run_deletion_test(
         if factory is None:
             settle(spec, "no_adapter", 0)
             continue
-        adapter = factory(spec)
         try:
+            adapter = factory(spec)
             adapter.seed(subject, as_of)
             if not adapter.observable(subject):
                 settle(spec, "seed_not_observable", 0)
@@ -523,12 +533,19 @@ def main(argv: list[str] | None = None) -> int:
     except inventory.InputError as exc:
         print(json.dumps({"status": "invalid", "error": str(exc)}))
         return 2
-    args.out.mkdir(parents=True, exist_ok=True)
     summary = []
-    for record in records:
+    try:
+        args.out.mkdir(parents=True, exist_ok=True)
+        paths = []
+        for record in records:
+            path = args.out / f"{record['body']['product_id']}.deletion-evidence.json"
+            path.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+            paths.append(path)
+    except OSError:
+        print(json.dumps({"status": "invalid", "error": "filesystem_error"}))
+        return 2
+    for record, path in zip(records, paths, strict=True):
         body = record["body"]
-        path = args.out / f"{body['product_id']}.deletion-evidence.json"
-        path.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         summary.append(
             {
                 "product_id": body["product_id"],
