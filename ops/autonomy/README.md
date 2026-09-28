@@ -45,6 +45,11 @@ withdraws a grant before expiry; grants sharing a `grant_id` are all refused. `s
 `--evidence` and refuses unless the packet's digest matches and it evaluates to a candidate for the
 grant's class; the runtime consumer treats `evidence_sha256` as founder-attested.
 
+`verify` is a diagnostic: `--contract`/`--anchor` are caller-supplied, so a "verified" result is
+not an authorization. Automation must decide only through `AutonomyRuntime` with anchors from
+`KODEMEIO_AUTONOMY_TRUST_ANCHORS`. `revoked_grant_ids` lives in the repository, so un-revoking needs
+the CODEOWNERS protection listed as operational.
+
 `trust_roots` is empty in the checked-in contract and no anchor is set, so every grant is refused
 until the founder enrols a public key and pins its fingerprint (operational). Tests use deterministic synthetic keys only. Wiring the same
 decision into Odoo `mcp_base` classify, key custody and rotation, and an authenticated evaluation

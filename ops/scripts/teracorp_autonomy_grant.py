@@ -361,7 +361,10 @@ def main(argv: list[str] | None = None) -> int:
     sign.add_argument("--key-file", type=Path, required=True)
     sign.add_argument("--key-id", required=True)
     sign.add_argument("--evidence", type=Path, required=True, help="candidate evidence packet the grant binds to")
-    verify = sub.add_parser("verify", help="verify a grant against the trust roots")
+    verify = sub.add_parser(
+        "verify",
+        help="diagnostic check of a grant; NOT an authorization (only AutonomyRuntime with env anchors decides)",
+    )
     verify.add_argument("grant", type=Path)
     verify.add_argument("--contract", type=Path, default=EVIDENCE._AUTONOMY)
     verify.add_argument("--evidence", type=Path)
