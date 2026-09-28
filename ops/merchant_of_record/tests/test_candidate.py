@@ -348,6 +348,23 @@ def test_cli_duplicate_json_keys_fail_without_traceback(tmp_path, capsys) -> Non
     assert "Traceback" not in captured.err
 
 
+def test_cli_duplicate_key_error_does_not_echo_untrusted_key(tmp_path, capsys) -> None:
+    path = tmp_path / "duplicate.json"
+    path.write_text('{"pii\\u0007marker":1,"pii\\u0007marker":2}')
+    assert MOR.main([str(path)]) == 2
+    error = capsys.readouterr().err
+    assert "duplicate JSON key" in error
+    assert "pii" not in error and "marker" not in error
+
+
+def test_unknown_key_error_does_not_echo_untrusted_key() -> None:
+    raw = {**event("e1", "payment.captured", "10:00"), "pii\u0007marker": True}
+    with pytest.raises(MOR.InputError) as info:
+        MOR.validate_event(raw)
+    assert "unknown=1" in str(info.value)
+    assert "pii" not in str(info.value) and "marker" not in str(info.value)
+
+
 def test_cli_oversized_integer_fails_without_traceback(tmp_path, capsys) -> None:
     path = tmp_path / "oversized-integer.json"
     path.write_text(

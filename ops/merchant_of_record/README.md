@@ -16,6 +16,8 @@ accept payments or make an accounting entry.
 - `examples/reconciliation.synthetic.json` is invented data for local use.
 - `tests/test_candidate.py` covers contract, lifecycle, money, dedupe, reversals,
   payout allocations, and the no-I/O boundary.
+- `tests/test_webhook.py` covers the HMAC webhook seam with a synthetic secret:
+  tampering, wrong key, timestamp tolerance, replay, rotation, and fixed errors.
 - `RUNBOOK.md` gives the local procedure and current operational gates.
 
 ## Run locally
@@ -25,7 +27,7 @@ From the `kodemeio-dokploy` repository root:
 ```sh
 uv run python ops/merchant_of_record/candidate.py \
   ops/merchant_of_record/examples/reconciliation.synthetic.json
-uv run pytest ops/merchant_of_record/tests/test_candidate.py -q
+uv run pytest ops/merchant_of_record/tests -q
 ```
 
 The sample prints compact JSON with `outcome: clean`, the payment verification
@@ -46,14 +48,37 @@ boundary before connecting real data.
 
 ## Verification boundary
 
-Every event is synthetic or caller-normalized evidence and remains
-`verification.status = unverified`, `verification.adapter = none`. The validator
-rejects a `verified` field, a `true` verification boolean, unknown fields, and
-any other verification state. This representation is not a webhook receiver,
-signature check, or proof that a provider sent an event. No Paddle or Polar
-signature rules or adapters are included. Do not add an adapter until the
-provider's authoritative current protocol has been reviewed and its design,
-secrets handling, replay defenses, and deployment have separate approval.
+JSON and caller-normalized events remain `verification.status = unverified`,
+`verification.adapter = none`. The validator rejects a `verified` field, a
+`true` verification boolean, unknown fields, and any other verification state,
+so the CLI can never report a verified payment.
+
+`verified` is reachable only through `WebhookVerifier.verify(raw_body,
+timestamp, signature_header, now=...)`, a provider-neutral seam:
+
+- the signed content is `<unix-seconds>.<exact raw request body>`, HMAC-SHA256,
+  header `v1=<64 hex>` (up to 8 comma-separated candidates for key rotation);
+- the secret is caller-supplied bytes (at least 32); this module never reads
+  environment variables, files, or a secret store;
+- the timestamp must be within the configured tolerance (1..3600 s, default
+  300 s) of the explicit `now`, and the comparison is constant-time;
+- the signed body must be a valid `merchant_event.v1` event **without** a
+  `verification` key, so a body cannot self-declare verification;
+- a second delivery for an already-seen `provider_event_ref` is rejected
+  (`replayed_event`); entries older than the tolerance window are pruned, which
+  is safe because their timestamps are already out of tolerance; a full replay
+  cache fails closed; only a delivery passing every check is recorded.
+
+Rejections raise `WebhookRejected` with a fixed code (for example
+`signature_mismatch`, `timestamp_outside_tolerance`, `replayed_event`) and
+never echo input. A successful call returns a read-only `VerifiedEvent` that
+`reconcile()` accepts alongside plain unverified events; a payment reports
+`verification_state: verified` only when every event in its history was
+verified. The replay cache is in-memory; durable replay state, key custody and
+rotation, and the Paddle/Polar header formats remain operational work. Do not
+add a provider adapter until the provider's authoritative current protocol has
+been reviewed and its design, secrets handling, and deployment have separate
+approval.
 
 ## Reconciliation policy
 

@@ -4,11 +4,15 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import hmac
 import json
 import re
 import sys
+from collections.abc import Mapping
 from datetime import datetime
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any
 
 _EVENT_TYPES = {
@@ -41,6 +45,16 @@ _MAX_PAYOUTS = 2_000
 _MAX_ALLOCATIONS = 10_000
 _MAX_TOTAL_ALLOCATIONS = 100_000
 _MAX_MINOR = 9_007_199_254_740_991
+_UNVERIFIED = {"status": "unverified", "adapter": "none"}
+_WEBHOOK_ADAPTER = "hmac-sha256.v1"
+_VERIFIED = {"status": "verified", "adapter": _WEBHOOK_ADAPTER}
+_MIN_SECRET_BYTES = 32
+_MAX_TOLERANCE_SECONDS = 3600
+_MAX_WEBHOOK_BODY_BYTES = 65_536
+_MAX_SIGNATURES_PER_HEADER = 8
+_MAX_REPLAY_ENTRIES = 100_000
+_TIMESTAMP = re.compile(r"^[0-9]{1,12}$")
+_SIGNATURE = re.compile(r"^v1=[0-9a-f]{64}$")
 
 
 class InputError(ValueError):
@@ -50,9 +64,10 @@ class InputError(ValueError):
 def _exact_object(value: Any, where: str, keys: set[str]) -> dict[str, Any]:
     if type(value) is not dict:
         raise InputError(f"{where} must be an object")
-    missing, unknown = sorted(keys - value.keys()), sorted(value.keys() - keys)
-    if missing or unknown:
-        raise InputError(f"{where} keys invalid (missing={missing}, unknown={unknown})")
+    missing, unknown_count = sorted(keys - value.keys()), len(value.keys() - keys)
+    if missing or unknown_count:
+        # Missing names come from the trusted contract; unknown keys are untrusted and never echoed.
+        raise InputError(f"{where} keys invalid (missing={missing}, unknown={unknown_count})")
     return value
 
 
@@ -89,7 +104,15 @@ def _event_time(value: Any) -> datetime:
 
 
 def validate_event(value: Any) -> dict[str, Any]:
-    """Validate one normalized event; no field can declare it cryptographically verified."""
+    """Validate one normalized event; no field can declare it cryptographically verified.
+
+    ``verification.status = verified`` is reachable only through :class:`WebhookVerifier`, which
+    returns a :class:`VerifiedEvent` rather than a plain mapping.
+    """
+    return _validate_event_fields(value, _UNVERIFIED)
+
+
+def _validate_event_fields(value: Any, expected_verification: dict[str, str]) -> dict[str, Any]:
     event = _exact_object(value, "event", _EVENT_KEYS)
     if event["contract_version"] != "merchant_event.v1":
         raise InputError("event.contract_version must be merchant_event.v1")
@@ -103,9 +126,126 @@ def validate_event(value: Any) -> dict[str, Any]:
         _minor(event["amount_minor"], "event.amount_minor", positive=True)
     _currency(event["currency"], "event.currency")
     verification = _exact_object(event["verification"], "event.verification", {"status", "adapter"})
-    if verification != {"status": "unverified", "adapter": "none"}:
+    if verification != expected_verification:
         raise InputError("event.verification is fixed to status=unverified and adapter=none")
-    return dict(event)
+    return {**event, "verification": dict(verification)}
+
+
+_CAPABILITY = object()
+
+
+class VerifiedEvent:
+    """A normalized event whose raw body passed :meth:`WebhookVerifier.verify`.
+
+    Only the verifier holds the construction capability, so JSON input or a caller-built mapping
+    can never become ``verified``. The payload is exposed read-only.
+    """
+
+    __slots__ = ("_event",)
+
+    def __init__(self, event: dict[str, Any], capability: object) -> None:
+        if capability is not _CAPABILITY:
+            raise TypeError("VerifiedEvent is created only by WebhookVerifier.verify")
+        self._event = MappingProxyType({**event, "verification": MappingProxyType(dict(_VERIFIED))})
+
+    @property
+    def event(self) -> Mapping[str, Any]:
+        return self._event
+
+    def as_dict(self) -> dict[str, Any]:
+        return {**self._event, "verification": dict(self._event["verification"])}
+
+
+class WebhookRejected(Exception):
+    """Webhook authentication failed; the message is a fixed code that never echoes input."""
+
+
+def webhook_signature(secret: bytes, timestamp: str, raw_body: bytes) -> str:
+    """Return the provider-neutral ``v1=<hex>`` HMAC-SHA256 over ``<timestamp>.<raw body>``."""
+    digest = hmac.new(secret, timestamp.encode("ascii") + b"." + raw_body, hashlib.sha256).hexdigest()
+    return f"v1={digest}"
+
+
+class WebhookVerifier:
+    """Provider-neutral raw-body HMAC verifier with a timestamp window and replay rejection.
+
+    The signed content is ``<unix-seconds>.<exact raw request body>``. The caller passes the raw
+    bytes it received (never re-serialized JSON), the timestamp and signature header values, and an
+    explicit ``now``. Checks run in order: size, timestamp syntax and tolerance, constant-time
+    signature comparison, event validation, then replay by ``provider_event_ref``. Only a delivery
+    that passes every check is recorded as seen. Provider-specific header formats (Paddle, Polar)
+    are adapters layered on this seam and remain operational work.
+    """
+
+    def __init__(
+        self,
+        secret: bytes,
+        *,
+        tolerance_seconds: int = 300,
+        max_replay_entries: int = _MAX_REPLAY_ENTRIES,
+    ) -> None:
+        if type(secret) is not bytes or len(secret) < _MIN_SECRET_BYTES:
+            raise ValueError(f"webhook secret must be at least {_MIN_SECRET_BYTES} bytes")
+        if type(tolerance_seconds) is not int or not 1 <= tolerance_seconds <= _MAX_TOLERANCE_SECONDS:
+            raise ValueError(f"webhook tolerance must be 1..{_MAX_TOLERANCE_SECONDS} seconds")
+        if type(max_replay_entries) is not int or not 1 <= max_replay_entries <= _MAX_REPLAY_ENTRIES:
+            raise ValueError(f"replay cache size must be 1..{_MAX_REPLAY_ENTRIES}")
+        self._secret = secret
+        self._tolerance = tolerance_seconds
+        self._max_entries = max_replay_entries
+        self._seen: dict[str, int] = {}
+
+    def verify(self, raw_body: bytes, timestamp: str, signature_header: str, *, now: int) -> VerifiedEvent:
+        if type(now) is not int:
+            raise ValueError("now must be explicit integer unix seconds")
+        if type(raw_body) is not bytes:
+            raise WebhookRejected("malformed_body")
+        if len(raw_body) > _MAX_WEBHOOK_BODY_BYTES:
+            raise WebhookRejected("body_too_large")
+        if not isinstance(timestamp, str) or not _TIMESTAMP.fullmatch(timestamp):
+            raise WebhookRejected("malformed_timestamp")
+        signed_at = int(timestamp)
+        if abs(now - signed_at) > self._tolerance:
+            raise WebhookRejected("timestamp_outside_tolerance")
+        candidates = signature_header.split(",") if isinstance(signature_header, str) else []
+        if (
+            not candidates
+            or len(candidates) > _MAX_SIGNATURES_PER_HEADER
+            or not all(_SIGNATURE.fullmatch(item) for item in candidates)
+        ):
+            raise WebhookRejected("malformed_signature")
+        expected = webhook_signature(self._secret, timestamp, raw_body).encode("ascii")
+        matched = False
+        for candidate in candidates:  # evaluate every candidate; no early exit on a match
+            matched |= hmac.compare_digest(expected, candidate.encode("ascii"))
+        if not matched:
+            raise WebhookRejected("signature_mismatch")
+        try:
+            payload = json.loads(
+                raw_body.decode("utf-8"),
+                object_pairs_hook=_reject_duplicate_keys,
+                parse_int=_bounded_json_int,
+            )
+            if type(payload) is not dict or "verification" in payload:
+                raise InputError("signed body must be an event without a verification claim")
+            event = _validate_event_fields({**payload, "verification": dict(_UNVERIFIED)}, _UNVERIFIED)
+        except (UnicodeDecodeError, ValueError, RecursionError) as exc:
+            raise WebhookRejected("invalid_event") from exc
+        provider_ref = event["provider_event_ref"]
+        self._prune(now)
+        if provider_ref in self._seen:
+            raise WebhookRejected("replayed_event")
+        if len(self._seen) >= self._max_entries:
+            raise WebhookRejected("replay_cache_full")
+        self._seen[provider_ref] = signed_at
+        return VerifiedEvent({**event, "verification": dict(_VERIFIED)}, _CAPABILITY)
+
+    def _prune(self, now: int) -> None:
+        # A delivery signed before now - tolerance is already refused by the timestamp check, so
+        # forgetting it cannot re-open a replay.
+        cutoff = now - self._tolerance
+        for ref in [ref for ref, signed_at in self._seen.items() if signed_at < cutoff]:
+            del self._seen[ref]
 
 
 def _validate_order(value: Any, index: int) -> dict[str, Any]:
@@ -134,6 +274,10 @@ def _validate_payout(value: Any, index: int) -> dict[str, Any]:
         _minor(allocation["amount_minor"], f"{allocation_where}.amount_minor", positive=True)
         checked.append(dict(allocation))
     return {**payout, "allocations": checked}
+
+
+def _without_verification(event: dict[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in event.items() if key != "verification"}
 
 
 def _conflict(code: str, reference: str, detail: str) -> dict[str, str]:
@@ -171,9 +315,15 @@ def reconcile(events: Any, orders: Any, payouts: Any) -> dict[str, Any]:
     poisoned_payment_refs: set[str] = set()
     duplicate_count = 0
     for raw in events:
-        event = validate_event(raw)
+        event = raw.as_dict() if isinstance(raw, VerifiedEvent) else validate_event(raw)
         event_id = event["event_id"]
         prior = unique_events.get(event_id)
+        if prior is not None and _without_verification(prior) == _without_verification(event):
+            duplicate_count += 1
+            if event["verification"] == _VERIFIED:
+                unique_events[event_id] = event
+                provider_refs[event["provider_event_ref"]] = event
+            continue
         if prior is None:
             provider_ref = event["provider_event_ref"]
             provider_prior = provider_refs.get(provider_ref)
@@ -189,8 +339,6 @@ def reconcile(events: Any, orders: Any, payouts: Any) -> dict[str, Any]:
                 continue
             unique_events[event_id] = event
             provider_refs[provider_ref] = event
-        elif prior == event:
-            duplicate_count += 1
         else:
             conflicts.append(
                 _conflict("event_id_collision", event_id, "same event_id has different normalized content")
@@ -341,7 +489,9 @@ def reconcile(events: Any, orders: Any, payouts: Any) -> dict[str, Any]:
             "chargeback_minor": chargeback,
             "net_minor": net,
             "currency": captured_currency or (order_row["currency"] if order_row else history[-1]["currency"]),
-            "verification_state": "unverified",
+            "verification_state": (
+                "verified" if all(item["verification"] == _VERIFIED for item in history) else "unverified"
+            ),
         }
         payment_rows.append(payment)
         payment_lookup[payment_ref] = payment
@@ -431,7 +581,7 @@ def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
-            raise InputError(f"duplicate JSON key: {key}")
+            raise InputError("duplicate JSON key")
         result[key] = value
     return result
 

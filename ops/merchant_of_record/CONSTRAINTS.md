@@ -15,9 +15,14 @@ a signature or protocol specification for this candidate.
 - Use a strict, explicitly versioned normalized event contract. Unknown fields,
   malformed identifiers, invalid currency/amount values, and ambiguous money
   movements fail closed.
-- Synthetic webhook observations always report verification state as
+- JSON/normalized event input always reports verification state as
   `unverified`, with no verification adapter. No input field, including a
-  caller-supplied boolean, can assert cryptographic verification.
+  caller-supplied boolean, can assert cryptographic verification. The only path
+  to `verified` is the provider-neutral `WebhookVerifier` seam: HMAC-SHA256 over
+  `<unix-seconds>.<exact raw body>`, constant-time comparison, a bounded
+  timestamp tolerance, and replay rejection by `provider_event_ref`. It returns
+  a `VerifiedEvent` that callers cannot construct themselves. Tests use an
+  invented synthetic secret only; no real signing secret is stored or read.
 - Implement deterministic duplicate handling, order-independent replay of
   lifecycle events, exact minor-unit and currency checks, refunds, chargebacks,
   and payout allocation reconciliation. Conflicting histories produce explicit
@@ -38,8 +43,8 @@ a signature or protocol specification for this candidate.
   be invented synthetic values only. A future provider adapter must add a
   separately reviewed, non-PII identifier/tokenization boundary before any
   real source data is accepted.
-- Provider-specific Paddle/Polar signature rules and adapters are deliberately
-  absent. Any such adapter remains blocked pending authoritative provider
+- Provider-specific Paddle/Polar signature header formats and adapters are
+  deliberately absent; they would map provider headers onto the neutral seam. Any such adapter remains blocked pending authoritative provider
   specifications, review, and a separately approved implementation.
 
 ## Operational gates (not satisfied by this candidate)
