@@ -34,9 +34,9 @@ def test_always_human_class_refuses_even_with_caller_supplied_good_evidence(acti
     assert result["runtime_policy_changed"] is False
 
 
-def test_always_human_policy_addition_overrides_draft_candidate() -> None:
+def test_always_human_policy_addition_overrides_candidate() -> None:
     policy = copy.deepcopy(POLICY)
-    policy["always_human"].append("draft")
+    policy["always_human"].append("operational")
     with pytest.raises(AUTONOMY.InputError, match="always_human contract changed"):
         AUTONOMY.evaluate(copy.deepcopy(SAMPLE), policy)
 
@@ -111,10 +111,44 @@ def test_malformed_or_future_runs_refuse(mutate) -> None:
         AUTONOMY.evaluate(evidence, POLICY)
 
 
-def test_non_draft_action_class_cannot_enter_manual_review() -> None:
+@pytest.mark.parametrize("action_class", ["financial", "admin", "unknown-class"])
+def test_non_promotable_action_class_cannot_enter_manual_review(action_class: str) -> None:
     evidence = copy.deepcopy(SAMPLE)
-    evidence["action_class"] = "financial"
-    assert AUTONOMY.evaluate(evidence, POLICY)["status"] == "evidence_insufficient"
+    evidence["action_class"] = action_class
+    assert AUTONOMY.evaluate(evidence, POLICY)["status"] == "not_promotable_refused"
+
+
+def test_already_autonomous_draft_promotion_is_a_refused_no_op() -> None:
+    """Regression (review Medium): only `draft` could become a candidate, yet it is already auto."""
+    evidence = copy.deepcopy(SAMPLE)
+    evidence["action_class"] = "draft"
+    result = AUTONOMY.evaluate(evidence, POLICY)
+    assert result["status"] == "already_autonomous_noop"
+    assert result["runtime_policy_changed"] is False
+
+
+def test_candidate_classes_come_from_the_versioned_promotable_list() -> None:
+    contract = AUTONOMY._load_autonomy_contract()
+    assert contract["promotable"] == ["operational"]
+    assert AUTONOMY.evaluate(copy.deepcopy(SAMPLE), POLICY)["action_class"] == "operational"
+
+
+@pytest.mark.parametrize(
+    "mutate,message",
+    [
+        (lambda c: c["promotable"].append("financial"), "never_promotable"),
+        (lambda c: c["promotable"].append("draft"), "already_autonomous"),
+        (lambda c: c["promotable"].append("money_movement"), "always_human"),
+        (lambda c: c["promotable"].append("mystery"), "risk_mapping"),
+        (lambda c: c["never_promotable"].remove("admin"), "never auto"),
+        (lambda c: c.update(policy_version=2), "policy_version"),
+    ],
+)
+def test_autonomy_contract_cannot_make_forbidden_classes_promotable(mutate, message: str) -> None:
+    contract = copy.deepcopy(AUTONOMY._load_autonomy_contract())
+    mutate(contract)
+    with pytest.raises(AUTONOMY.InputError, match=message):
+        AUTONOMY._validate_autonomy_contract(contract, POLICY)
 
 
 def test_cli_output_is_deterministic_and_uses_only_explicit_input(tmp_path, capsys) -> None:

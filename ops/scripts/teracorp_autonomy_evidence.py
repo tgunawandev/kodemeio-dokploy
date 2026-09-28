@@ -20,6 +20,16 @@ _ID = re.compile(r"^[a-z][a-z0-9_-]{0,63}$")
 _DATE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}$")
 _ROOT = Path(__file__).resolve().parents[2]
 _POLICY = _ROOT / "contracts/approvals/policy.v1.yaml"
+_AUTONOMY = _ROOT / "contracts/approvals/autonomy.v1.yaml"
+_AUTONOMY_KEYS = {
+    "version",
+    "policy_version",
+    "already_autonomous",
+    "promotable",
+    "never_promotable",
+    "max_grant_days",
+    "trust_roots",
+}
 _MAX_JSON_INT = 1_000_000_000
 _EXPECTED_ALWAYS_HUMAN = [
     "production_deploy",
@@ -99,7 +109,71 @@ def _validate_policy(policy: Any) -> dict[str, Any]:
     return {"version": 1, "always_human": list(always_human), "risk_mapping": dict(mapping)}
 
 
-def _load_policy(path: Path = _POLICY) -> dict[str, Any]:
+def _class_list(value: Any, where: str) -> list[str]:
+    if type(value) is not list or len(value) > 32 or len(set(value)) != len(value):
+        raise InputError(f"autonomy contract {where} must be a unique list")
+    for item in value:
+        if not isinstance(item, str) or not _ID.fullmatch(item):
+            raise InputError(f"autonomy contract {where} entries must be safe identifiers")
+    return list(value)
+
+
+def _validate_autonomy_contract(contract: Any, policy: dict[str, Any]) -> dict[str, Any]:
+    """Check the promotion contract against policy.v1 so it can never widen a forbidden class."""
+    policy = _validate_policy(policy)
+    if type(contract) is not dict or set(contract) != _AUTONOMY_KEYS:
+        raise InputError("autonomy contract must be an object with the v1 keys")
+    if type(contract["version"]) is not int or contract["version"] != 1:
+        raise InputError("autonomy contract version changed; refuse pending contract update")
+    if type(contract["policy_version"]) is not int or contract["policy_version"] != policy["version"]:
+        raise InputError("autonomy contract policy_version does not match the approval policy")
+    already = _class_list(contract["already_autonomous"], "already_autonomous")
+    promotable = _class_list(contract["promotable"], "promotable")
+    never = _class_list(contract["never_promotable"], "never_promotable")
+    mapping = policy["risk_mapping"]
+    for name in promotable:
+        if name in policy["always_human"]:
+            raise InputError("autonomy contract promotable overlaps always_human")
+        if name in never:
+            raise InputError("autonomy contract promotable overlaps never_promotable")
+        if name in already:
+            raise InputError("autonomy contract promotable overlaps already_autonomous")
+        if name not in mapping:
+            raise InputError("autonomy contract promotable class is not in the policy risk_mapping")
+    for name, rule in mapping.items():
+        if "never auto" in rule and name not in never:
+            raise InputError("autonomy contract must list every 'never auto' class as never_promotable")
+        if rule.startswith("auto-approvable") and name not in already:
+            raise InputError("autonomy contract must list every auto-approvable class as already_autonomous")
+    for name in already:
+        if not mapping.get(name, "").startswith("auto-approvable"):
+            raise InputError("autonomy contract already_autonomous class is not auto-approvable in the policy")
+    max_days = _int(contract["max_grant_days"], "autonomy contract max_grant_days", minimum=1, maximum=366)
+    roots = contract["trust_roots"]
+    if type(roots) is not list or len(roots) > 8:
+        raise InputError("autonomy contract trust_roots must be a list of at most 8 keys")
+    checked_roots = []
+    for index, root in enumerate(roots):
+        root = _object(root, f"autonomy contract trust_roots[{index}]", {"key_id", "algorithm", "public_key"})
+        if not isinstance(root["key_id"], str) or not _ID.fullmatch(root["key_id"]):
+            raise InputError("autonomy contract trust root key_id must be a safe identifier")
+        if root["algorithm"] != "ed25519" or not isinstance(root["public_key"], str):
+            raise InputError("autonomy contract trust roots must be ed25519 public keys")
+        checked_roots.append(dict(root))
+    if len({root["key_id"] for root in checked_roots}) != len(checked_roots):
+        raise InputError("autonomy contract trust root key_ids must be unique")
+    return {
+        "version": 1,
+        "policy_version": policy["version"],
+        "already_autonomous": already,
+        "promotable": promotable,
+        "never_promotable": never,
+        "max_grant_days": max_days,
+        "trust_roots": checked_roots,
+    }
+
+
+def _read_yaml(path: Path, what: str) -> Any:
     try:
         import yaml
 
@@ -120,20 +194,32 @@ def _load_policy(path: Path = _POLICY) -> dict[str, Any]:
         with path.open("rb") as stream:
             raw = stream.read(65_537)
         if len(raw) > 65_536:
-            raise InputError("approval policy exceeds 65536 bytes")
+            raise InputError(f"{what} exceeds 65536 bytes")
     except OSError as exc:
-        raise InputError("approval policy cannot be read") from exc
+        raise InputError(f"{what} cannot be read") from exc
     except ImportError as exc:
-        raise InputError("PyYAML is required to read the checked-in approval policy") from exc
+        raise InputError(f"PyYAML is required to read the checked-in {what}") from exc
     try:
-        policy = yaml.load(raw, Loader=UniqueKeyLoader)
+        return yaml.load(raw, Loader=UniqueKeyLoader)
     except yaml.YAMLError as exc:
-        raise InputError("approval policy YAML is invalid") from exc
-    return _validate_policy(policy)
+        raise InputError(f"{what} YAML is invalid") from exc
 
 
-def evaluate(evidence: Any, policy: dict[str, Any]) -> dict[str, Any]:
+def _load_policy(path: Path = _POLICY) -> dict[str, Any]:
+    return _validate_policy(_read_yaml(path, "approval policy"))
+
+
+def _load_autonomy_contract(path: Path = _AUTONOMY, policy: dict[str, Any] | None = None) -> dict[str, Any]:
+    return _validate_autonomy_contract(_read_yaml(path, "autonomy contract"), policy or _load_policy())
+
+
+def evaluate(evidence: Any, policy: dict[str, Any], autonomy: dict[str, Any] | None = None) -> dict[str, Any]:
     policy = _validate_policy(policy)
+    autonomy = (
+        _validate_autonomy_contract(autonomy, policy)
+        if autonomy is not None
+        else _load_autonomy_contract(policy=policy)
+    )
     package = _object(
         evidence,
         "evidence",
@@ -154,12 +240,21 @@ def evaluate(evidence: Any, policy: dict[str, Any]) -> dict[str, Any]:
             "evidence_trust": "caller_asserted_unverified",
             "runtime_policy_changed": False,
         }
-    if action_class != "draft":
+    if action_class in autonomy["already_autonomous"]:
         return {
             "action_class": action_class,
             "as_of": as_of.isoformat(),
-            "status": "evidence_insufficient",
-            "reason": "only the checked-in low-risk draft class can enter manual review",
+            "status": "already_autonomous_noop",
+            "reason": "class is already auto-approvable; promotion would change nothing",
+            "evidence_trust": "caller_asserted_unverified",
+            "runtime_policy_changed": False,
+        }
+    if action_class not in autonomy["promotable"]:
+        return {
+            "action_class": action_class,
+            "as_of": as_of.isoformat(),
+            "status": "not_promotable_refused",
+            "reason": "only classes in the versioned autonomy.v1 promotable list can enter manual review",
             "evidence_trust": "caller_asserted_unverified",
             "runtime_policy_changed": False,
         }
@@ -241,7 +336,10 @@ def evaluate(evidence: Any, policy: dict[str, Any]) -> dict[str, Any]:
     if reasons:
         result["reasons"] = sorted(set(reasons))
     else:
-        result["warning"] = "unverified inputs; founder review and a separate signed policy change are required"
+        result["warning"] = (
+            "unverified inputs; founder review and a separate signed policy change "
+            "(founder-signed autonomy-grant.v1) are required"
+        )
     return result
 
 

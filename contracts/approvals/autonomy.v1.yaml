@@ -1,0 +1,15 @@
+# Earned-autonomy promotion contract (Teracorp A10 / AU1). Read together with policy.v1.yaml.
+# A class moves from human approval to auto-approval ONLY through a founder-signed grant
+# (contracts/approvals/autonomy-grant.v1.schema.json) verified against a trust root below.
+version: 1
+policy_version: 1            # the policy.v1.yaml version this contract governs
+already_autonomous:          # auto-approvable today; promoting them is a no-op and is refused
+  - draft
+promotable:                  # low-risk classes a verified grant may promote
+  - operational
+never_promotable:            # "never auto" in policy.v1 risk_mapping; every always_human class is also refused
+  - financial
+  - admin
+max_grant_days: 90           # a grant must expire within this many days of issue
+trust_roots: []              # founder Ed25519 public keys: {key_id, algorithm: ed25519, public_key: base64 raw 32 bytes}
+                             # empty = every grant is refused (fail closed) until the founder enrols a key
