@@ -63,11 +63,13 @@ def reconcile_statement(payload: Any, statement: Any) -> dict[str, Any]:
         raise InputError("statement_period_invalid")
 
     reported: dict[str, int] = {}
+    display: dict[str, str] = {}  # matching key -> order ref as received (tracked spelling preferred)
     for line in statement["lines"]:
         key = order_key(line["order_ref"])
         if key in reported:
             raise InputError("statement_duplicate_order_ref")
         reported[key] = line["commission_minor"]
+        display[key] = line["order_ref"]
     statement_total = sum(reported.values())
     if statement_total > MAX_TOTAL_MINOR:
         raise InputError("statement_total_out_of_range")
@@ -77,16 +79,19 @@ def reconcile_statement(payload: Any, statement: Any) -> dict[str, Any]:
     outside_period: dict[str, int] = {}
     for event in commissions:
         bucket = computed if start <= _event_date(event) <= end else outside_period
-        bucket[order_key(event["order_ref"])] = event["commission_minor"]
+        key = order_key(event["order_ref"])
+        bucket[key] = event["commission_minor"]
+        display[key] = event["order_ref"]
 
     matched, missing, extra, mismatch, boundary = [], [], [], [], []
-    for order_ref in sorted(computed.keys() | reported.keys()):
-        ours, theirs = computed.get(order_ref), reported.get(order_ref)
+    for key in sorted(computed.keys() | reported.keys()):
+        order_ref = display[key]
+        ours, theirs = computed.get(key), reported.get(key)
         if theirs is None:
             missing.append({"order_ref": order_ref, "commission_minor": ours})
-        elif ours is None and order_ref in outside_period:
+        elif ours is None and key in outside_period:
             # Tracked, but dated outside this statement's period (UTC): a period-boundary question.
-            boundary.append({"order_ref": order_ref, "commission_minor": theirs})
+            boundary.append({"order_ref": order_ref, "computed_minor": outside_period[key], "statement_minor": theirs})
         elif ours is None:
             extra.append({"order_ref": order_ref, "commission_minor": theirs})
         elif ours == theirs:

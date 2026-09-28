@@ -217,7 +217,9 @@ def test_out_of_period_tracked_order_on_the_statement_is_a_period_boundary_row_n
     stmt["period_start"] = "2026-09-22"
     report = reconcile_statement(doc, stmt)
     assert report["extra_in_statement"] == []
-    assert report["period_boundary"] == [{"order_ref": "synthetic-order-001", "commission_minor": 500}]
+    assert report["period_boundary"] == [
+        {"order_ref": "synthetic-order-001", "computed_minor": 500, "statement_minor": 500}
+    ]
     assert report["status"] == "discrepancies"
 
 
@@ -228,7 +230,7 @@ def test_advertiser_order_refs_are_accepted_as_they_arrive_and_matched_case_inse
     stmt["lines"] = [{"order_ref": "inv-2026-001", "commission_minor": 500}]
     report = reconcile_statement(doc, stmt)
     assert report["status"] == "reconciled"
-    assert report["matched"] == [{"order_ref": "inv-2026-001", "commission_minor": 500}]
+    assert report["matched"] == [{"order_ref": "INV-2026-001", "commission_minor": 500}]  # as received
     numeric = document()
     numeric["events"][1]["order_ref"] = "123456"
     stmt["lines"] = [{"order_ref": "123456", "commission_minor": 500}]
