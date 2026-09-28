@@ -209,6 +209,50 @@ def test_joiner_missing_or_unsafe_evidence_refuses(mutate, message: str) -> None
         G5.validate_bundle(data)
 
 
+def _backdate_joiner(data: dict, when: str, *, mapping_approved: str | None = None) -> None:
+    joiner = data["events"][0]
+    joiner["occurred_at_utc"] = when
+    joiner["access"]["starts_at_utc"] = when
+    joiner["mfa"]["verified_at_utc"] = when
+    joiner["role_mapping"]["approved_at_utc"] = mapping_approved or when
+
+
+def test_reviewer_reproduction_joiner_before_policy_and_trigger_is_refused() -> None:
+    data = bundle()
+    _backdate_joiner(data, "2026-01-10T08:00:00Z", mapping_approved="2026-01-09T08:00:00Z")
+    with pytest.raises(G5.InputError, match="trigger review"):
+        G5.validate_bundle(data)
+
+
+def test_joiner_event_before_trigger_review_is_refused() -> None:
+    data = bundle()
+    _backdate_joiner(data, "2026-09-21T07:59:59Z", mapping_approved="2026-09-01T08:00:00Z")
+    with pytest.raises(G5.InputError, match="trigger review"):
+        G5.validate_bundle(data)
+
+
+def test_joiner_access_start_before_trigger_review_is_refused() -> None:
+    data = bundle()
+    data["events"][0]["access"]["starts_at_utc"] = "2026-09-21T07:00:00Z"
+    data["events"][0]["mfa"]["verified_at_utc"] = "2026-09-21T06:00:00Z"
+    data["events"][0]["role_mapping"]["approved_at_utc"] = "2026-09-21T05:00:00Z"
+    with pytest.raises(G5.InputError, match="trigger review"):
+        G5.validate_bundle(data)
+
+
+def test_joiner_role_mapping_approved_before_policy_approval_is_refused() -> None:
+    data = bundle()
+    data["events"][0]["role_mapping"]["approved_at_utc"] = "2026-08-21T08:00:00Z"
+    with pytest.raises(G5.InputError, match="policy approval"):
+        G5.validate_bundle(data)
+
+
+def test_joiner_exactly_at_trigger_review_and_policy_approval_boundaries_is_valid() -> None:
+    data = bundle()
+    _backdate_joiner(data, "2026-09-21T08:00:00Z", mapping_approved="2026-08-22T08:00:00Z")
+    assert G5.validate_bundle(data)["result"] == "evidence_contract_valid_only"
+
+
 def test_mover_requires_old_and_new_scope_and_explicit_approval() -> None:
     data = bundle()
     data["events"] = [event("mover")]

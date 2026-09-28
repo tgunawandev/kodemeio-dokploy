@@ -77,7 +77,9 @@ def _policy(value: Any) -> tuple[int | float, datetime, int]:
     return threshold, approved_at, policy["measurement_window_weeks"]
 
 
-def _trigger(value: Any, threshold: int | float, policy_approved_at: datetime, measurement_window_weeks: int) -> None:
+def _trigger(
+    value: Any, threshold: int | float, policy_approved_at: datetime, measurement_window_weeks: int
+) -> datetime:
     trigger = _obj(
         value,
         "trigger",
@@ -104,6 +106,19 @@ def _trigger(value: Any, threshold: int | float, policy_approved_at: datetime, m
     _ref(trigger["reviewer_ref"], "trigger.reviewer_ref")
     if hours <= threshold:
         raise InputError("founder-hours trigger has not been exceeded; onboarding is refused")
+    return reviewed
+
+
+def _joiner_chronology(
+    event: dict[str, Any], where: str, trigger_reviewed: datetime, policy_approved: datetime
+) -> None:
+    """Onboard only after the trigger was reviewed, under a role mapping approved under the current policy."""
+    occurred = _utc(event["occurred_at_utc"], f"{where}.occurred_at_utc")
+    starts = _utc(event["access"]["starts_at_utc"], f"{where}.access.starts_at_utc")
+    if occurred < trigger_reviewed or starts < trigger_reviewed:
+        raise InputError(f"{where} joiner event and access start must not predate the founder-hours trigger review")
+    if _utc(event["role_mapping"]["approved_at_utc"], f"{where}.role_mapping.approved_at_utc") < policy_approved:
+        raise InputError(f"{where}.role_mapping approval must not predate the founder policy approval")
 
 
 def _mapping(value: Any, approver_ref: str, occurred: datetime, access_starts: datetime) -> str:
@@ -269,15 +284,20 @@ def validate_bundle(payload: Any) -> dict[str, Any]:
     events = root["events"]
     if type(events) is not list:
         raise InputError("bundle.events must be a list")
+    trigger_reviewed = approved_at = None
     onboarding_requested = not events or any(type(item) is dict and item.get("action") == "joiner" for item in events)
     if onboarding_requested:
         threshold, approved_at, measurement_window_weeks = _policy(root["policy"])
-        _trigger(root["trigger"], threshold, approved_at, measurement_window_weeks)
+        trigger_reviewed = _trigger(root["trigger"], threshold, approved_at, measurement_window_weeks)
     if not 1 <= len(events) <= _MAX_EVENTS:
         raise InputError(f"bundle.events must contain 1..{_MAX_EVENTS} complete synthetic lifecycle records")
     event_ids: set[str] = set()
     for index, item in enumerate(events):
         _event(item, index)
+        if item["action"] == "joiner":
+            if trigger_reviewed is None or approved_at is None:
+                raise InputError("joiner events require a validated founder-hours trigger")
+            _joiner_chronology(item, f"events[{index}]", trigger_reviewed, approved_at)
         if item["event_id"] in event_ids:
             raise InputError("event_id values must be unique")
         event_ids.add(item["event_id"])
