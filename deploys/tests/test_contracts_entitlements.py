@@ -1,4 +1,4 @@
-"""ENT (Teracorp Track B): app_checkout.v1 + entitlement.v1 contracts and signing vector."""
+"""ENT (app entitlement bridge): app_checkout.v1 + entitlement.v1 contracts and signing vector."""
 
 from __future__ import annotations
 
@@ -144,7 +144,7 @@ def test_signing_vector_reproduces():
     body = json.loads(vector["body"])
     validator_for(ENTITLEMENT).validate(body)
     assert body["event_id"] == vector["event_id"]
-    assert vector["source"] == "teracorp-odoo"
+    assert vector["source"] == "odoo"
     assert "TEST-ONLY" in vector["_comment"]
 
 
@@ -159,9 +159,9 @@ def test_signature_binds_source_timestamp_event_and_body():
 
 def test_readme_names_the_four_headers_and_window():
     readme = (ENT / "README.md").read_text()
-    for header in ("X-Teracorp-Source", "X-Teracorp-Timestamp", "X-Teracorp-Event-Id", "X-Teracorp-Signature"):
+    for header in ("X-Webhook-Source", "X-Webhook-Timestamp", "X-Webhook-Event-Id", "X-Webhook-Signature"):
         assert header in readme
-    assert "300 s" in readme and "teracorp-odoo" in readme
+    assert "300 s" in readme and "`odoo`" in readme
 
 
 def test_recorded_dispatcher_payload_validates_when_present():
@@ -170,3 +170,11 @@ def test_recorded_dispatcher_payload_validates_when_present():
         pytest.skip("recorded Odoo dispatcher payload lands in ENT T4")
     data = json.loads(recorded.read_text())
     validator_for(ENTITLEMENT).validate(json.loads(data["body"]))
+
+
+def test_contract_files_carry_no_program_name():
+    # Founder rule 2026-09-28: runtime identifiers stay generic (no program/brand name in code).
+    files = [*ENT.glob("*.json"), *EXAMPLES.glob("*.json")]
+    assert files
+    for path in files:
+        assert "teracorp" not in path.read_text().lower(), path.name
