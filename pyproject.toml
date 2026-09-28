@@ -5,6 +5,7 @@ description = "Deployment desired state and operational tooling for the Kodemeio
 requires-python = ">=3.12"
 dependencies = [
     "croniter>=6.2.4",
+    "cryptography>=44",
     "pyyaml>=6.0.2",
 ]
 
