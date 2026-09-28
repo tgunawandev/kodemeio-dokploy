@@ -1,0 +1,81 @@
+{
+  "id": "terakidz-example-line",
+  "brand_kit": "terasehat",
+  "items": [
+    {
+      "kind": "template",
+      "ref": "terakidz-learning-pack",
+      "variants": [
+        {
+          "key": "usia-3-5",
+          "vars": {
+            "age_band": "3-5"
+          }
+        },
+        {
+          "key": "usia-6-7",
+          "vars": {
+            "age_band": "6-7",
+            "session_date": "2026-10-05"
+          }
+        }
+      ],
+      "price_idr": 0,
+      "digital_kind": "template_pack",
+      "publish": "factory_digital"
+    },
+    {
+      "kind": "ebook",
+      "ref": "terakidz-example",
+      "variants": [
+        {
+          "key": "orang-tua",
+          "vars": {
+            "reader_role": "orang tua",
+            "session_count": 6
+          }
+        }
+      ],
+      "price_idr": 49000,
+      "digital_kind": "book",
+      "publish": "digital"
+    },
+    {
+      "kind": "course",
+      "ref": "terakidz-komunikasi-dasar",
+      "kit": "terakidz",
+      "variants": [
+        {
+          "key": "default"
+        }
+      ],
+      "price_idr": 149000,
+      "digital_kind": "course",
+      "publish": "digital"
+    },
+    {
+      "kind": "physical",
+      "ref": "terakidz-box-contoh",
+      "variants": [
+        {
+          "key": "default"
+        }
+      ],
+      "price_idr": 99000,
+      "publish": "none"
+    }
+  ],
+  "launch": [
+    {
+      "platform": "instagram",
+      "shape": "carousel",
+      "brief_key": "learning-pack-launch"
+    },
+    {
+      "platform": "tiktok",
+      "shape": "caption",
+      "brief_key": "ebook-launch",
+      "publish_mode": "creator_handoff"
+    }
+  ]
+}

@@ -110,4 +110,5 @@ Owners: this repo holds the schemas; each service repo implements them.
   express (every placeholder resolves, every lesson's source keys are declared and on disk, every
   quiz answer is one of its options, and every source stays inside the closed Markdown
   vocabulary the renderer implements).
+- `product_lines/product_line.v1.schema.json` is a product line as data (Teracorp Track B, K1): a committed `product_lines/<id>.yaml` naming its `brand_kit`, `items` (`kind` template|ebook|course|content_piece|physical, `ref` to a committed source id, optional per-item `kit`, `variants` setting only declared variables, `price_idr` ≥0 with 0 = free, a seeded `digital_kind`, `publish` factory_digital|digital|none) and `launch` F8 briefs (`platform`, `shape`, `brief_key`, optional F10 `publish_mode`); no value is ever a URL, and `deploys/tests/test_contracts_product_lines.py` resolves every ref and kit against this repo. Draft (placeholder) kits — `terakon`, `terafin`, `terakod` — must carry a `kit uji coba` required disclaimer (`deploys/tests/test_placeholder_kits.py`).
 - Tests: `uv run pytest deploys/tests -k contracts`.

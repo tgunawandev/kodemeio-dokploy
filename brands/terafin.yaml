@@ -1,0 +1,94 @@
+# PLACEHOLDER — Terafin brand kit, DRAFT only (2026-09-28 Teracorp Track B, slice K1).
+#
+# Terafin has no approved brand, voice or product yet. EVERY invented value below is marked
+# `# PLACEHOLDER` and exists only so the factories can render financial-EDUCATION example
+# content (Track B B11) under a real, schema-valid kit. Nothing here is approved brand content:
+# status stays `draft` until a founder-approved Terafin brief exists and named finance educators
+# are recorded as experts (an operational gate — `expert_logins` stays empty here).
+#
+# Two guards live in this file as DATA, never in the kernel:
+#   1. the required `kit uji coba` ("trial kit") disclaimer — `factory.check.brand_rules`
+#      refuses any artefact that omits a required disclaimer, so everything rendered under this
+#      kit visibly says it is a trial brand;
+#   2. the "no advice" law — the forbidden phrases below (claim shapes, never bare words: honest
+#      education says "tidak dijamin", so bare `dijamin` is deliberately NOT forbidden) and the
+#      required education disclaimer.
+# Checked by deploys/tests/test_placeholder_kits.py.
+code: terafin
+version: 1
+status: draft
+brand: terafin
+locale: id_ID
+
+voice:
+  summary: >
+    PLACEHOLDER — no approved Terafin voice exists yet. Draft tone: calm, plain-language
+    financial literacy for Indonesian households and small-business owners; explains concepts,
+    never tells the reader what to buy, sell or hold.
+  do:
+    - "PLACEHOLDER: jelaskan konsep dengan contoh angka sederhana dan sebutkan risikonya."
+    - "PLACEHOLDER: ajak pembaca menyesuaikan dengan kondisi keuangannya sendiri."
+  dont:
+    - "PLACEHOLDER: jangan menyebut nama instrumen, emiten, atau produk investasi tertentu."
+    - "PLACEHOLDER: jangan memberi ajakan membeli atau menjual, dan jangan menjanjikan hasil."
+    - "PLACEHOLDER: do not publish anything under this kit while status is draft."
+
+audience: >
+  PLACEHOLDER — draft audience: Indonesian households and micro/small business owners learning
+  budgeting, saving and basic financial concepts. To be replaced once a founder-approved
+  Terafin brief exists.
+
+rules:
+  # Claim-shaped phrases only (matched case-insensitively by brand_rules).
+  forbidden_phrases:
+    - "rekomendasi saham"
+    - "rekomendasi beli"
+    - "rekomendasi jual"
+    - "sinyal trading"
+    - "pasti untung"
+    - "dijamin untung"
+    - "keuntungan pasti"
+    - "cuan pasti"
+    - "bebas risiko"
+    - "tanpa risiko"
+    - "beli sekarang"
+    - "jual sekarang"
+  required_disclaimers:
+    - "Konten edukasi, bukan nasihat keuangan atau ajakan berinvestasi."
+    - "Terafin adalah kit uji coba (draft) dan belum merupakan produk yang dipasarkan."
+  ai_disclosure: >
+    PLACEHOLDER — draft kit; no generated content should be published under this brand while
+    status is draft.
+  affiliate_hosts: []
+  affiliate_disclosure: "Terafin tidak memiliki tautan afiliasi berbayar pada halaman ini."
+
+colors:
+  primary: "#0f766e"            # PLACEHOLDER — teal, distinct from terakidz green / terakon blue
+  primary_foreground: "#ffffff"
+  accent: "#b45309"             # PLACEHOLDER — amber
+  accent_foreground: "#ffffff"
+  background: "#f7faf9"         # PLACEHOLDER
+  foreground: "#0b1f1c"         # PLACEHOLDER
+  muted: "#d9ece8"              # PLACEHOLDER
+  muted_foreground: "#134e48"   # PLACEHOLDER
+  card: "#ffffff"
+  card_foreground: "#0b1f1c"    # PLACEHOLDER
+  border: "#b7d3cd"             # PLACEHOLDER
+  ring: "#0f766e"               # PLACEHOLDER
+  radius: "0.5rem"              # PLACEHOLDER
+
+fonts:
+  # licence: OFL-1.1 (SIL Open Font License 1.1) — Google Fonts "Inter"; an existing asset key
+  # (terakon registers it), so no new licence evidence is needed. PLACEHOLDER family choice.
+  heading: "asset:font-inter"
+  body: "asset:font-inter"
+
+contact:
+  # PLACEHOLDER — no real Terafin WhatsApp number exists; synthetic all-zero form.
+  whatsapp: "+6281200000000"
+
+reviewers:
+  expert_logins: [] # draft kit: naming finance educators is an operational gate
+
+assets:
+  - "asset:font-inter"

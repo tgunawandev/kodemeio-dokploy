@@ -1,0 +1,218 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kodeme.io/contracts/product_lines/product_line.v1.schema.json",
+  "title": "Product line v1",
+  "description": "A product line as committed data (Teracorp Track B, spec 3.2): product_lines/<id>.yaml. The brand kit it renders under, the items it sells or ships (each a committed template, e-book or course by id, or an opaque content-piece/physical key) and the launch content (F8 briefs). Refs, kits and variant variables are resolved against the committed repo by deploys/tests/test_contracts_product_lines.py; no value is ever a URL. The schema is deliberately SELF-CONTAINED (no $ref, not even to its own branches) so contracts_lib's schema walkers keep working on it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "brand_kit",
+    "items",
+    "launch"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{1,63}$",
+      "description": "Kebab slug; equals the file stem under product_lines/."
+    },
+    "brand_kit": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{1,31}$",
+      "description": "A brand_kit.v1 `code`; must name a committed brands/<code>.yaml."
+    },
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "ref",
+          "variants",
+          "price_idr",
+          "publish"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "template",
+              "ebook",
+              "course",
+              "content_piece",
+              "physical"
+            ]
+          },
+          "ref": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{1,63}$",
+            "description": "template/ebook/course: the committed source id (templates|ebooks|courses/<ref>/). content_piece/physical: an opaque key."
+          },
+          "kit": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{1,31}$",
+            "description": "Overrides the line's brand_kit for this item. The source must list it in brand.kits."
+          },
+          "variants": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "key"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,31}$"
+                },
+                "vars": {
+                  "type": "object",
+                  "propertyNames": {
+                    "pattern": "^[a-z][a-z0-9_]{1,31}$"
+                  },
+                  "additionalProperties": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 200,
+                        "not": {
+                          "pattern": "(://|^[Ww]{3}\\.|^(data|javascript|mailto|file):)"
+                        }
+                      },
+                      {
+                        "type": "integer"
+                      }
+                    ]
+                  },
+                  "description": "Values for the source's declared variables; never a URL."
+                }
+              }
+            },
+            "description": "One render per variant. A variant only sets variables its source declares."
+          },
+          "price_idr": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Whole rupiah; 0 means free."
+          },
+          "digital_kind": {
+            "enum": [
+              "book",
+              "whitepaper",
+              "template_pack",
+              "prompt_pack",
+              "course",
+              "planner"
+            ],
+            "description": "A seeded digital.kind code (kodemeio-odoo digital_base). Required when the item is published."
+          },
+          "publish": {
+            "enum": [
+              "factory_digital",
+              "digital",
+              "none"
+            ],
+            "description": "factory_digital: R6 (a released factory artefact becomes a digital product). digital: a factory publisher straight into digital_base (course publisher, e-book adapter). none: not sold digitally."
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "publish"
+              ],
+              "properties": {
+                "publish": {
+                  "enum": [
+                    "factory_digital",
+                    "digital"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "digital_kind"
+              ]
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "kind"
+              ],
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "content_piece",
+                    "physical"
+                  ]
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "publish": {
+                  "const": "none"
+                }
+              },
+              "not": {
+                "required": [
+                  "digital_kind"
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    "launch": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "platform",
+          "shape",
+          "brief_key"
+        ],
+        "description": "One F8 (factory_content) brief. platform -> the brief's channel, shape -> its piece kind.",
+        "properties": {
+          "platform": {
+            "enum": [
+              "tiktok",
+              "youtube",
+              "instagram",
+              "facebook"
+            ]
+          },
+          "shape": {
+            "enum": [
+              "caption",
+              "script",
+              "carousel",
+              "thread"
+            ]
+          },
+          "brief_key": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]{1,63}$"
+          },
+          "publish_mode": {
+            "enum": [
+              "creator_handoff",
+              "prepared_container",
+              "private_remote_asset",
+              "direct_publish"
+            ],
+            "description": "The F10 publication mode the launch expects; absent means creator_handoff (manual)."
+          }
+        }
+      }
+    }
+  }
+}

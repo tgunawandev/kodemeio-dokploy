@@ -1,0 +1,79 @@
+# PLACEHOLDER — Terakod brand kit, DRAFT only (2026-09-28 Teracorp Track B, slice K1).
+#
+# Terakod has no approved brand, voice or product yet. EVERY invented value below is marked
+# `# PLACEHOLDER` and exists only so the factories can render software / small-business example
+# content under a real, schema-valid kit. Nothing here is approved brand content: status stays
+# `draft` until a founder-approved Terakod brief exists and named reviewers are recorded as
+# experts (an operational gate — `expert_logins` stays empty here).
+#
+# The guard lives in this file as DATA, never in the kernel: the required `kit uji coba`
+# ("trial kit") disclaimer. `factory.check.brand_rules` refuses any artefact that omits a
+# required disclaimer, so everything rendered under this kit visibly says it is a trial brand.
+# Checked by deploys/tests/test_placeholder_kits.py.
+code: terakod
+version: 1
+status: draft
+brand: terakod
+locale: id_ID
+
+voice:
+  summary: >
+    PLACEHOLDER — no approved Terakod voice exists yet. Draft tone: practical, plain-spoken
+    software help for Indonesian small and medium businesses; concrete steps, no hype, no
+    jargon without an explanation.
+  do:
+    - "PLACEHOLDER: tunjukkan langkah nyata dan contoh sederhana dari operasional UMKM."
+    - "PLACEHOLDER: sebutkan batasan alat atau layanan dengan jujur."
+  dont:
+    - "PLACEHOLDER: jangan menjanjikan hasil bisnis atau angka penjualan tertentu."
+    - "PLACEHOLDER: do not publish anything under this kit while status is draft."
+
+audience: >
+  PLACEHOLDER — draft audience: owners and operators of Indonesian small and medium businesses
+  adopting software for daily operations. To be replaced once a founder-approved Terakod brief
+  exists.
+
+rules:
+  forbidden_phrases:
+    - "dijamin laris"
+    - "pasti untung"
+    - "omzet pasti naik"
+    - "bebas bug"
+  required_disclaimers:
+    - "Terakod adalah kit uji coba (draft) dan belum merupakan produk yang dipasarkan."
+  ai_disclosure: >
+    PLACEHOLDER — draft kit; no generated content should be published under this brand while
+    status is draft.
+  affiliate_hosts: []
+  affiliate_disclosure: "Terakod tidak memiliki tautan afiliasi berbayar pada halaman ini."
+
+colors:
+  primary: "#1f2937"            # PLACEHOLDER — graphite, distinct from the other kits
+  primary_foreground: "#ffffff"
+  accent: "#0e7490"             # PLACEHOLDER — cyan
+  accent_foreground: "#ffffff"
+  background: "#f9fafb"         # PLACEHOLDER
+  foreground: "#111827"         # PLACEHOLDER
+  muted: "#e5e7eb"              # PLACEHOLDER
+  muted_foreground: "#374151"   # PLACEHOLDER
+  card: "#ffffff"
+  card_foreground: "#111827"    # PLACEHOLDER
+  border: "#d1d5db"             # PLACEHOLDER
+  ring: "#0e7490"               # PLACEHOLDER
+  radius: "0.375rem"            # PLACEHOLDER
+
+fonts:
+  # licence: OFL-1.1 (SIL Open Font License 1.1) — Google Fonts "Inter"; an existing asset key
+  # (terakon registers it), so no new licence evidence is needed. PLACEHOLDER family choice.
+  heading: "asset:font-inter"
+  body: "asset:font-inter"
+
+contact:
+  # PLACEHOLDER — no real Terakod WhatsApp number exists; synthetic all-zero form.
+  whatsapp: "+6281200000000"
+
+reviewers:
+  expert_logins: [] # draft kit: naming reviewers is an operational gate
+
+assets:
+  - "asset:font-inter"
