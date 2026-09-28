@@ -1,0 +1,69 @@
+# Terafin product line (Teracorp Track B, B11/TB11) -- EXAMPLE CONTENT, not approved product copy.
+# Financial EDUCATION only, under the draft PLACEHOLDER `terafin` kit: every artefact carries the
+# kit's `kit uji coba` disclaimer and "Konten edukasi, bukan nasihat keuangan atau ajakan
+# berinvestasi.", and the kit's forbidden phrases refuse advice-shaped copy at check time.
+#
+# Contract: contracts/product_lines/product_line.v1.schema.json (checked by
+# deploys/tests/test_contracts_product_lines.py; TB11's own proofs are in
+# deploys/tests/test_terafin_line.py). Read by the K2 harness (kodemeio-odoo
+# `bin/teracorp-product-line terafin --db odoo_test_tb_b11`). Runbook:
+# ops/runbooks/teracorp-b11-terafin-line.md.
+#
+# Free items (price_idr: 0) are delivered through the TB-D8 path K2 records (zero-price product
+# through R6 if its V1 check holds, else a public download on the F2 site -- no F2 site is built
+# for Terafin in built-local). Prices are PLACEHOLDERS for the founder to set.
+id: terafin
+brand_kit: terafin
+
+items:
+  - kind: template
+    ref: terafin-budget-planner
+    variants:
+      - key: oktober
+        vars: {budget_month: "Oktober"}
+      - key: november
+        vars: {budget_month: "November", start_date: "2026-11-01"}
+    price_idr: 0
+    digital_kind: planner
+    publish: factory_digital
+
+  - kind: template
+    ref: terafin-cashflow-worksheet
+    variants:
+      - key: rumah-tangga
+        vars: {household_type: "rumah tangga"}
+      - key: usaha-mikro
+        vars: {household_type: "usaha mikro", worksheet_title: "Lembar Arus Kas Usaha Mikro"}
+    price_idr: 0
+    digital_kind: template_pack
+    publish: factory_digital
+
+  - kind: ebook
+    ref: terafin-dasar-keuangan-keluarga
+    variants:
+      - key: keluarga-muda
+        vars: {reader_role: "keluarga muda", household_size: 4, emergency_months: "6"}
+    price_idr: 59000 # PLACEHOLDER price
+    digital_kind: book
+    publish: digital
+
+  - kind: course
+    ref: terafin-literasi-keuangan-101
+    variants:
+      - key: default
+    price_idr: 149000 # PLACEHOLDER price
+    digital_kind: course
+    publish: digital
+
+# Three F8 briefs; F10 publishes only after approval, by manual creator handoff (no publish_mode
+# means creator_handoff). The brief copy each key stands for is listed in the runbook.
+launch:
+  - platform: instagram
+    shape: carousel
+    brief_key: terafin-planner-launch
+  - platform: tiktok
+    shape: caption
+    brief_key: terafin-ebook-launch
+  - platform: facebook
+    shape: caption
+    brief_key: terafin-course-launch

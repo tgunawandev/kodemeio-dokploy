@@ -1,0 +1,64 @@
+<!doctype html>
+<!--
+  Terafin weekly cash-flow worksheet -- the wkhtml layout source named by template.yaml (`layout`).
+
+  EXAMPLE CONTENT — not approved product copy (see template.yaml's header).
+
+  The layout is a SKELETON, never content: it places {{blocks}} and pulls the brand from the
+  kit (the Terafin placeholder palette and fonts). Every {{...}} placeholder is one of the five
+  namespaces template.v1 defines; a placeholder the renderer cannot supply refuses the import.
+
+  Styling notes (same engine rules as templates/terakidz-learning-pack/layout.html): wkhtmltopdf
+  is WebKit -- no flexbox, no CSS grid; page geometry comes from the render options, never from
+  CSS `@page`; colours, radius and font families all come from {{theme.*}}.
+-->
+<html lang="{{option.locale}}">
+<head>
+  <meta charset="utf-8"/>
+  <title>{{var.worksheet_title}}</title>
+  <style>
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: "{{theme.font_body}}", sans-serif;
+      color: {{theme.foreground}};
+      background: {{theme.background}};
+      font-size: 11pt;
+      line-height: 1.5;
+    }
+    .rule-band { height: 4mm; background: {{theme.primary}}; margin: 0 0 5mm 0; }
+    h1, h2, h3 { font-family: "{{theme.font_heading}}", sans-serif; color: {{theme.primary}}; margin: 0 0 3mm 0; }
+    h1 { font-size: 20pt; }
+    h2 { font-size: 14pt; margin-top: 5mm; }
+    h3 { font-size: 12pt; }
+    p { margin: 0 0 3mm 0; }
+    ol, ul { margin: 0 0 3mm 8mm; padding: 0; }
+    li { margin: 0 0 1.5mm 0; }
+    table { border-collapse: collapse; width: 100%; margin: 0 0 4mm 0; }
+    th { background: {{theme.muted}}; color: {{theme.muted_foreground}}; text-align: left; }
+    th, td { border: 1px solid {{theme.border}}; padding: 3mm 2mm; height: 7mm; }
+    .disclaimer {
+      background: {{theme.card}};
+      color: {{theme.card_foreground}};
+      border-left: 3mm solid {{theme.accent}};
+      border-radius: {{theme.radius}};
+      padding: 3mm 4mm;
+      margin: 4mm 0;
+    }
+    .footer { color: {{theme.muted_foreground}}; font-size: 9pt; margin: 0 0 3mm 0; }
+    .colophon {
+      margin-top: 6mm;
+      padding-top: 2mm;
+      border-top: 1px solid {{theme.border}};
+      color: {{theme.muted_foreground}};
+      font-size: 8pt;
+    }
+  </style>
+</head>
+<body>
+  <div class="rule-band"></div>
+  {{blocks}}
+  <div class="colophon">
+    {{option.palette}} &middot; {{theme.font_heading}} &middot; {{theme.primary}} &middot; {{option.locale}}
+  </div>
+</body>
+</html>

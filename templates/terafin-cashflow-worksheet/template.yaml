@@ -1,0 +1,100 @@
+# Terafin weekly cash-flow worksheet — a free F3 printable of the Terafin line (Teracorp Track B,
+# B11/TB11).
+#
+# EXAMPLE CONTENT — not approved product copy. Terafin has no approved brand or voice yet:
+# brands/terafin.yaml is a `draft` PLACEHOLDER kit, so everything rendered from this template
+# carries the kit's `kit uji coba` disclaimer and its education disclaimer. Finance educators
+# (named experts) and the founder replace this copy at the operational gate
+# (ops/runbooks/teracorp-b11-terafin-line.md).
+#
+# EDUCATION ONLY. The sheet teaches recording money in and money out for seven days and reading
+# the pattern afterwards. It never names a financial instrument, never says what to buy or sell
+# and never promises a result (kit `brand_rules` + deploys/tests/test_terafin_line.py).
+#
+# No image block: the terafin kit registers no image asset, and a template never introduces an
+# unlicensed one. Placeholders are template.v1's five namespaces (var/theme/page/option/kit).
+id: terafin-cashflow-worksheet
+version: 1
+title: "Terafin Lembar Arus Kas Mingguan"
+kind: pdf
+renderer: wkhtml
+layout: layout.html
+
+page:
+  size: A4
+  orientation: landscape
+  margins:
+    top: 14
+    right: 14
+    bottom: 14
+    left: 14
+
+blocks:
+  - type: heading
+    level: 1
+    text: "{{var.worksheet_title}}"
+  - type: paragraph
+    text: >-
+      Lembar ini membantu {{var.household_type}} mencatat uang masuk dan uang keluar selama
+      tujuh hari, mulai {{var.period_start}}. Tujuannya melihat pola, bukan menilai diri sendiri.
+  - type: heading
+    level: 2
+    text: "Catatan harian"
+  - type: table
+    columns: ["Hari", "Uang masuk (Rp)", "Uang keluar (Rp)", "Untuk apa", "Sisa akhir hari (Rp)"]
+    rows:
+      - ["Senin", "", "", "", ""]
+      - ["Selasa", "", "", "", ""]
+      - ["Rabu", "", "", "", ""]
+      - ["Kamis", "", "", "", ""]
+      - ["Jumat", "", "", "", ""]
+      - ["Sabtu", "", "", "", ""]
+      - ["Minggu", "", "", "", ""]
+  - type: heading
+    level: 2
+    text: "Setelah tujuh hari"
+  - type: list
+    ordered: true
+    items:
+      - "Jumlahkan uang masuk dan uang keluar, lalu hitung selisihnya."
+      - "Tandai tiga pengeluaran terbesar dan tanyakan: kebutuhan atau keinginan?"
+      - "Untuk usaha mikro, pisahkan uang usaha dari uang rumah tangga sejak hari pertama."
+      - "Pilih satu kebiasaan kecil untuk diubah pada pekan berikutnya."
+  - type: paragraph
+    text: >-
+      Angka di lembar ini milik Anda sendiri. Lembar ini tidak menilai keputusan keuangan apa
+      pun dan tidak perlu dibagikan kepada siapa pun.
+  - type: disclaimer
+    text: "{{kit.disclaimers}}"
+  - type: footer
+    text: "Dicetak dari Lembar Arus Kas Terafin (contoh) — {{var.period_start}}"
+
+variables:
+  - key: worksheet_title
+    type: string
+    required: true
+    default: "Lembar Arus Kas Mingguan"
+    description: "The sheet's title as it appears on the page."
+  - key: household_type
+    type: enum
+    enum: ["rumah tangga", "usaha mikro"]
+    required: true
+    default: "rumah tangga"
+    description: "Who the sheet addresses: a household or a micro business (a variant axis)."
+  - key: period_start
+    type: date
+    required: false
+    default: "2026-10-05"
+    description: "The first day of the recorded week; formatted for the render's locale."
+
+assets:
+  fonts:
+    heading: "asset:font-inter"
+    body: "asset:font-inter"
+
+outputs: [pdf]
+
+# Terafin copy only: the text is finance education in the Terafin (placeholder) voice, so no
+# other kit is approved to render it.
+brand:
+  kits: ["terafin"]

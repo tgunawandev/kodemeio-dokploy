@@ -1,0 +1,189 @@
+# Terafin "Dasar Keuangan Keluarga" — the paid F4 e-book of the Terafin line (Teracorp Track B,
+# B11/TB11).
+#
+# EXAMPLE CONTENT — not approved product copy. Terafin has no approved brand or voice yet:
+# brands/terafin.yaml is a `draft` PLACEHOLDER kit, so both formats carry the kit's `kit uji
+# coba` disclaimer and its education disclaimer. Finance educators (named experts) and the
+# founder replace this copy at the operational gate (ops/runbooks/teracorp-b11-terafin-line.md).
+#
+# EDUCATION ONLY. The book explains household money habits -- cash flow, a monthly budget, an
+# emergency fund, handling debt, reading an offer calmly. It never names a financial instrument
+# or provider, never says what to buy or sell and never promises a result (kit `brand_rules` +
+# deploys/tests/test_terafin_line.py). Worked numbers are illustrations, labelled as such.
+#
+# `book.md` beside this file is DERIVED from it (the canonical Markdown both renderers consume,
+# pinned by deploys/tests/test_contracts_ebooks.py's render_markdown and by
+# test_terafin_line.py). Edit this file, then regenerate book.md; never edit book.md by hand.
+#
+# The cover logo `asset:image-terafin-book-logo` is a PLACEHOLDER KEY: no bytes are committed and
+# no licence evidence exists yet. The renderers draw a labelled placeholder for it (nothing is
+# fetched); the K2 harness registers a synthetic asset row for it in the test DB only, and a
+# real, licensed logo is an operational gate in the runbook.
+id: terafin-dasar-keuangan-keluarga
+version: 1
+title: "Dasar Keuangan Keluarga"
+subtitle: "Panduan Edukasi Mengelola Uang Rumah Tangga Langkah demi Langkah"
+author: "Tim Terafin"
+locale: id_ID
+
+page:
+  size: A5
+  orientation: portrait
+  margins:
+    top: 16
+    right: 14
+    bottom: 16
+    left: 14
+
+cover:
+  logo: "asset:image-terafin-book-logo"
+  palette: primary
+
+chapters:
+  - id: mengenal-arus-uang
+    title: "Mengenal Arus Uang Keluarga"
+    blocks:
+      - type: paragraph
+        text: >-
+          Buku ini disusun untuk {{var.reader_role}} yang ingin memahami ke mana uang keluarga
+          mengalir setiap bulan. Tidak ada jalan pintas di sini: yang ada hanya kebiasaan
+          sederhana yang bisa dicoba pelan-pelan, disesuaikan dengan kondisi masing-masing.
+      - type: paragraph
+        text: >-
+          Langkah pertama selalu sama: mencatat. Selama satu bulan, catat setiap uang yang masuk
+          dan keluar untuk rumah tangga berisi {{var.household_size}} orang, sekecil apa pun
+          jumlahnya. Catatan itu bukan untuk menilai, melainkan untuk melihat pola.
+      - type: list
+        items:
+          - "Uang masuk: gaji, hasil usaha, kiriman keluarga, dan pemasukan tidak rutin."
+          - "Uang keluar wajib: makan, tempat tinggal, listrik, air, transportasi, pendidikan."
+          - "Uang keluar pilihan: hiburan, jajan, hadiah, dan belanja yang bisa ditunda."
+      - type: disclaimer
+        text: "{{kit.disclaimers}}"
+
+  - id: menyusun-anggaran
+    title: "Menyusun Anggaran Bulanan"
+    blocks:
+      - type: heading
+        level: 2
+        text: "Rencana Dulu, Belanja Kemudian"
+      - type: paragraph
+        text: >-
+          Anggaran adalah rencana pembagian uang sebelum uang itu dipakai. Mulailah dari pemasukan
+          bersih, lalu bagi ke pos-pos yang sudah Anda kenali di bab sebelumnya.
+      - type: list
+        ordered: true
+        items:
+          - "Tulis pemasukan bersih bulan ini."
+          - "Isi pos wajib lebih dulu, dengan angka dari catatan bulan lalu."
+          - "Sisihkan dana darurat di awal bulan, bukan dari sisa."
+          - "Bagi sisanya ke pos pilihan, dan beri batas untuk setiap pos."
+      - type: table
+        columns: ["Pos", "Contoh porsi", "Keterangan"]
+        rows:
+          - ["Kebutuhan wajib", "sekitar separuh", "makan, tempat tinggal, tagihan"]
+          - ["Dana darurat dan tabungan tujuan", "sebagian tetap", "disisihkan di awal bulan"]
+          - ["Keinginan", "sisanya", "boleh, asal ada batasnya"]
+      - type: paragraph
+        text: >-
+          Tabel di atas hanya ilustrasi. Porsi yang tepat berbeda untuk setiap keluarga dan bisa
+          berubah dari bulan ke bulan.
+
+  - id: dana-darurat
+    title: "Dana Darurat"
+    blocks:
+      - type: heading
+        level: 2
+        text: "Bantalan untuk Hari yang Tidak Terduga"
+      - type: paragraph
+        text: >-
+          Dana darurat adalah uang yang disiapkan untuk kejadian mendadak: sakit, kehilangan
+          pemasukan, atau perbaikan rumah yang tidak bisa ditunda. Banyak pendidik keuangan
+          memakai patokan sekitar {{var.emergency_months}} bulan pengeluaran wajib sebagai
+          sasaran jangka panjang, dikumpulkan sedikit demi sedikit.
+      - type: list
+        items:
+          - "Pisahkan dana darurat dari uang belanja harian agar tidak terpakai tanpa sengaja."
+          - "Mulai dari jumlah kecil yang rutin; konsistensi lebih penting daripada besarnya."
+          - "Pakai hanya untuk keadaan darurat, lalu isi kembali setelahnya."
+
+  - id: mengelola-utang
+    title: "Mengelola Utang dengan Tenang"
+    blocks:
+      - type: heading
+        level: 2
+        text: "Kenali Dulu Semua Kewajiban"
+      - type: paragraph
+        text: >-
+          Utang bukan selalu masalah, tetapi utang yang tidak tercatat mudah menjadi beban. Buat
+          daftar semua kewajiban: kepada siapa, sisa pokok, besar cicilan, dan tanggal jatuh
+          tempo.
+      - type: table
+        columns: ["Kewajiban", "Sisa pokok (Rp)", "Cicilan per bulan (Rp)", "Jatuh tempo"]
+        rows:
+          - ["Contoh A", "", "", ""]
+          - ["Contoh B", "", "", ""]
+      - type: list
+        ordered: true
+        items:
+          - "Bayar setiap cicilan tepat waktu agar tidak menambah denda."
+          - "Jika ada sisa, dahulukan kewajiban dengan biaya paling tinggi."
+          - "Sebelum menambah utang baru, hitung apakah cicilannya masih muat di anggaran."
+      - type: paragraph
+        text: >-
+          Berhati-hatilah terhadap tawaran yang menjanjikan hasil tinggi dalam waktu singkat,
+          yang mendesak Anda memutuskan hari itu juga, atau yang tidak menjelaskan biayanya
+          secara tertulis. Tawaran yang baik memberi waktu untuk bertanya dan berpikir.
+
+  - id: langkah-berikutnya
+    title: "Langkah Berikutnya"
+    blocks:
+      - type: paragraph
+        text: >-
+          Mulailah dari {{var.start_date}}: satu bulan mencatat, satu bulan menyusun anggaran,
+          lalu satu kebiasaan baru setiap bulan. Keputusan keuangan tetap milik keluarga Anda,
+          dan untuk keputusan besar, bicarakan dengan tenaga profesional yang berizin.
+      - type: footer
+        text: "Dibaca dari Dasar Keuangan Keluarga — edisi contoh Terafin"
+      - type: disclaimer
+        text: "{{kit.disclaimers}}"
+
+variables:
+  - key: reader_role
+    type: string
+    required: true
+    default: "keluarga muda"
+    description: "Who the book addresses (a variant axis: keluarga muda, orang tua tunggal, pelaku usaha mikro)."
+  - key: household_size
+    type: int
+    required: true
+    default: 4
+    description: "The household size used in the chapter-one example."
+  - key: emergency_months
+    type: enum
+    enum: ["3", "6"]
+    required: true
+    default: "6"
+    description: "The emergency-fund rule of thumb the book quotes, in months of essential spending."
+  - key: start_date
+    type: date
+    required: false
+    default: "2026-10-01"
+    description: "The date the reader's plan starts; formatted for the render's locale."
+
+assets:
+  fonts:
+    heading: "asset:font-inter"
+    body: "asset:font-inter"
+  images:
+    logo: "asset:image-terafin-book-logo"
+
+# Both formats (spec D2): the PDF through Typst, the EPUB through Pandoc.
+outputs: [pdf, epub]
+renderers:
+  pdf: typst
+  epub: pandoc
+
+# Terafin copy only: finance education in the Terafin (placeholder) voice.
+brand:
+  kits: ["terafin"]

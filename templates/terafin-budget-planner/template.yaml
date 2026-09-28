@@ -1,0 +1,104 @@
+# Terafin monthly budget planner — a free F3 workbook of the Terafin line (Teracorp Track B, B11/TB11).
+#
+# EXAMPLE CONTENT — not approved product copy. Terafin has no approved brand or voice yet:
+# brands/terafin.yaml is a `draft` PLACEHOLDER kit, so everything rendered from this template
+# carries the kit's `kit uji coba` disclaimer and its education disclaimer. Finance educators
+# (named experts) and the founder replace this copy at the operational gate
+# (ops/runbooks/teracorp-b11-terafin-line.md).
+#
+# EDUCATION ONLY. The workbook teaches a habit (plan, record, compare) and never names a
+# financial instrument, never says what to buy or sell and never promises a result. The kit's
+# forbidden phrases make that a check (`brand_rules`), not a promise; deploys/tests/
+# test_terafin_line.py adds a stricter authoring lint for these sources.
+#
+# The layout sidecar is `layout.yaml` (pinned by the schema for `renderer: xlsx`). It is DATA the
+# renderer INTERPRETS -- sheets -> cells, a closed style and formula vocabulary -- never code.
+id: terafin-budget-planner
+version: 1
+title: "Terafin Lembar Anggaran Bulanan"
+kind: xlsx
+renderer: xlsx
+layout: layout.yaml
+
+# Declared for every template (the schema requires it) and ignored by the workbook renderer.
+page:
+  size: A4
+  orientation: portrait
+  margins:
+    top: 12
+    right: 12
+    bottom: 12
+    left: 12
+
+blocks:
+  - type: heading
+    level: 1
+    text: "{{var.planner_title}}"
+  - type: paragraph
+    text: >-
+      Bulan {{var.budget_month}} · mulai {{var.start_date}} · isi kolom Rencana di awal bulan,
+      lalu kolom Realisasi setiap pekan.
+  - type: table
+    columns: ["Pos pengeluaran", "Rencana (Rp)", "Realisasi (Rp)", "Catatan"]
+    rows:
+      - ["Kebutuhan pokok (makan, listrik, air)", "", "", ""]
+      - ["Tempat tinggal", "", "", ""]
+      - ["Transportasi", "", "", ""]
+      - ["Pendidikan", "", "", ""]
+      - ["Cicilan dan utang", "", "", ""]
+      - ["Dana darurat", "", "", ""]
+      - ["Tabungan untuk tujuan keluarga", "", "", ""]
+      - ["Keinginan (hiburan, jajan)", "", "", ""]
+  - type: list
+    ordered: false
+    items:
+      - "Tulis pemasukan bersih bulan ini lebih dulu, baru bagi ke pos pengeluaran."
+      - "Sisihkan dana darurat di awal bulan, bukan dari sisa di akhir bulan."
+      - "Bandingkan Rencana dan Realisasi setiap pekan; selisih adalah bahan evaluasi, bukan kegagalan."
+      - "Sesuaikan pos dengan kondisi keluarga Anda sendiri; tidak ada angka yang berlaku untuk semua."
+  - type: footer
+    text: "Dibuat dengan Lembar Anggaran Terafin (contoh)"
+  - type: disclaimer
+    text: "{{kit.disclaimers}}"
+
+variables:
+  - key: planner_title
+    type: string
+    required: true
+    default: "Anggaran Bulanan Keluarga"
+    description: "The workbook's title, written into each sheet's title cell."
+  - key: budget_month
+    type: enum
+    enum:
+      - "Januari"
+      - "Februari"
+      - "Maret"
+      - "April"
+      - "Mei"
+      - "Juni"
+      - "Juli"
+      - "Agustus"
+      - "September"
+      - "Oktober"
+      - "November"
+      - "Desember"
+    required: true
+    default: "Oktober"
+    description: "The month the budget covers (a variant axis)."
+  - key: start_date
+    type: date
+    required: false
+    default: "2026-10-01"
+    description: "First day of the budget month; formatted for the render's locale."
+
+assets:
+  fonts:
+    heading: "asset:font-inter"
+    body: "asset:font-inter"
+
+outputs: [xlsx]
+
+# Terafin copy only: the text is finance education in the Terafin (placeholder) voice, so no
+# other kit is approved to render it.
+brand:
+  kits: ["terafin"]

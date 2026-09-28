@@ -1,0 +1,45 @@
+# Terafin monthly budget planner -- the layout sidecar named by template.yaml (`layout`).
+#
+# EXAMPLE CONTENT — not approved product copy (see template.yaml's header).
+#
+# DATA, NOT CODE (spec D2 amendment, 2026-09-27): the renderer INTERPRETS this file and never
+# executes it. Same closed vocabulary as templates/terakon-planner/layout.yaml:
+#   cell.<one of> text | var | block | formula
+#   block    heading/paragraph/footer/disclaimer -> this cell; list -> one cell per item,
+#            downwards; table -> the header row across, then one row per declared row
+#   formula  SUM|AVG|MIN|MAX|COUNT(<cell|range>)
+#   style    title | note | header | body | grid | footer | notice
+#
+# The grid's header row is row 4 and its eight rows land on rows 5-12, so the totals on row 13
+# sum exactly B5:B12 and C5:C12 (pinned by test_the_workbook_totals_sum_exactly_the_grid_rows).
+# Every sheet places the kit's disclaimers (block 5): a sheet read on its own still says it is
+# education from a trial kit.
+sheets:
+  - name: Anggaran
+    columns:
+      A: 36
+      B: 16
+      C: 16
+      D: 30
+    freeze: A5
+    cells:
+      - {ref: A1, block: 0, style: title} # the heading block: the planner's title
+      - {ref: A2, block: 1, style: note} # the paragraph block: month, start date, how to fill
+      - {ref: A4, block: 2, style: grid} # the table block: eight budget lines, header row first
+      - {ref: A13, text: "Total", style: header}
+      - {ref: B13, formula: "SUM(B5:B12)", type: number, style: body}
+      - {ref: C13, formula: "SUM(C5:C12)", type: number, style: body}
+      - {ref: A15, text: "Cara memakai lembar ini", style: header}
+      - {ref: A16, block: 3, style: body} # the list block: four habits, one per row
+      - {ref: A21, block: 4, style: footer}
+      - {ref: A23, block: 5, style: notice} # the kit's mandatory disclaimers
+
+  - name: Evaluasi
+    columns:
+      A: 70
+    cells:
+      - {ref: A1, block: 0, style: title}
+      - {ref: A3, var: budget_month, style: note}
+      - {ref: A5, text: "Pos dengan selisih terbesar bulan ini:", style: header}
+      - {ref: A8, text: "Satu kebiasaan kecil yang ingin diubah bulan depan:", style: header}
+      - {ref: A12, block: 5, style: notice}

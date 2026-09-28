@@ -1,0 +1,203 @@
+# Terafin "Literasi Keuangan 101" — the paid F5 course of the Terafin line (Teracorp Track B,
+# B11/TB11).
+#
+# EXAMPLE CONTENT — not approved product copy. Terafin has no approved brand or voice yet:
+# brands/terafin.yaml is a `draft` PLACEHOLDER kit, so every reading and every deck places the
+# kit's disclaimers (`kit uji coba` plus the education line). Finance educators (named experts)
+# and the founder replace this copy at the operational gate
+# (ops/runbooks/teracorp-b11-terafin-line.md). The Markdown sources beside this file cannot carry
+# a comment (raw HTML is outside the course vocabulary), so this header covers them too.
+#
+# EDUCATION ONLY. Five lessons on household money habits: reading cash flow, a monthly budget,
+# an emergency fund, handling debt and judging a financial offer calmly. No lesson names a
+# financial instrument or provider, says what to buy or sell, or promises a result (kit
+# `brand_rules` + deploys/tests/test_terafin_line.py). Every quiz question carries an
+# explanation, because a quiz here teaches rather than grades.
+#
+# A course is DATA and the slides are MARKDOWN (spec D2): each lesson's `reading` and `slides`
+# name a source KEY below, each a `.md` file beside this one. No video and no image: the terafin
+# kit registers neither, and a course never introduces an unlicensed asset.
+id: terafin-literasi-keuangan-101
+version: 1
+title: "Terafin: Literasi Keuangan 101"
+level: starter
+locale: id_ID
+kind: course
+
+renderer: html
+
+sources:
+  m1-arus-uang: "m1-arus-uang.md"
+  m1-arus-uang-slides: "m1-arus-uang-slides.md"
+  m2-anggaran: "m2-anggaran.md"
+  m2-anggaran-slides: "m2-anggaran-slides.md"
+  m2-dana-darurat: "m2-dana-darurat.md"
+  m2-dana-darurat-slides: "m2-dana-darurat-slides.md"
+  m3-utang: "m3-utang.md"
+  m3-utang-slides: "m3-utang-slides.md"
+  m3-menilai-tawaran: "m3-menilai-tawaran.md"
+  m3-menilai-tawaran-slides: "m3-menilai-tawaran-slides.md"
+
+modules:
+  - id: m1-arus-uang
+    title: "Memahami arus uang"
+    summary: >-
+      Sebelum membuat rencana, kenali dulu ke mana uang mengalir: pemasukan, pengeluaran wajib
+      dan pengeluaran pilihan.
+    lessons:
+      - id: l1-arus-uang
+        title: "Mencatat uang masuk dan keluar"
+        summary: "Satu bulan mencatat memberi gambaran yang lebih jujur daripada perkiraan."
+        reading: m1-arus-uang
+        slides: m1-arus-uang-slides
+        quiz:
+          pass_score: 70
+          questions:
+            - id: q1-tujuan-catatan
+              prompt: "Apa tujuan utama mencatat uang masuk dan keluar selama satu bulan?"
+              options:
+                - "Melihat pola pengeluaran keluarga apa adanya"
+                - "Mencari siapa yang paling boros di rumah"
+                - "Memenuhi syarat pengajuan pinjaman"
+              answer: "Melihat pola pengeluaran keluarga apa adanya"
+              explanation: >-
+                Catatan dipakai untuk memahami pola, bukan untuk menyalahkan. Pola itulah yang
+                nanti menjadi dasar anggaran yang realistis.
+            - id: q2-pengeluaran-wajib
+              prompt: "Manakah contoh pengeluaran wajib?"
+              options:
+                - "Tagihan listrik dan air"
+                - "Langganan hiburan tambahan"
+                - "Jajan di akhir pekan"
+              answer: "Tagihan listrik dan air"
+              explanation: >-
+                Pengeluaran wajib adalah kebutuhan yang sulit ditunda tanpa mengganggu kehidupan
+                sehari-hari, seperti listrik, air, makan dan tempat tinggal.
+
+  - id: m2-anggaran
+    title: "Anggaran dan dana darurat"
+    summary: >-
+      Membagi uang sebelum dipakai, dan menyiapkan bantalan untuk kejadian yang tidak terduga.
+    lessons:
+      - id: l2-anggaran
+        title: "Menyusun anggaran bulanan"
+        summary: "Rencana dulu, belanja kemudian: pos wajib, dana darurat, lalu pos pilihan."
+        reading: m2-anggaran
+        slides: m2-anggaran-slides
+        quiz:
+          pass_score: 70
+          questions:
+            - id: q3-urutan
+              prompt: "Kapan sebaiknya dana darurat disisihkan dalam anggaran bulanan?"
+              options:
+                - "Di awal bulan, bersama pos wajib"
+                - "Dari sisa uang di akhir bulan"
+                - "Hanya ketika ada pemasukan tambahan"
+              answer: "Di awal bulan, bersama pos wajib"
+              explanation: >-
+                Uang yang disisihkan di awal bulan lebih mungkin benar-benar terkumpul. Sisa di
+                akhir bulan sering kali tidak ada.
+            - id: q4-selisih
+              prompt: "Realisasi pos makan ternyata lebih besar dari rencana. Apa langkah yang tepat?"
+              options:
+                - "Mencari penyebabnya dan menyesuaikan rencana bulan depan"
+                - "Berhenti membuat anggaran karena tidak berhasil"
+                - "Mengabaikannya dan tidak mencatat lagi"
+              answer: "Mencari penyebabnya dan menyesuaikan rencana bulan depan"
+              explanation: >-
+                Selisih adalah bahan belajar. Anggaran yang baik diperbaiki dari bulan ke bulan
+                berdasarkan catatan yang nyata.
+      - id: l3-dana-darurat
+        title: "Dana darurat"
+        summary: "Bantalan untuk sakit, kehilangan pemasukan atau perbaikan mendadak."
+        reading: m2-dana-darurat
+        slides: m2-dana-darurat-slides
+        quiz:
+          pass_score: 70
+          questions:
+            - id: q5-fungsi
+              prompt: "Untuk apa dana darurat dipakai?"
+              options:
+                - "Kejadian mendadak seperti sakit atau kehilangan pemasukan"
+                - "Liburan keluarga yang sudah lama direncanakan"
+                - "Belanja diskon yang sayang dilewatkan"
+              answer: "Kejadian mendadak seperti sakit atau kehilangan pemasukan"
+              explanation: >-
+                Dana darurat hanya untuk keadaan yang tidak terduga dan tidak bisa ditunda.
+                Rencana yang sudah diketahui sebaiknya punya pos tabungan tujuan sendiri.
+
+  - id: m3-utang-dan-keputusan
+    title: "Utang dan keputusan yang hati-hati"
+    summary: >-
+      Mencatat semua kewajiban, membayar tepat waktu, dan menilai tawaran keuangan dengan kepala
+      dingin sebelum memutuskan.
+    lessons:
+      - id: l4-utang
+        title: "Mengelola utang dengan tenang"
+        summary: "Daftar kewajiban, cicilan tepat waktu, dan batas cicilan dalam anggaran."
+        reading: m3-utang
+        slides: m3-utang-slides
+        quiz:
+          pass_score: 70
+          questions:
+            - id: q6-daftar
+              prompt: "Informasi apa yang perlu dicatat untuk setiap utang?"
+              options:
+                - "Sisa pokok, besar cicilan, biaya dan tanggal jatuh tempo"
+                - "Hanya nama pemberi pinjaman"
+                - "Tidak perlu dicatat jika cicilannya kecil"
+              answer: "Sisa pokok, besar cicilan, biaya dan tanggal jatuh tempo"
+              explanation: >-
+                Tanpa angka yang lengkap, sulit menentukan kewajiban mana yang perlu didahulukan
+                dan apakah cicilan baru masih muat di anggaran.
+      - id: l5-menilai-tawaran
+        title: "Menilai tawaran keuangan dengan kepala dingin"
+        summary: "Tanda-tanda tawaran yang perlu diwaspadai, dan pertanyaan yang boleh diajukan."
+        reading: m3-menilai-tawaran
+        slides: m3-menilai-tawaran-slides
+        quiz:
+          pass_score: 70
+          questions:
+            - id: q7-tanda-bahaya
+              prompt: "Manakah tanda sebuah tawaran keuangan perlu diwaspadai?"
+              options:
+                - "Anda didesak memutuskan hari itu juga"
+                - "Biaya dijelaskan secara tertulis"
+                - "Anda diberi waktu untuk bertanya"
+              answer: "Anda didesak memutuskan hari itu juga"
+              explanation: >-
+                Desakan waktu membuat orang sulit berpikir jernih. Tawaran yang wajar memberi
+                waktu untuk membaca, bertanya dan berdiskusi dengan keluarga.
+            - id: q8-hasil-tinggi
+              prompt: "Sebuah tawaran menjanjikan hasil tinggi dalam waktu singkat tanpa menjelaskan kemungkinan rugi. Sikap yang tepat adalah..."
+              options:
+                - "Berhenti, bertanya, dan tidak memutuskan saat itu"
+                - "Segera ikut sebelum kesempatan habis"
+                - "Mengajak teman ikut agar lebih ramai"
+              answer: "Berhenti, bertanya, dan tidak memutuskan saat itu"
+              explanation: >-
+                Setiap keputusan keuangan mengandung kemungkinan rugi. Tawaran yang tidak
+                menjelaskannya adalah alasan untuk berhenti dan bertanya, bukan untuk bergegas.
+
+variables:
+  - key: learner_role
+    type: string
+    required: false
+    default: "keluarga"
+    description: "What the course calls the learner's household (a variant axis)."
+  - key: session_date
+    type: date
+    required: false
+    default: "2026-10-01"
+    description: "The date printed on the first deck; formatted for the render's locale."
+
+assets:
+  fonts:
+    heading: "asset:font-inter"
+    body: "asset:font-inter"
+
+outputs: [html]
+
+# Terafin copy only: finance education in the Terafin (placeholder) voice.
+brand:
+  kits: ["terafin"]
