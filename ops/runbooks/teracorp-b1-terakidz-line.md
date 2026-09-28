@@ -54,6 +54,10 @@ released and published.
 - **(b) public download** of the same released artefact on the F2 site (`go.terakidz.id`) with
   lead capture. Chosen if V1 does not hold.
 
+Under **(b)** the zero-price digital products the line publishes must not be listed or sold (a
+zero-total checkout would never deliver): archive them after publish, or switch the free items to
+`publish: none` in a reviewed commit. K2 records which it does in its L8 result.
+
 Record K2's V1 result and the chosen path in the Track B results document before G7.
 
 ## Local e2e (K2 harness — not run by TB1)
@@ -73,8 +77,8 @@ Pass criteria: L1–L10 (spec §3.3), plus B1's own:
   `{{kit.disclaimers}}` block);
 - the four free items are delivered through the TB-D8 path V1 chose;
 - the negative variant (the kit's first forbidden phrase, `menyembuhkan autisme`, injected into a
-  copy of one source) refuses with a named check code (the kernel's `brand_rules`) and never
-  echoes the text.
+  copy of one source) refuses with the check code `brand_rules`, naming the kit's own phrase
+  (as the kernel does) and never the surrounding copy.
 
 Record the result JSON path (`logs/track-b/terakidz-<utc>.json`) and its counts in the TB1 ledger.
 
@@ -102,6 +106,12 @@ Every source and the line say `EXAMPLE CONTENT`. For each of the four new source
    `test_contracts_product_lines.py`, and the header tests in `test_terakidz_line.py`). Removing it
    is a reviewed change to those rules in the same commit — replace the marker with the approval
    record — and `uv run pytest deploys/tests -q` stays green.
+
+**The monthly kit's two editions differ only in their month label today** (template.v1 has no
+per-month content). A real edition needs month-specific activities: either one template per month
+or a version bump that changes the blocks as well as adding the `edition_month` value. A new enum
+value alone relabels the same kit. If any AI-assisted copy survives into a real version, place
+`{{kit.ai_disclosure}}` in the source too.
 
 A release on a real instance still needs expert then founder approval inside Odoo; approving copy
 in git does not release anything.
