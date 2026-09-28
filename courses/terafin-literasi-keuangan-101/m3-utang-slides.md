@@ -16,7 +16,7 @@
 ## Tiga kebiasaan
 
 1. Bayar tepat waktu
-2. Dahulukan biaya tertinggi
+2. Pertimbangkan biaya tertinggi lebih dulu
 3. Hitung dulu sebelum menambah utang
 
 {{kit.disclaimers}}

@@ -1,11 +1,11 @@
-# Terafin "Literasi Keuangan 101" — the paid F5 course of the Terafin line (Teracorp Track B,
+# Terafin "Literasi Keuangan 101" — the paid F5 course of the Terafin line (Track B,
 # B11/TB11).
 #
 # EXAMPLE CONTENT — not approved product copy. Terafin has no approved brand or voice yet:
 # brands/terafin.yaml is a `draft` PLACEHOLDER kit, so every reading and every deck places the
 # kit's disclaimers (`kit uji coba` plus the education line). Finance educators (named experts)
 # and the founder replace this copy at the operational gate
-# (ops/runbooks/teracorp-b11-terafin-line.md). The Markdown sources beside this file cannot carry
+# (ops/runbooks/terafin-b11-line.md). The Markdown sources beside this file cannot carry
 # a comment (raw HTML is outside the course vocabulary), so this header covers them too.
 #
 # EDUCATION ONLY. Five lessons on household money habits: reading cash flow, a monthly budget,

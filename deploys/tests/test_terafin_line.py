@@ -1,8 +1,8 @@
-"""Terafin product line B11 (Teracorp Track B, slice TB11): financial EDUCATION content under the
+"""Terafin product line B11 (Track B, slice TB11): financial EDUCATION content under the
 placeholder `terafin` kit -- and strictly no financial advice.
 
 What this module proves, on the dokploy side (the Odoo e2e is the K2 harness; see the runbook
-`ops/runbooks/teracorp-b11-terafin-line.md` for exactly what K2 must run):
+`ops/runbooks/terafin-b11-line.md` for exactly what K2 must run):
 
 1. **The four sources are valid factory inputs.** Each one is checked with the SAME helpers the
    F3/F4/F5 contract suites use for their shipped proofs (imported, never re-implemented): the
@@ -57,7 +57,7 @@ from test_contracts_templates import resolve_problems as template_resolve_proble
 REPO = CONTRACTS.parent
 KIT_PATH = REPO / "brands" / "terafin.yaml"
 LINE_PATH = REPO / "product_lines" / "terafin.yaml"
-RUNBOOK = REPO / "ops" / "runbooks" / "teracorp-b11-terafin-line.md"
+RUNBOOK = REPO / "ops" / "runbooks" / "terafin-b11-line.md"
 
 BUDGET_PLANNER = "terafin-budget-planner"
 CASHFLOW_WORKSHEET = "terafin-cashflow-worksheet"
@@ -167,6 +167,39 @@ def brand_rules(texts: list[str], rules: dict) -> list[tuple[str, bool, str]]:
     return results or [("brand_rules", True, "brand rules met")]
 
 
+def content_brand_rules(
+    copy_texts: list[str], rules: dict, *, ai_generated: bool = True
+) -> list[tuple[str, bool, str]]:
+    """The F8 half: a pinned copy of the phrase/disclaimer/AI-disclosure part of kodemeio-odoo
+    `factory_content/models/factory_check_content.py` `content_brand_rules`. A generated piece
+    must ALSO carry the kit's own `rules.ai_disclosure`, on top of the kit disclaimers and the
+    channel's disclosure (which `content_platform_rules` checks). The kit-supersession half needs
+    the ORM and is K2's to prove."""
+    results = []
+    for phrase in rules.get("forbidden_phrases") or []:
+        if not str(phrase or "").split():
+            continue
+        pattern = _phrase_re(phrase)
+        for index, text in enumerate(copy_texts):
+            match = pattern.search(text)
+            if match:
+                results.append(
+                    ("content_brand_rules", False, f"copy[{index}]@{match.start()}: forbidden phrase {phrase!r}")
+                )
+    body = _normalise_text(" ".join(copy_texts))
+    for number, disclaimer in enumerate(rules.get("required_disclaimers") or []):
+        wanted = _normalise_text(disclaimer)
+        if wanted and wanted not in body:
+            results.append(("content_brand_rules", False, f"required disclaimer #{number + 1} missing from the copy"))
+    if ai_generated:
+        disclosure = _normalise_text(rules.get("ai_disclosure"))
+        if not disclosure:
+            results.append(("content_brand_rules", False, "the brand kit has no ai_disclosure text"))
+        elif disclosure not in body:
+            results.append(("content_brand_rules", False, "generated copy without the kit's AI disclosure"))
+    return results or [("content_brand_rules", True, "the brand kit governs this piece")]
+
+
 def refusals(results) -> list[str]:
     return [message for _code, passed, message in results if not passed]
 
@@ -262,7 +295,11 @@ F8_PIECES = {
 
 
 def f8_texts(brief_key: str, rules: dict) -> list[str]:
-    return [F8_PIECES[brief_key], *rules["required_disclaimers"], CHANNEL_AI_DISCLOSURE]
+    """A generated piece's copy: the launch text, the kit disclaimers, the KIT's AI disclosure
+    and the channel's AI disclosure. The disclaimers are appended here by construction -- the
+    copy source is K2's -- so the F8 rows below prove the kit's rules bite on this copy, not that
+    a generator places them; K2's L9 proves the latter on the real factory_content piece."""
+    return [F8_PIECES[brief_key], *rules["required_disclaimers"], rules["ai_disclosure"], CHANNEL_AI_DISCLOSURE]
 
 
 def artefacts(rules: dict):
@@ -522,6 +559,8 @@ def test_every_artefact_the_line_produces_passes_brand_rules():
     assert len(produced) == 4 + 1 + len(lessons(course())) + 3
     for label, texts in produced:
         assert refusals(brand_rules(texts, rules)) == [], label
+        if label.startswith("f8:"):
+            assert refusals(content_brand_rules(texts, rules)) == [], label
         assert EDUCATION_DISCLAIMER.casefold() in _normalise_text(" ".join(texts)), label
 
 
@@ -596,6 +635,28 @@ def test_a_copy_containing_rekomendasi_saham_refuses_at_check_time_by_name(build
     # Named by the kit's rule, never by echoing the copy it found the phrase in.
     assert "pekan ini" not in message
     assert "Rekomendasi Saham" not in message
+
+
+def test_an_f8_piece_refuses_under_both_brand_checks_by_name():
+    """On an F8 piece BOTH the kernel `brand_rules` and factory_content's `content_brand_rules`
+    see the phrase, so K2 must expect two named refusals there, not one."""
+    rules = kit()["rules"]
+    texts = _injected_f8()
+    failed = [
+        (code, message)
+        for code, passed, message in brand_rules(texts, rules) + content_brand_rules(texts, rules)
+        if not passed
+    ]
+    assert [code for code, _message in failed] == ["brand_rules", "content_brand_rules"]
+    for _code, message in failed:
+        assert message.endswith(f"forbidden phrase {ADVICE_PHRASE!r}")
+        assert "pekan ini" not in message
+
+
+def test_a_generated_f8_piece_without_the_kits_ai_disclosure_refuses():
+    rules = kit()["rules"]
+    texts = [text for text in f8_texts("terafin-course-launch", rules) if text != rules["ai_disclosure"]]
+    assert refusals(content_brand_rules(texts, rules)) == ["generated copy without the kit's AI disclosure"]
 
 
 def test_the_phrase_match_tolerates_case_and_whitespace_but_not_partial_words():
@@ -680,7 +741,7 @@ def test_the_runbook_names_the_operational_gates_and_the_k2_run():
         "expert_logins",
         "kit uji coba",
         EDUCATION_DISCLAIMER,
-        "bin/teracorp-product-line terafin --db odoo_test_tb_b11",
+        "bin/product-line-acceptance terafin --db odoo_test_tb_b11",
         "experts: synthetic-overlay",
         "buyer@example.test",
     ):
@@ -700,5 +761,8 @@ def test_the_runbook_lists_the_placeholder_logo_key_and_every_brief():
 def test_the_runbook_requires_the_advice_refusal_for_each_kind():
     text = RUNBOOK.read_text()
     assert f"forbidden phrase '{ADVICE_PHRASE}'" in text
+    # F8: both brand checks refuse, and generated copy needs the kit's own AI disclosure.
+    assert "content_brand_rules" in text
+    assert "rules.ai_disclosure" in text
     for kind in ("a template", "the e-book", "the course", "F8 launch piece"):
         assert kind in text, kind

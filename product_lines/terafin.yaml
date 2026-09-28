@@ -1,4 +1,4 @@
-# Terafin product line (Teracorp Track B, B11/TB11) -- EXAMPLE CONTENT, not approved product copy.
+# Terafin product line (Track B, B11/TB11) -- EXAMPLE CONTENT, not approved product copy.
 # Financial EDUCATION only, under the draft PLACEHOLDER `terafin` kit: every artefact carries the
 # kit's `kit uji coba` disclaimer and "Konten edukasi, bukan nasihat keuangan atau ajakan
 # berinvestasi.", and the kit's forbidden phrases refuse advice-shaped copy at check time.
@@ -6,8 +6,8 @@
 # Contract: contracts/product_lines/product_line.v1.schema.json (checked by
 # deploys/tests/test_contracts_product_lines.py; TB11's own proofs are in
 # deploys/tests/test_terafin_line.py). Read by the K2 harness (kodemeio-odoo
-# `bin/teracorp-product-line terafin --db odoo_test_tb_b11`). Runbook:
-# ops/runbooks/teracorp-b11-terafin-line.md.
+# `bin/product-line-acceptance terafin --db odoo_test_tb_b11`). Runbook:
+# ops/runbooks/terafin-b11-line.md.
 #
 # Free items (price_idr: 0) are delivered through the TB-D8 path K2 records (zero-price product
 # through R6 if its V1 check holds, else a public download on the F2 site -- no F2 site is built

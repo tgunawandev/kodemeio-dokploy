@@ -57,7 +57,7 @@ Utang bukan selalu masalah, tetapi utang yang tidak tercatat mudah menjadi beban
 | Contoh B |  |  |  |
 
 1. Bayar setiap cicilan tepat waktu agar tidak menambah denda.
-2. Jika ada sisa, dahulukan kewajiban dengan biaya paling tinggi.
+2. Banyak pendidik keuangan menyarankan: jika ada sisa, dahulukan kewajiban dengan biaya paling tinggi.
 3. Sebelum menambah utang baru, hitung apakah cicilannya masih muat di anggaran.
 
 Berhati-hatilah terhadap tawaran yang menjanjikan hasil tinggi dalam waktu singkat, yang mendesak Anda memutuskan hari itu juga, atau yang tidak menjelaskan biayanya secara tertulis. Tawaran yang baik memberi waktu untuk bertanya dan berpikir.

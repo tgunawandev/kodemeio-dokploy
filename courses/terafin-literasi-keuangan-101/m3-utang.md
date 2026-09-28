@@ -13,7 +13,7 @@ pertama adalah mengenali semua kewajiban yang sedang berjalan.
 ## Kebiasaan yang membantu
 
 1. Bayar setiap cicilan tepat waktu agar tidak menambah denda.
-2. Jika ada sisa, dahulukan kewajiban dengan biaya paling tinggi.
+2. Banyak pendidik keuangan menyarankan: jika ada sisa, dahulukan kewajiban dengan biaya paling tinggi.
 3. Sebelum menambah utang baru, hitung apakah cicilannya masih muat di anggaran.
 
 > Jika cicilan terasa berat, bicarakan lebih awal dengan pihak pemberi pinjaman atau dengan

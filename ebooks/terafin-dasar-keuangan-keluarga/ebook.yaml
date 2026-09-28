@@ -1,10 +1,10 @@
-# Terafin "Dasar Keuangan Keluarga" — the paid F4 e-book of the Terafin line (Teracorp Track B,
+# Terafin "Dasar Keuangan Keluarga" — the paid F4 e-book of the Terafin line (Track B,
 # B11/TB11).
 #
 # EXAMPLE CONTENT — not approved product copy. Terafin has no approved brand or voice yet:
 # brands/terafin.yaml is a `draft` PLACEHOLDER kit, so both formats carry the kit's `kit uji
 # coba` disclaimer and its education disclaimer. Finance educators (named experts) and the
-# founder replace this copy at the operational gate (ops/runbooks/teracorp-b11-terafin-line.md).
+# founder replace this copy at the operational gate (ops/runbooks/terafin-b11-line.md).
 #
 # EDUCATION ONLY. The book explains household money habits -- cash flow, a monthly budget, an
 # emergency fund, handling debt, reading an offer calmly. It never names a financial instrument
@@ -127,7 +127,7 @@ chapters:
         ordered: true
         items:
           - "Bayar setiap cicilan tepat waktu agar tidak menambah denda."
-          - "Jika ada sisa, dahulukan kewajiban dengan biaya paling tinggi."
+          - "Banyak pendidik keuangan menyarankan: jika ada sisa, dahulukan kewajiban dengan biaya paling tinggi."
           - "Sebelum menambah utang baru, hitung apakah cicilannya masih muat di anggaran."
       - type: paragraph
         text: >-

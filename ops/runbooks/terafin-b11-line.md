@@ -59,8 +59,17 @@ Launch: three F8 briefs, all `creator_handoff` through F10 (nothing publishes di
 
 The exact synthetic launch copy the dokploy tests hold to the kit is `F8_PIECES` in
 `deploys/tests/test_terafin_line.py`. product_line.v1 carries only the opaque `brief_key`, so K2
-decides where the brief copy comes from. Whatever it generates must carry both kit disclaimers and
-the channel AI disclosure (`Konten ini dibuat dengan bantuan kecerdasan buatan (AI).`).
+decides where the brief copy comes from. A generated piece must carry **three** things:
+
+- both kit disclaimers;
+- the **kit's own** `rules.ai_disclosure`, which factory_content's `content_brand_rules` and the
+  kernel `ai_disclosure` check both require;
+- the channel AI disclosure (`Konten ini dibuat dengan bantuan kecerdasan buatan (AI).`), which
+  `content_platform_rules` requires.
+
+⚠️ The draft kit's `ai_disclosure` is placeholder text that says no generated content should be
+published under the kit. It will be printed into every launch piece's copy in the test DB. That is
+harmless while the kit is draft, but G1 must replace it with a real, reader-facing AI disclosure.
 
 🔴 **Every string in these sources is `EXAMPLE CONTENT`** (TB-D9). The kit is a `draft` PLACEHOLDER
 whose required disclaimer contains `kit uji coba`. Every source places `{{kit.disclaimers}}`: each
@@ -78,7 +87,7 @@ built-local**.
 
 ```bash
 cd kodemeio-odoo
-bin/teracorp-product-line terafin --db odoo_test_tb_b11
+bin/product-line-acceptance terafin --db odoo_test_tb_b11
 ```
 
 It must pass L1–L10 (spec §3.3). For this line specifically:
@@ -103,7 +112,8 @@ It must pass L1–L10 (spec §3.3). For this line specifically:
   1. a template (at least one; both is better: xlsx and PDF);
   2. the e-book;
   3. the course;
-  4. one F8 launch piece.
+  4. one F8 launch piece. Here **two** named refusals are expected: the kernel `brand_rules` **and**
+     factory_content's `content_brand_rules`. Both name `forbidden phrase 'rekomendasi saham'`.
 - **L4.** Release needs the expert, then the founder: two distinct synthetic users. Direct writes
   and agent writes refuse.
 - **L5.** Each item gives exactly one sellable product, and a republish is idempotent.
@@ -169,8 +179,10 @@ systems). The opinion should answer:
    offer, or the marketing of one? Which wording would?
 2. Is the education disclaimer sufficient, and in which placement? Or what replaces it?
 3. What must the educator's declaration of independence contain?
-4. Do the course quiz and the e-book's worked examples (illustrative proportions, an
-   emergency-fund rule of thumb) need extra framing?
+4. Do the course quiz and the e-book's worked examples need extra framing? The worked examples are
+   the illustrative proportions, the emergency-fund rule of thumb, and the one prescriptive
+   allocation line: "many educators suggest paying the costliest debt first" (e-book chapter 4,
+   course lesson 4).
 5. Is selling education products to households and micro-business owners subject to any
    consumer-protection rule we must reflect in the checkout or refund copy?
 

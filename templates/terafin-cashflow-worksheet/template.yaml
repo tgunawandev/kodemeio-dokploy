@@ -1,11 +1,11 @@
-# Terafin weekly cash-flow worksheet — a free F3 printable of the Terafin line (Teracorp Track B,
+# Terafin weekly cash-flow worksheet — a free F3 printable of the Terafin line (Track B,
 # B11/TB11).
 #
 # EXAMPLE CONTENT — not approved product copy. Terafin has no approved brand or voice yet:
 # brands/terafin.yaml is a `draft` PLACEHOLDER kit, so everything rendered from this template
 # carries the kit's `kit uji coba` disclaimer and its education disclaimer. Finance educators
 # (named experts) and the founder replace this copy at the operational gate
-# (ops/runbooks/teracorp-b11-terafin-line.md).
+# (ops/runbooks/terafin-b11-line.md).
 #
 # EDUCATION ONLY. The sheet teaches recording money in and money out for seven days and reading
 # the pattern afterwards. It never names a financial instrument, never says what to buy or sell
@@ -58,7 +58,7 @@ blocks:
     items:
       - "Jumlahkan uang masuk dan uang keluar, lalu hitung selisihnya."
       - "Tandai tiga pengeluaran terbesar dan tanyakan: kebutuhan atau keinginan?"
-      - "Untuk usaha mikro, pisahkan uang usaha dari uang rumah tangga sejak hari pertama."
+      - "Jika Anda juga menjalankan usaha, pisahkan uang usaha dari uang rumah tangga sejak hari pertama."
       - "Pilih satu kebiasaan kecil untuk diubah pada pekan berikutnya."
   - type: paragraph
     text: >-
