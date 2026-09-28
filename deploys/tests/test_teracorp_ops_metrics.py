@@ -185,6 +185,47 @@ def test_cli_rejects_duplicate_json_keys(tmp_path, capsys) -> None:
     assert "duplicate JSON key" in capsys.readouterr().err
 
 
+def test_cli_duplicate_key_message_does_not_echo_untrusted_key(tmp_path, capsys) -> None:
+    path = tmp_path / "hours.json"
+    path.write_text('{"secret\\u0007name":1,"secret\\u0007name":2}', encoding="utf-8")
+    assert METRICS.main(["hours-trend", str(path)]) == 2
+    error = capsys.readouterr().err
+    assert "duplicate JSON key" in error
+    assert "secret" not in error
+
+
+@pytest.mark.parametrize("command", ["hours-trend", "validate-scorecards"])
+def test_cli_rejects_oversized_json_integer_with_clean_exit(tmp_path, capsys, command) -> None:
+    path = tmp_path / "input.json"
+    path.write_text('{"schema_version": ' + "9" * 5000 + "}", encoding="utf-8")
+    assert METRICS.main([command, str(path)]) == 2
+    error = capsys.readouterr().err
+    assert error.startswith("error: ")
+    assert "Traceback" not in error
+    assert "9" * 100 not in error
+
+
+def test_cli_bounds_json_integer_digits_below_python_limit(tmp_path, capsys) -> None:
+    path = tmp_path / "input.json"
+    path.write_text('{"schema_version": 1' + "0" * METRICS._MAX_JSON_INTEGER_DIGITS + "}", encoding="utf-8")
+    assert METRICS.main(["hours-trend", str(path)]) == 2
+    assert f"{METRICS._MAX_JSON_INTEGER_DIGITS} digits" in capsys.readouterr().err
+
+
+def test_cli_normalizes_parser_value_error_to_sanitized_input_error(tmp_path, capsys, monkeypatch) -> None:
+    path = tmp_path / "hours.json"
+    path.write_text("{}", encoding="utf-8")
+
+    def raise_value_error(*args, **kwargs):
+        raise ValueError("untrusted parser detail")
+
+    monkeypatch.setattr(METRICS.json, "loads", raise_value_error)
+    assert METRICS.main(["hours-trend", str(path)]) == 2
+    error = capsys.readouterr().err
+    assert "input must be valid bounded UTF-8 JSON" in error
+    assert "untrusted parser detail" not in error
+
+
 def test_cli_rejects_oversized_input_before_json_parsing(tmp_path, capsys) -> None:
     path = tmp_path / "hours.json"
     path.write_bytes(b" " * (METRICS._MAX_INPUT_BYTES + 1))

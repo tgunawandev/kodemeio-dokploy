@@ -26,6 +26,7 @@ _MAX_METRICS = 50
 _MAX_WEEKS = 104
 _MAX_INPUT_BYTES = 1_048_576
 _MAX_JSON_DEPTH = 64
+_MAX_JSON_INTEGER_DIGITS = 64
 _MAX_DECIMAL_CHARS = 64
 
 
@@ -276,9 +277,16 @@ def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
-            raise InputError(f"duplicate JSON key: {key}")
+            raise InputError("duplicate JSON key")
         result[key] = value
     return result
+
+
+def _parse_json_integer(value: str) -> int:
+    digits = value[1:] if value.startswith("-") else value
+    if len(digits) > _MAX_JSON_INTEGER_DIGITS:
+        raise InputError(f"JSON integer must not exceed {_MAX_JSON_INTEGER_DIGITS} digits")
+    return int(value)
 
 
 def _enforce_json_depth(text: str) -> None:
@@ -323,8 +331,10 @@ def main(argv: list[str] | None = None) -> int:
         try:
             raw = raw_bytes.decode("utf-8")
             _enforce_json_depth(raw)
-            payload = json.loads(raw, object_pairs_hook=_reject_duplicate_keys)
-        except (UnicodeDecodeError, json.JSONDecodeError, RecursionError) as exc:
+            payload = json.loads(raw, object_pairs_hook=_reject_duplicate_keys, parse_int=_parse_json_integer)
+        except InputError:
+            raise
+        except (UnicodeDecodeError, ValueError, RecursionError) as exc:
             raise InputError("input must be valid bounded UTF-8 JSON") from exc
         result = (
             evaluate_scorecards(payload) if args.command == "validate-scorecards" else summarize_founder_hours(payload)
