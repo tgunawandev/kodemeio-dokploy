@@ -46,7 +46,8 @@ byte.
 - **Checkout idempotency.** A retry with the same `(app, idempotency_key)` and the same body
   returns the original checkout, including the PAY1 payment instructions once the payment request
   cron has created them. A retry therefore works as a status poll. The same key with a different
-  body is refused (`idempotency_conflict`).
+  body is refused (`idempotency_conflict`). A concurrent twin that is still in flight gets
+  `checkout_in_progress` (409); the caller retries, and the retry is an ordinary replay.
 - **Opaque partner.** Odoo stores only `app:<sha256(app + ":" + app_account_ref)>`, on a partner
   with no name, email or phone taken from the caller.
 - **Company.** The plan's company (the brand's seller) owns the order. A plan is resolved only
@@ -59,15 +60,22 @@ byte.
   entitlement. This fails closed: if a concurrent renewal exists, the founder re-grants it; it is
   never kept silently.
 - **Consumer rules.** Claim `event_id` once. For `active`, set
-  `valid_until = greatest(current, new)`, so the window only moves forward. Ignore any event whose
-  `issued_at` is older than the row's last `revoked`.
+  `valid_until = greatest(current, new)`, so the window only moves forward. Ignore any `active`
+  whose `issued_at` is not after the row's last `revoked`, and any `revoked` whose `issued_at` is
+  before the row's latest activation (an out-of-order revoke of an older purchase). An ignored
+  event is still claimed (`stale`), so it stays ignored.
 - **Reading an entitlement (app side).** `has_entitlement(p_app, p_plan_prefix, p_account_ref)`
   is true only while the row is `active` and `valid_from <= now < valid_until`, and only when
   `plan_code` equals the prefix or starts with `prefix-`. The caller must be allowed to see the
   account: either it is the caller's own id, or the project's `ent_account_visible` hook admits
   them. Anyone else gets `false`.
-- **Delivery.** Odoo sends each event at most once: an event is marked delivered on a 2xx and is
-  never re-sent. Failures retry with exponential backoff and stop at a named `dead` state.
+- **Delivery.** At least once, deduplicated by the consumer's `event_id` claim. An event is
+  marked delivered on a 2xx and is never re-sent after that. A crash between the POST and the
+  commit can re-send it once. Redirects are never followed. Failures retry with exponential
+  backoff and stop at a named `dead` state.
+- **Re-payment.** A line that leaves the paid state and is paid again gets a fresh `active` event
+  (a new generation), so a paying customer is never stranded. A revoke's window is always
+  well-formed (`valid_until >= valid_from`), including for a renewal bought in advance.
 
 ## Examples
 

@@ -124,11 +124,12 @@ rows. A dead row always names its cause in `last_error` (`http_401` means a wron
 | Checkout `401 bad_signature` | The app signs with the wrong secret, or modifies the body after signing | Check the app's checkout secret. It must sign the exact bytes it sends. |
 | Checkout `401 stale_timestamp` | Clock skew over 300 s | Fix NTP on the caller. |
 | Checkout `409 idempotency_conflict` | The same key was reused with a different body | The app must mint a new key per attempt. |
+| Checkout `409 checkout_in_progress` | Two identical requests raced | Retry the same request; it answers as a replay. |
 | Checkout `422 unknown_plan` | The plan code is not configured for that app and company | Create the plan, or fix the app's plan code. |
 | Checkout `422 order_refused` | Confirmation was refused (for example the R2 entity is not active) | Resolve the seller gate. |
 | Event `dead`, `http_401` | Odoo and Supabase hold different entitlement secrets | Re-provision both from 1Password, then Re-queue. |
 | Paid, but no event | The order was not opened by a checkout, or the refund came first | Check that the order has an App Checkout; check the Events menu. |
-| Refund of one line while a renewal exists | Fail-closed: the consumer ends the whole plan row | The founder re-grants by hand. This is documented, not a bug. |
+| Refund of one line while a renewal exists | Fail-closed: the consumer ends the whole plan row | Any later paid line re-activates it (a fresh `active`). To restore the remaining window sooner, unreconcile and re-reconcile the renewal's payment in Odoo: that opens a new generation. |
 
 ## Rollback
 
