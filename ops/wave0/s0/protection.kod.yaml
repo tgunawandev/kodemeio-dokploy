@@ -1,0 +1,24 @@
+# Teracorp Wave 0, roadmap row 0.3 -- Hetzner delete protection, desired state.
+#
+# Checked by `ops/scripts/teracorp_s0_postgres.py protection` against
+# `kctl-hz -p <profile> --json servers list` exports; founder procedure in
+# ops/runbooks/teracorp-wave0-s0.md (S0-3). Hetzner requires delete and
+# rebuild protection to carry the same value, so both are required.
+#
+# Servers that serve the kodeme.io estate (Stage A audit §2 fleet inventory):
+#   kodemeio project: kod-prod-01 (Dokploy control plane, Hatchet),
+#                     kod-prod-02 (dsh, hermes-vision, authentik outpost)
+#   abcfood project:  abc-prod-02 (kod postgres, kod Odoo x3, Authentik,
+#                     Mattermost, landing), abc-prod-01 (Mailcow)
+# Other servers in those projects are reported as notes, never gated.
+version: 1
+require:
+  delete: true
+  rebuild: true
+hetzner_profiles:
+  kodemeio:
+    - kod-prod-01
+    - kod-prod-02
+  abcfood:
+    - abc-prod-02
+    - abc-prod-01
