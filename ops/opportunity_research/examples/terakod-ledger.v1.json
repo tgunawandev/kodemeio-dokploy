@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "as_of_date": "2026-09-28",
+  "evidence": [
+    {
+      "evidence_ref": "ev-terakod-01",
+      "captured_on": "2026-09-20",
+      "source_domain": "creators.survey.test",
+      "source_type": "public_report",
+      "captured_claim": "Synthetic source asserts: small creator teams plan weekly posts in spreadsheets.",
+      "captured_claim_sha256": "167d58b8fa96c5d5d361bbbfa984cf9e1a9edefee62249575796e22d1047b050"
+    },
+    {
+      "evidence_ref": "ev-terakod-02",
+      "captured_on": "2026-09-21",
+      "source_domain": "payments.dataset.test",
+      "source_type": "public_dataset",
+      "captured_claim": "Synthetic source asserts: small merchants prefer QRIS and virtual accounts over cards.",
+      "captured_claim_sha256": "8ceb23ec5a9b5a7c523b51faace352076af9577702898644d71ede85e924a6dd"
+    },
+    {
+      "evidence_ref": "ev-terakod-03",
+      "captured_on": "2026-09-22",
+      "source_domain": "traders.forum.test",
+      "source_type": "public_page",
+      "captured_claim": "Synthetic source asserts: small traders chase unpaid invoices by chat message.",
+      "captured_claim_sha256": "4a699ed57b781ca79e874c0d2e3cf4cdface3a46b9c59a316189b1af3ecd3ada"
+    },
+    {
+      "evidence_ref": "ev-terakod-04",
+      "captured_on": "2026-09-23",
+      "source_domain": "clinics.report.test",
+      "source_type": "public_report",
+      "captured_claim": "Synthetic source asserts: small clinics take bookings by chat and lose no-show fees.",
+      "captured_claim_sha256": "3508214f6ed197a8a0d509c5318fcf80301be9b9f8543764b9e3995242b0f66e"
+    }
+  ],
+  "opportunities": [
+    {
+      "opportunity_ref": "opp-terakod-content-studio",
+      "claim": {
+        "text": "Synthetic candidate: a brand-kit content studio for small creator teams, billed by QRIS or virtual account.",
+        "sha256": "4831562c63b11c94d3d2eff1dfccb1b378bc3acd6c141890f01fc3d9d6d56135"
+      },
+      "evidence_refs": [
+        "ev-terakod-01",
+        "ev-terakod-02"
+      ],
+      "status": "unreviewed",
+      "source_assertion_status": "unverified",
+      "owner_review": {
+        "owner_ref": "owner-founder",
+        "status": "pending",
+        "reviewed_on": null
+      }
+    },
+    {
+      "opportunity_ref": "opp-terakod-invoice-reminders",
+      "claim": {
+        "text": "Synthetic candidate: chat-based invoice reminders for small traders, billed monthly by QRIS.",
+        "sha256": "1830e85ee176f3709aec96a24ce98f90a2a7dd4e55b9cde6b33642c28a7dfadc"
+      },
+      "evidence_refs": [
+        "ev-terakod-03",
+        "ev-terakod-02"
+      ],
+      "status": "unreviewed",
+      "source_assertion_status": "unverified",
+      "owner_review": {
+        "owner_ref": "owner-founder",
+        "status": "pending",
+        "reviewed_on": null
+      }
+    },
+    {
+      "opportunity_ref": "opp-terakod-clinic-booking",
+      "claim": {
+        "text": "Synthetic candidate: appointment booking with e-wallet deposits for small clinics.",
+        "sha256": "5f7ca8c18b467210e42abf6402fd4627179107b741a14146d8bd642dc108a8a5"
+      },
+      "evidence_refs": [
+        "ev-terakod-04",
+        "ev-terakod-02"
+      ],
+      "status": "unreviewed",
+      "source_assertion_status": "unverified",
+      "owner_review": {
+        "owner_ref": "owner-founder",
+        "status": "pending",
+        "reviewed_on": null
+      }
+    }
+  ]
+}
