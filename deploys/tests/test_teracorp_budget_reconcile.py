@@ -191,6 +191,27 @@ def test_cli_rejects_duplicate_json_keys(tmp_path, capsys) -> None:
     assert "duplicate JSON key" in capsys.readouterr().err
 
 
+def test_cli_duplicate_key_error_does_not_echo_untrusted_key(tmp_path, capsys) -> None:
+    path = tmp_path / "budget.json"
+    path.write_text('{"pii\\u0007marker":1,"pii\\u0007marker":2}', encoding="utf-8")
+    assert BUDGET.main([str(path)]) == 2
+    error = capsys.readouterr().err
+    assert "duplicate JSON key" in error
+    assert "pii" not in error and "marker" not in error
+
+
+def test_cli_unknown_key_error_does_not_echo_untrusted_key(tmp_path, capsys) -> None:
+    data = monthly_budget()
+    data["pii\u0007marker"] = 1
+    path = tmp_path / "budget.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    assert BUDGET.main([str(path)]) == 2
+    error = capsys.readouterr().err
+    assert "keys invalid" in error
+    assert "pii" not in error and "marker" not in error
+    assert "unknown=1" in error
+
+
 def test_cli_reads_input_without_mutating_it(tmp_path, capsys) -> None:
     path = tmp_path / "budget.json"
     path.write_text(json.dumps(monthly_budget()), encoding="utf-8")

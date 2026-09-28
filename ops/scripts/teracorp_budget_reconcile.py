@@ -38,8 +38,9 @@ def _object(value: Any, where: str, keys: set[str]) -> dict[str, Any]:
         raise InputError(f"{where} must be an object")
     if set(value) != keys:
         missing = sorted(keys - set(value))
-        unknown = sorted(set(value) - keys)
-        raise InputError(f"{where} keys invalid (missing={missing}, unknown={unknown})")
+        unknown_count = len(set(value) - keys)
+        # Missing names come from the trusted contract; unknown keys are untrusted and never echoed.
+        raise InputError(f"{where} keys invalid (missing={missing}, unknown={unknown_count})")
     return value
 
 
@@ -204,7 +205,7 @@ def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
-            raise InputError(f"duplicate JSON key: {key}")
+            raise InputError("duplicate JSON key")
         result[key] = value
     return result
 
