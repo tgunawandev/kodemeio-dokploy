@@ -25,6 +25,11 @@ inactive. The conditional architecture decision is in
    acceptance suite and neighbor suites pass on a disposable local DB. Headless approval HTTP
    acceptance lives in the existing `mcp_mattermost` test suite; the rejected standalone
    test-only addon must not be installed or restored.
+7. Treat `factory_mattermost` as a separate, optional work-order capability. Its config defaults
+   off; do not turn it on as a side effect of enabling approval cards. Approve one exact company,
+   private factory channel, bot membership, and active `factory.work.order` outbound bridge row.
+   Confirm it is neither the default nor approval channel. Keep the feature off if any audience or
+   team binding is uncertain.
 
 ## Staging acceptance — record evidence for every row
 
@@ -44,10 +49,16 @@ reviewer role, observed HTTP outcome, Odoo state and redacted audit reference.
 | Signing key revoked/rotated | Old cards refuse; newly issued cards use only the approved key |
 | Execute an approved synthetic operation | Exact prepared action hash/policy rechecked; changed arguments refuse |
 | Inspect logs and metrics | No signed token, secret, customer payload or unredacted PII persists |
+| Start two synthetic work orders with the optional thread adapter enabled | Two distinct roots in the approved private channel; only order ID, safe line code and state leave Odoo |
+| Disable the thread config while a root job is queued | No post; delivery records a suppressed diagnostic |
+| Simulate an accepted-but-unrecorded root outcome | No automatic second POST; delivery is uncertain until an administrator verifies the bot-authored root and reconciles it |
 
 Also verify failure alerts, multiple Odoo workers, backup/restore of the approval state and the
 founder-approved callback network policy. A local test suite does not substitute for these
 staging checks. Keep the plugin inactive throughout the drill.
+Inspect the work-order delivery diagnostics before and after the drill; a visible `uncertain`
+status is not permission to retry a non-idempotent root POST. If the root cannot be independently
+found and verified, leave it unresolved, disable the feature and escalate.
 
 ## Production gate and rollback
 
