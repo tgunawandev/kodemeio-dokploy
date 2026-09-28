@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kodeme.io/contracts/channels/channel.v1.schema.json",
+  "title": "Channel v1",
+  "description": "A niche content channel as committed data (Teracorp Track B, spec B5): channels/<brand>/<niche>.yaml. It names the sub-brand kit it renders under, its F8 platform, weekly cadence, the formats it may use and its stop rule in the G2 scorecard's threshold format (metric, direction, unit, decimal threshold, evaluated at day 60 and day 90 after launch). The kit is resolved against the committed brands/ (missing or retired refuses) and platform/format validity against the F8 channel rules by ops/channel_portfolio/evaluate.py. Video is an allowed format that must stay disabled until the founder lifts TB-D6. Self-contained: it references no other schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["code", "kit", "platform", "cadence_per_week", "formats", "stop_rule"],
+  "properties": {
+    "code": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{1,63}$",
+      "description": "Kebab slug; equals <brand dir>-<file stem> under channels/."
+    },
+    "kit": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]{1,31}$",
+      "description": "A brand_kit.v1 `code` naming a committed, non-retired brands/<code>.yaml. One kit per channel: F0f attributes performance by kit code."
+    },
+    "platform": {
+      "enum": ["tiktok", "youtube", "instagram", "facebook"],
+      "description": "The F8 (factory_content) channel the pieces are made for."
+    },
+    "cadence_per_week": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 21,
+      "description": "Planned pieces per week (a planning figure; nothing is scheduled from it automatically)."
+    },
+    "formats": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["format", "enabled"],
+        "properties": {
+          "format": {
+            "enum": ["caption", "script", "carousel", "thread", "video"],
+            "description": "An F8 piece kind, or F6 video."
+          },
+          "enabled": {"type": "boolean"}
+        },
+        "allOf": [
+          {
+            "if": {"required": ["format"], "properties": {"format": {"const": "video"}}},
+            "then": {"properties": {"enabled": {"const": false}}},
+            "description": "TB-D6: video stays disabled until the founder lifts the decision."
+          }
+        ]
+      },
+      "contains": {"type": "object", "required": ["enabled"], "properties": {"enabled": {"const": true}}},
+      "description": "Each format at most once (identical entries refuse here; the resolver refuses a format listed twice with different flags), and at least one enabled."
+    },
+    "stop_rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metrics", "on_miss"],
+      "properties": {
+        "metrics": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 5,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["metric_id", "direction", "unit", "threshold"],
+            "properties": {
+              "metric_id": {
+                "enum": ["views", "watch_time_s", "sales"],
+                "description": "An F0f metric with a verified source (factory_performance)."
+              },
+              "direction": {"enum": ["gte", "lte"]},
+              "unit": {"enum": ["count", "seconds"]},
+              "threshold": {
+                "type": "string",
+                "maxLength": 64,
+                "pattern": "^(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?$",
+                "description": "A non-negative decimal string, as G2 reads it."
+              }
+            },
+            "allOf": [
+              {
+                "if": {"required": ["metric_id"], "properties": {"metric_id": {"const": "watch_time_s"}}},
+                "then": {"properties": {"unit": {"const": "seconds"}}},
+                "else": {"properties": {"unit": {"const": "count"}}}
+              }
+            ]
+          },
+          "description": "G2 metric thresholds, compared at day 60 and day 90 after the channel's launch."
+        },
+        "on_miss": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["day_60", "day_90"],
+          "properties": {
+            "day_60": {"enum": ["pivot", "stop"]},
+            "day_90": {"const": "stop"}
+          },
+          "description": "The decision when any metric misses at that checkpoint. Stopping only PROPOSES cancelling pending F10 items; nothing is cancelled automatically."
+        }
+      }
+    }
+  }
+}

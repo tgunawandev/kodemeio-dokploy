@@ -1,0 +1,70 @@
+# PLACEHOLDER — Terakon niche channel kit "niche-a" (home recipes), DRAFT only
+# (2026-09-28 Teracorp Track B, slice TB5; spec B5).
+#
+# A sub-brand kit for ONE example niche channel of the Terakon channel portfolio
+# (channels/terakon/niche-a.yaml). No niche has been chosen, approved or launched: EVERY
+# invented value below is marked `# PLACEHOLDER` and exists only so the F8 factory can render
+# brand-switched example pieces per channel and the portfolio evaluator can attribute F0f
+# aggregates per channel kit. Nothing here is approved brand content; the `kit uji coba`
+# disclaimer rides every artefact. Choosing a real niche and approving its kit is an
+# operational gate (ops/runbooks/teracorp-b5-channel-portfolio.md).
+code: terakon-niche-a
+version: 1
+status: draft
+brand: terakon
+locale: id_ID
+
+voice:
+  summary: >
+    PLACEHOLDER — warm, practical home-cooking voice for an example recipe channel; short
+    steps, everyday ingredients, no health or income claims.
+  do:
+    - "PLACEHOLDER: show one concrete step per slide and name ingredients plainly."
+  dont:
+    - "PLACEHOLDER: do not publish anything under this kit while status is draft."
+
+audience: >
+  PLACEHOLDER — example audience only: home cooks looking for simple weekday recipes.
+
+rules:
+  forbidden_phrases:
+    - "pasti viral"        # PLACEHOLDER
+    - "dijamin untung"     # PLACEHOLDER
+    - "bebas risiko"       # PLACEHOLDER
+    - "menyembuhkan"       # PLACEHOLDER — no health claims on a recipe channel
+  required_disclaimers:
+    - "Kanal Resep Rumahan (Terakon) adalah kit uji coba (draft) dan belum merupakan kanal yang dipasarkan."
+  ai_disclosure: >
+    PLACEHOLDER — Konten kanal resep ini disusun dengan bantuan AI dan diperiksa manusia.
+  affiliate_hosts: []
+  affiliate_disclosure: "Kanal ini tidak memiliki tautan afiliasi berbayar."
+
+colors:
+  primary: "#b45309"            # PLACEHOLDER — amber, distinct from every other kit
+  primary_foreground: "#ffffff"
+  accent: "#15803d"             # PLACEHOLDER
+  accent_foreground: "#ffffff"
+  background: "#fffbeb"         # PLACEHOLDER
+  foreground: "#1c1917"         # PLACEHOLDER
+  muted: "#fef3c7"              # PLACEHOLDER
+  muted_foreground: "#57534e"   # PLACEHOLDER
+  card: "#ffffff"
+  card_foreground: "#1c1917"    # PLACEHOLDER
+  border: "#fcd34d"             # PLACEHOLDER
+  ring: "#b45309"               # PLACEHOLDER
+  radius: "1rem"                # PLACEHOLDER
+
+fonts:
+  # licence: OFL-1.1 — reuses the existing "Nunito" asset key (no new font)
+  heading: "asset:font-nunito"
+  body: "asset:font-nunito"
+
+contact:
+  # PLACEHOLDER — synthetic number, draft fixture only
+  whatsapp: "+6281200000000"
+
+reviewers:
+  expert_logins: [] # draft kit: naming real experts is an operational gate
+
+assets:
+  - "asset:font-nunito"

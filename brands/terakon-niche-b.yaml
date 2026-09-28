@@ -1,0 +1,72 @@
+# PLACEHOLDER — Terakon niche channel kit "niche-b" (gadget reviews), DRAFT only
+# (2026-09-28 Teracorp Track B, slice TB5; spec B5).
+#
+# A sub-brand kit for ONE example niche channel of the Terakon channel portfolio
+# (channels/terakon/niche-b.yaml). No niche has been chosen, approved or launched: EVERY
+# invented value below is marked `# PLACEHOLDER` and exists only so the F8 factory can render
+# brand-switched example pieces per channel and the portfolio evaluator can attribute F0f
+# aggregates per channel kit. Nothing here is approved brand content; the `kit uji coba`
+# disclaimer rides every artefact. Choosing a real niche and approving its kit is an
+# operational gate (ops/runbooks/teracorp-b5-channel-portfolio.md).
+code: terakon-niche-b
+version: 1
+status: draft
+brand: terakon
+locale: id_ID
+
+voice:
+  summary: >
+    PLACEHOLDER — crisp, even-handed gadget-review voice for an example tech channel; state
+    what was tested and what was not, never a sales push.
+  do:
+    - "PLACEHOLDER: name one strength and one weakness in every review."
+  dont:
+    - "PLACEHOLDER: do not publish anything under this kit while status is draft."
+
+audience: >
+  PLACEHOLDER — example audience only: first-time buyers comparing budget phones and accessories.
+
+rules:
+  forbidden_phrases:
+    - "pasti viral"         # PLACEHOLDER
+    - "dijamin untung"      # PLACEHOLDER
+    - "bebas risiko"        # PLACEHOLDER
+    - "paling murah"        # PLACEHOLDER — no unverifiable price claims
+    - "beli sekarang"       # PLACEHOLDER — no hard sales push
+  required_disclaimers:
+    - "Kanal Ulasan Gawai (Terakon) adalah kit uji coba (draft) dan belum merupakan kanal yang dipasarkan."
+    - "Ulasan contoh ini tidak disponsori."
+  ai_disclosure: >
+    PLACEHOLDER — Ulasan contoh ini disusun dengan bantuan AI dan diperiksa manusia.
+  affiliate_hosts: []
+  affiliate_disclosure: "Kanal ini tidak memiliki tautan afiliasi berbayar."
+
+colors:
+  primary: "#0e7490"            # PLACEHOLDER — cyan, distinct from every other kit
+  primary_foreground: "#ffffff"
+  accent: "#be185d"             # PLACEHOLDER
+  accent_foreground: "#ffffff"
+  background: "#f0fdfa"         # PLACEHOLDER
+  foreground: "#042f2e"         # PLACEHOLDER
+  muted: "#ccfbf1"              # PLACEHOLDER
+  muted_foreground: "#115e59"   # PLACEHOLDER
+  card: "#ffffff"
+  card_foreground: "#042f2e"    # PLACEHOLDER
+  border: "#99f6e4"             # PLACEHOLDER
+  ring: "#0e7490"               # PLACEHOLDER
+  radius: "0.25rem"             # PLACEHOLDER
+
+fonts:
+  # licence: OFL-1.1 — reuses the existing "Inter" asset key (no new font)
+  heading: "asset:font-inter"
+  body: "asset:font-inter"
+
+contact:
+  # PLACEHOLDER — synthetic number, draft fixture only
+  whatsapp: "+6281200000000"
+
+reviewers:
+  expert_logins: [] # draft kit: naming real experts is an operational gate
+
+assets:
+  - "asset:font-inter"

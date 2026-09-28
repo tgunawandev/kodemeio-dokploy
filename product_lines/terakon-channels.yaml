@@ -1,0 +1,35 @@
+# Terakon channel portfolio line B5 (Teracorp Track B, slice TB5; spec B5; contract
+# contracts/product_lines/product_line.v1.schema.json). EXAMPLE CONTENT — not approved
+# product copy: each item is one niche channel's F8 content piece, rendered under that
+# channel's own draft PLACEHOLDER sub-brand kit (so every piece carries `kit uji coba`).
+#
+# Harness contract (product-line harness `content` / `publish` / `performance` steps):
+# a `content_piece` item's `ref` is a channel code, resolved to channels/<brand>/<niche>.yaml
+# (`<brand>-<niche>` == ref); its `kit` is that channel's kit (brand switch); each variant key
+# is one ENABLED channel format (the F8 piece kind) on the channel's platform. F10 schedules
+# only after expert then founder approval (manual `creator_handoff`). `launch` is empty: a
+# launch brief carries no kit, and every piece here must render under its channel kit.
+# Nothing is sold (`publish: none`, price 0).
+id: terakon-channels
+brand_kit: terakon
+
+items:
+  - kind: content_piece
+    ref: terakon-niche-a
+    kit: terakon-niche-a
+    variants:
+      - key: carousel
+      - key: caption
+    price_idr: 0
+    publish: none
+
+  - kind: content_piece
+    ref: terakon-niche-b
+    kit: terakon-niche-b
+    variants:
+      - key: script
+      - key: caption
+    price_idr: 0
+    publish: none
+
+launch: []

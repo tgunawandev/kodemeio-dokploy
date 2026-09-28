@@ -1,0 +1,44 @@
+{
+  "code": "terakon-niche-b",
+  "kit": "terakon-niche-b",
+  "platform": "tiktok",
+  "cadence_per_week": 5,
+  "formats": [
+    {
+      "format": "script",
+      "enabled": true
+    },
+    {
+      "format": "caption",
+      "enabled": true
+    },
+    {
+      "format": "carousel",
+      "enabled": false
+    },
+    {
+      "format": "video",
+      "enabled": false
+    }
+  ],
+  "stop_rule": {
+    "metrics": [
+      {
+        "metric_id": "views",
+        "direction": "gte",
+        "unit": "count",
+        "threshold": "10000"
+      },
+      {
+        "metric_id": "watch_time_s",
+        "direction": "gte",
+        "unit": "seconds",
+        "threshold": "36000"
+      }
+    ],
+    "on_miss": {
+      "day_60": "pivot",
+      "day_90": "stop"
+    }
+  }
+}

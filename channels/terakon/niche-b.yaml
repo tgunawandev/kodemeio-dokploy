@@ -1,0 +1,28 @@
+# Terakon niche channel "niche-b" (Teracorp Track B, slice TB5; spec B5; contract
+# contracts/channels/channel.v1.schema.json). EXAMPLE CONTENT — not an approved channel:
+# every value is a PLACEHOLDER for the founder to replace at the operational gate
+# (ops/runbooks/teracorp-b5-channel-portfolio.md). It renders under its own draft sub-brand
+# kit, brands/terakon-niche-b.yaml, so each piece carries the `kit uji coba` disclaimer.
+#
+# Read by ops/channel_portfolio/evaluate.py (stop rule -> G2 -> continue|pivot|stop) and, via
+# product_lines/terakon-channels.yaml, by the product-line harness (F8 pieces, F10 manual
+# schedule, the `performance` step). Video stays disabled (TB-D6).
+code: terakon-niche-b
+kit: terakon-niche-b
+platform: tiktok
+cadence_per_week: 5            # PLACEHOLDER
+
+formats:
+  - {format: script, enabled: true}
+  - {format: caption, enabled: true}
+  - {format: carousel, enabled: false}
+  - {format: video, enabled: false}   # TB-D6: allowed, disabled until the founder lifts it
+
+stop_rule:
+  metrics:
+    # PLACEHOLDER thresholds (the founder sets real ones; G2 threshold format).
+    - {metric_id: views, direction: gte, unit: count, threshold: "10000"}
+    - {metric_id: watch_time_s, direction: gte, unit: seconds, threshold: "36000"}
+  on_miss:
+    day_60: pivot
+    day_90: stop
