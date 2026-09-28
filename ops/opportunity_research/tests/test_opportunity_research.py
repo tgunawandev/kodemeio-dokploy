@@ -157,6 +157,21 @@ def test_owner_review_date_invariants(review_status, reviewed_on, expected_issue
     assert expected_issue in evaluate(document)["issues"]
 
 
+@pytest.mark.parametrize("review_status", ["reviewed_unverified", "rejected"])
+def test_owner_review_must_not_predate_linked_evidence_capture(review_status: str) -> None:
+    document = payload()
+    captured_on = document["evidence"][0]["captured_on"]
+    review = document["opportunities"][0]["owner_review"]
+    review.update(status=review_status, reviewed_on="2026-01-01")
+    document["opportunities"][0]["status"] = review_status
+    report = evaluate(document)
+    assert report["status"] == "blocked"
+    assert "opportunities[0].owner_review:before_evidence_capture" in report["issues"]
+    # On the capture day itself the review is chronologically possible.
+    review.update(reviewed_on=captured_on)
+    assert evaluate(document)["status"] == "candidate-unverified"
+
+
 def test_candidate_state_must_match_manual_review_state() -> None:
     document = payload()
     review = document["opportunities"][0]["owner_review"]

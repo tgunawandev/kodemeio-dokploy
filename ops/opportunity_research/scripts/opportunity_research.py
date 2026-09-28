@@ -208,6 +208,14 @@ def _semantic_issues(payload: dict[str, Any]) -> list[str]:
                 issues.append(f"{path}.owner_review:review_date_required")
             if as_of and reviewed_on and reviewed_on > as_of:
                 issues.append(f"{path}.owner_review:after_as_of_date")
+            linked_captures = [
+                _canonical_date(evidence_by_ref[ref].get("captured_on"))
+                for ref in (refs if isinstance(refs, list) else [])
+                if isinstance(ref, str) and ref in evidence_by_ref
+            ]
+            latest_capture = max((captured for captured in linked_captures if captured), default=None)
+            if reviewed_on and latest_capture and reviewed_on < latest_capture:
+                issues.append(f"{path}.owner_review:before_evidence_capture")
             expected_status = {
                 "pending": "unreviewed",
                 "reviewed_unverified": "reviewed_unverified",
