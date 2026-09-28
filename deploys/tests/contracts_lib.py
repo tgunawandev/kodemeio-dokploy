@@ -89,6 +89,7 @@ def _walk_schema(
     paths: set[str],
     required_paths: set[str],
     seen_refs: frozenset[str],
+    root: dict | None = None,
 ) -> None:
     """Depth-first walk of a schema, recording every property path and every
     path that is required by its immediate parent.
@@ -96,17 +97,28 @@ def _walk_schema(
     Descends through `properties`, `items` (dict or list form), and
     `allOf`/`anyOf`/`oneOf` members (at the same path, since each member
     constrains the same instance location), resolving `$ref` via `reg` and
-    guarding against reference cycles with `seen_refs`.
+    guarding against reference cycles with `seen_refs`. A same-document
+    reference (`#/$defs/...`) is a JSON pointer into `root`, the document
+    currently being walked; any other reference is resolved via `reg` and
+    becomes the new `root` for the references inside it.
     """
     if not isinstance(node, dict):
         return
+    if root is None:
+        root = node
 
     ref = node.get("$ref")
     if ref is not None:
-        if ref in seen_refs:
+        key = f"{id(root)}{ref}" if ref.startswith("#") else ref
+        if key in seen_refs:
             return
-        seen_refs = seen_refs | {ref}
-        _walk_schema(reg.contents(ref), reg, path, paths, required_paths, seen_refs)
+        seen_refs = seen_refs | {key}
+        if ref.startswith("#"):
+            target = _json_pointer(root, ref[1:])
+            _walk_schema(target, reg, path, paths, required_paths, seen_refs, root)
+        else:
+            target = reg.contents(ref)
+            _walk_schema(target, reg, path, paths, required_paths, seen_refs, target)
 
     required_here = set(node.get("required", []))
     for key, subschema in node.get("properties", {}).items():
@@ -114,18 +126,27 @@ def _walk_schema(
         paths.add(child_path)
         if key in required_here:
             required_paths.add(child_path)
-        _walk_schema(subschema, reg, child_path, paths, required_paths, seen_refs)
+        _walk_schema(subschema, reg, child_path, paths, required_paths, seen_refs, root)
 
     items = node.get("items")
     if isinstance(items, dict):
-        _walk_schema(items, reg, f"{path}[]", paths, required_paths, seen_refs)
+        _walk_schema(items, reg, f"{path}[]", paths, required_paths, seen_refs, root)
     elif isinstance(items, list):
         for index, item_schema in enumerate(items):
-            _walk_schema(item_schema, reg, f"{path}[{index}]", paths, required_paths, seen_refs)
+            _walk_schema(item_schema, reg, f"{path}[{index}]", paths, required_paths, seen_refs, root)
 
     for keyword in ("allOf", "anyOf", "oneOf"):
         for member in node.get(keyword) or []:
-            _walk_schema(member, reg, path, paths, required_paths, seen_refs)
+            _walk_schema(member, reg, path, paths, required_paths, seen_refs, root)
+
+
+def _json_pointer(document: dict, pointer: str) -> object:
+    """Resolve an RFC 6901 JSON pointer (without the leading `#`) in `document`."""
+    node: object = document
+    for token in (t for t in pointer.split("/") if t):
+        token = token.replace("~1", "/").replace("~0", "~")
+        node = node[int(token)] if isinstance(node, list) else node[token]  # type: ignore[index]
+    return node
 
 
 def schema_property_paths(schema: dict, reg: Registry) -> tuple[set[str], set[str]]:

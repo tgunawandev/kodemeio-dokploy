@@ -371,3 +371,21 @@ def test_base_ref_fails_without_git_in_ci():
         contracts_base_ref(run=_FakeGit({}, missing=True), env={"CI": "true"})
     with pytest.raises(RuntimeError, match="git"):
         contracts_base_ref(run=_FakeGit({}), env={"CI": "true"})
+
+
+def test_same_document_refs_resolve_against_the_walked_schema():
+    schema = {
+        "type": "object",
+        "required": ["grant"],
+        "properties": {
+            "grant": {"$ref": "#/$defs/grant"},
+            "ids": {"type": "array", "items": {"$ref": "#/$defs/id"}},
+        },
+        "$defs": {
+            "id": {"type": "string"},
+            "grant": {"type": "object", "required": ["id"], "properties": {"id": {"$ref": "#/$defs/id"}}},
+        },
+    }
+    paths, required = schema_property_paths(schema, _EMPTY_REGISTRY)
+    assert paths == {"grant", "ids", "grant.id"}
+    assert required == {"grant", "grant.id"}
