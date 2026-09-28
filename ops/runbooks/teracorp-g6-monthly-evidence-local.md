@@ -25,10 +25,15 @@ synthetic and is not a model for actual facts):
 
 ```sh
 uv run python ops/scripts/teracorp_g6_monthly_evidence.py \
-  --as-of 2026-09-28T00:00:00Z path/to/monthly-package.json
+  --as-of 2026-10-01T00:00:00Z path/to/monthly-package.json
 ```
 
-`--as-of` is required so output is deterministic. Exit code 0 means only
+`--as-of` is required so output is deterministic, and it must be at or after the first UTC instant
+after the package month ends (a 2026-09 package needs `--as-of` ≥ `2026-10-01T00:00:00Z`);
+an earlier `as_of` reports `as_of:before_month_end`. Production mode refuses any
+`ev.synthetic.*` / `qual.synthetic.*` reference (`document:synthetic_evidence_ref_not_allowed`),
+so a package copied from the example cannot report complete. Only the checked-in fixture check
+passes `--synthetic-fixture`, and its report carries `synthetic_fixture_mode: true`. Exit code 0 means only
 `complete-for-counsel-review-unverified`; exit code 1 means `incomplete`. Neither state approves
 business activity. A founder and qualified counsel must conduct and document the real monthly
 review outside this tool.

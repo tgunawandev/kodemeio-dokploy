@@ -11,12 +11,18 @@ from jsonschema import Draft202012Validator, FormatChecker
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import teracorp_g6_monthly_evidence as g6  # noqa: E402
-from teracorp_g6_monthly_evidence import MAX_JSON_DEPTH, InputError, evaluate, load_document  # noqa: E402
+from teracorp_g6_monthly_evidence import MAX_JSON_DEPTH, InputError, load_document  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA = ROOT / "contracts" / "teracorp_g6_monthly_evidence.v1.schema.json"
 SAMPLE = ROOT / "examples" / "teracorp_g6_monthly_evidence.synthetic.v1.json"
-AS_OF = "2026-09-28T00:00:00Z"
+# The first instant after the 2026-09 package month has closed.
+AS_OF = "2026-10-01T00:00:00Z"
+
+
+def evaluate(payload, as_of):
+    """Evaluate the checked-in synthetic fixture in explicit synthetic-fixture mode."""
+    return g6.evaluate(payload, as_of, allow_synthetic=True)
 
 
 def valid_payload() -> dict:
@@ -64,6 +70,7 @@ def test_synthetic_package_is_structural_inventory_only_and_schema_valid() -> No
         "evidence_authenticated": False,
         "inventory_exhaustiveness_verified": False,
         "as_of_authenticated": False,
+        "synthetic_fixture_mode": True,
         "inventory_counts": {"decisions": 8, "change_items": 2, "incident_items": 0},
     }
 
@@ -100,8 +107,8 @@ def test_expired_decision_blocks_completeness() -> None:
 
 def test_future_decision_blocks_completeness() -> None:
     payload = valid_payload()
-    payload["decisions"][0]["issued_at"] = "2026-09-29T00:00:00Z"
-    payload["decisions"][0]["valid_from"] = "2026-09-29T00:00:00Z"
+    payload["decisions"][0]["issued_at"] = "2026-10-01T00:00:01Z"
+    payload["decisions"][0]["valid_from"] = "2026-10-01T00:00:01Z"
     assert_incomplete(payload, "decisions[0]:decision_future")
 
 
@@ -262,13 +269,14 @@ def test_output_is_deterministic_and_never_reports_approval() -> None:
 def test_cli_requires_explicit_as_of_and_reports_only_unverified_inventory_state() -> None:
     script = Path(__file__).resolve().parents[1] / "teracorp_g6_monthly_evidence.py"
     result = subprocess.run(
-        [sys.executable, str(script), "--as-of", AS_OF, str(SAMPLE)],
+        [sys.executable, str(script), "--synthetic-fixture", "--as-of", AS_OF, str(SAMPLE)],
         check=False,
         capture_output=True,
         text=True,
     )
     report = json.loads(result.stdout)
     assert result.returncode == 0
+    assert report["synthetic_fixture_mode"] is True
     assert report["status"] == "complete-for-counsel-review-unverified"
     assert report["verified"] is False and report["legal_reviewed"] is False
     assert "compliant" not in result.stdout.lower()
@@ -300,3 +308,67 @@ def test_incident_decision_must_cover_exact_incident() -> None:
     add_incident_decision(payload)
     payload["incident_inventory"]["items"][0]["decision_id"] = "d-incident"
     assert_incomplete(payload, "incident_inventory.items[0]:decision_uncovered")
+
+
+def _replace_synthetic_refs(payload: dict) -> dict:
+    """Swap every synthetic ref for a deterministic opaque production-shaped token."""
+    text = json.dumps(payload)
+    tokens: dict[str, str] = {}
+    for match in sorted(set(__import__("re").findall(r'"((?:ev|qual)\.synthetic\.[a-z0-9.-]+)"', text))):
+        prefix = "qual" if match.startswith("qual") else "ev"
+        tokens[match] = f"{prefix}-{len(tokens):032x}"
+    for synthetic, opaque in tokens.items():
+        text = text.replace(f'"{synthetic}"', f'"{opaque}"')
+    return json.loads(text)
+
+
+def test_production_mode_refuses_synthetic_refs_copied_from_the_example() -> None:
+    report = g6.evaluate(valid_payload(), AS_OF)
+    assert report["status"] == "incomplete"
+    assert "document:synthetic_evidence_ref_not_allowed" in report["issues"]
+    assert report["synthetic_fixture_mode"] is False
+
+
+def test_production_mode_accepts_opaque_refs() -> None:
+    report = g6.evaluate(_replace_synthetic_refs(valid_payload()), AS_OF)
+    assert report["issues"] == []
+    assert report["status"] == "complete-for-counsel-review-unverified"
+    assert report["synthetic_fixture_mode"] is False
+
+
+def test_single_synthetic_ref_in_otherwise_real_package_is_refused() -> None:
+    payload = _replace_synthetic_refs(valid_payload())
+    payload["decisions"][0]["counsel"]["qualification_refs"] = ["qual.synthetic.a"]
+    assert "document:synthetic_evidence_ref_not_allowed" in g6.evaluate(payload, AS_OF)["issues"]
+
+
+def test_cli_without_synthetic_flag_refuses_the_synthetic_example() -> None:
+    script = Path(__file__).resolve().parents[1] / "teracorp_g6_monthly_evidence.py"
+    result = subprocess.run(
+        [sys.executable, str(script), "--as-of", AS_OF, str(SAMPLE)],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 1
+    assert "document:synthetic_evidence_ref_not_allowed" in json.loads(result.stdout)["issues"]
+
+
+@pytest.mark.parametrize("as_of", ["2026-09-01T00:00:00Z", "2026-09-28T00:00:00Z", "2026-09-30T23:59:59Z"])
+def test_as_of_before_month_end_blocks_completeness(as_of: str) -> None:
+    payload = valid_payload()
+    for decision in payload["decisions"]:
+        decision["issued_at"] = decision["valid_from"] = "2026-09-01T00:00:00Z"
+    assert_incomplete(payload, "as_of:before_month_end", as_of)
+
+
+def test_as_of_at_first_instant_after_month_end_is_accepted() -> None:
+    assert evaluate(valid_payload(), "2026-10-01T00:00:00Z")["status"] == "complete-for-counsel-review-unverified"
+
+
+def test_december_month_end_rolls_into_next_year() -> None:
+    payload = valid_payload()
+    text = json.dumps(payload).replace("2026-09", "2026-12").replace("2026-10-20", "2027-01-20")
+    payload = json.loads(text)
+    assert_incomplete(payload, "as_of:before_month_end", "2026-12-31T23:59:59Z")
+    assert evaluate(payload, "2027-01-01T00:00:00Z")["status"] == "complete-for-counsel-review-unverified"

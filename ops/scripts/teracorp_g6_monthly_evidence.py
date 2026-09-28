@@ -10,7 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -26,6 +26,7 @@ TOPICS = (
     "incident_exception_remediation",
 )
 SCHEMA_PATH = Path(__file__).resolve().parents[1] / "contracts" / "teracorp_g6_monthly_evidence.v1.schema.json"
+SYNTHETIC_REF_PREFIXES = ("ev.synthetic.", "qual.synthetic.")
 
 
 class InputError(ValueError):
@@ -111,8 +112,29 @@ def _add(issues: set[str], path: str, reason: str) -> None:
     issues.add(f"{path}:{reason}")
 
 
-def _evaluate_valid_shape(payload: dict[str, Any], as_of_value: Any, issues: set[str]) -> None:
+def _month_end(month: str) -> datetime:
+    """Return the first UTC instant after ``month`` (YYYY-MM) has closed."""
+    year, month_number = (int(part) for part in month.split("-"))
+    return datetime(year + month_number // 12, month_number % 12 + 1, 1, tzinfo=UTC)
+
+
+def _synthetic_refs(payload: dict[str, Any]) -> bool:
+    ref_lists = [decision["evidence_refs"] for decision in payload["decisions"]]
+    ref_lists += [decision["counsel"]["qualification_refs"] for decision in payload["decisions"]]
+    for inventory in (payload["change_inventory"], payload["incident_inventory"]):
+        ref_lists.append(inventory["evidence_refs"])
+        ref_lists += [item["evidence_refs"] for item in inventory["items"]]
+    return any(ref.startswith(SYNTHETIC_REF_PREFIXES) for refs in ref_lists for ref in refs)
+
+
+def _evaluate_valid_shape(
+    payload: dict[str, Any], as_of_value: Any, issues: set[str], *, allow_synthetic: bool
+) -> None:
     month = payload["month"]
+    if not allow_synthetic and _synthetic_refs(payload):
+        # The schema accepts the fixture's synthetic refs so the example stays valid; a production
+        # package that still carries them was copied from the example and cannot be complete.
+        _add(issues, "document", "synthetic_evidence_ref_not_allowed")
     as_of = _timestamp(as_of_value)
     if as_of is None:
         _add(issues, "as_of", "timezone_timestamp_required")
@@ -120,6 +142,9 @@ def _evaluate_valid_shape(payload: dict[str, Any], as_of_value: Any, issues: set
     if as_of.utcoffset().total_seconds() != 0:
         _add(issues, "as_of", "utc_timestamp_required")
         return
+    if as_of < _month_end(month):
+        # A monthly package cannot be complete before the month it covers has ended.
+        _add(issues, "as_of", "before_month_end")
 
     decisions = payload["decisions"]
     by_id: dict[str, dict[str, Any]] = {}
@@ -224,11 +249,14 @@ def _evaluate_valid_shape(payload: dict[str, Any], as_of_value: Any, issues: set
             _add(issues, path, "evidence_unlinked_from_decision")
 
 
-def evaluate(payload: Any, as_of: Any) -> dict[str, Any]:
-    """Return only a safe, deterministic evidence-inventory status."""
+def evaluate(payload: Any, as_of: Any, *, allow_synthetic: bool = False) -> dict[str, Any]:
+    """Return only a safe, deterministic evidence-inventory status.
+
+    ``allow_synthetic`` is an explicit fixture mode; production packages must use opaque refs.
+    """
     issues: set[str] = set()
     if type(payload) is not dict:
-        return _report(issues={"document:object_required"})
+        return _report(issues={"document:object_required"}, synthetic_fixture_mode=allow_synthetic)
     try:
         from jsonschema import Draft202012Validator, FormatChecker
 
@@ -238,17 +266,22 @@ def evaluate(payload: Any, as_of: Any) -> dict[str, Any]:
             key=lambda error: (tuple(map(str, error.absolute_path)), error.validator or ""),
         )
     except Exception:
-        return _report(issues={"validator:schema_unavailable"})
+        return _report(issues={"validator:schema_unavailable"}, synthetic_fixture_mode=allow_synthetic)
     if errors:
         for error in errors:
             location = ".".join(map(str, error.absolute_path)) or "root"
             _add(issues, f"document.{location}", "invalid_shape")
     else:
-        _evaluate_valid_shape(payload, as_of, issues)
-    return _report(payload=payload, issues=issues)
+        _evaluate_valid_shape(payload, as_of, issues, allow_synthetic=allow_synthetic)
+    return _report(payload=payload, issues=issues, synthetic_fixture_mode=allow_synthetic)
 
 
-def _report(payload: dict[str, Any] | None = None, issues: set[str] | None = None) -> dict[str, Any]:
+def _report(
+    payload: dict[str, Any] | None = None,
+    issues: set[str] | None = None,
+    *,
+    synthetic_fixture_mode: bool = False,
+) -> dict[str, Any]:
     all_issues = sorted(issues or set())
     decisions = payload.get("decisions") if payload and isinstance(payload.get("decisions"), list) else []
     change_inventory = payload.get("change_inventory") if payload else None
@@ -273,6 +306,7 @@ def _report(payload: dict[str, Any] | None = None, issues: set[str] | None = Non
         "evidence_authenticated": False,
         "inventory_exhaustiveness_verified": False,
         "as_of_authenticated": False,
+        "synthetic_fixture_mode": synthetic_fixture_mode,
         "inventory_counts": {
             "decisions": len(decisions),
             "change_items": len(change_items),
@@ -310,14 +344,21 @@ def parse_as_of(value: str) -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--as-of", required=True, type=parse_as_of, help="explicit timezone-aware timestamp")
+    parser.add_argument(
+        "--synthetic-fixture",
+        action="store_true",
+        help="accept the checked-in ev.synthetic.* / qual.synthetic.* refs (fixture checks only)",
+    )
     parser.add_argument("document", type=Path)
     args = parser.parse_args(argv)
     try:
         payload = load_document(args.document)
     except InputError as exc:
-        print(json.dumps(_report(issues={f"input:{exc}"}), sort_keys=True))
+        print(
+            json.dumps(_report(issues={f"input:{exc}"}, synthetic_fixture_mode=args.synthetic_fixture), sort_keys=True)
+        )
         return 1
-    report = evaluate(payload, args.as_of)
+    report = evaluate(payload, args.as_of, allow_synthetic=args.synthetic_fixture)
     print(json.dumps(report, sort_keys=True, separators=(",", ":")))
     return 0 if report["status"] == "complete-for-counsel-review-unverified" else 1
 
