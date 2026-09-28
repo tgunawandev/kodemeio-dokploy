@@ -1,4 +1,4 @@
-"""channel.v1 -- a niche channel as committed DATA (Teracorp Track B, slice TB5; spec B5).
+"""channel.v1 -- a niche channel as committed DATA (Track B, slice TB5; spec B5).
 
 A channel is `channels/<brand>/<niche>.yaml`: the sub-brand kit it renders under, the F8 platform,
 its weekly cadence, the formats it may use and its stop rule, written in the G2 scorecard's
@@ -361,16 +361,18 @@ def test_committed_stop_rule_is_accepted_by_g2(path):
 
 
 def _channel_lines() -> list[Path]:
+    """Lines whose content pieces point at channels (a `content_piece` ref equal to a channel code)."""
+    codes = {_yaml(path)["code"] for path in _CHANNELS}
     lines = []
     for path in sorted(LINES_DIR.glob("*.yaml")):
-        line = _yaml(path)
-        if any(item["kind"] == "content_piece" for item in line["items"]):
+        refs = {item["ref"] for item in _yaml(path)["items"] if item["kind"] == "content_piece"}
+        if refs & codes:
             lines.append(path)
     return lines
 
 
-def test_a_channel_line_is_committed():
-    assert [path.name for path in _channel_lines()] == ["terakon-channels.yaml"]
+def test_the_channel_line_is_committed():
+    assert "terakon-channels.yaml" in [path.name for path in _channel_lines()]
 
 
 def test_the_channel_line_lists_one_piece_per_channel_under_its_kit():

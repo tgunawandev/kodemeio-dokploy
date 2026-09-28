@@ -19,8 +19,9 @@ Decision rule (per channel, from G2's checkpoints; `on_miss` comes from the chan
 
 Aggregation (F0f semantics): a publication's `views`/`watch_time_s` rows are POINT snapshots of a
 running total, so each publication contributes its latest row at or before the checkpoint's due
-date, summed over publications; `sales` rows are daily counts and add up. A correction row
-(`supersedes_id`) replaces the row it supersedes; of several, the highest `observation_id` wins.
+date, summed over publications; `sales` rows are daily counts from launch on and add up. A
+correction row (`supersedes_id`) replaces its whole correction chain; the highest
+`observation_id` in the chain wins.
 Output contains codes, ids, states and numbers only.
 """
 
@@ -285,25 +286,54 @@ def _validate_input(payload: Any, channels: list[dict]) -> tuple[date, str, dict
     ids = [row["observation_id"] for row in rows]
     if len(ids) != len(set(ids)):
         raise PortfolioError("observations repeat an observation_id")
+    by_id = {row["observation_id"]: row for row in rows}
     for index, row in enumerate(rows):
-        if row["supersedes_id"] is not None and row["supersedes_id"] not in ids:
+        target = row["supersedes_id"]
+        if target is None:
+            continue
+        if target not in by_id:
             raise PortfolioError(f"observations[{index}] supersedes an observation not in the input")
+        original = by_id[target]
+        if any(row[key] != original[key] for key in ("brand", "metric", "publication_id", "company_id")):
+            raise PortfolioError(
+                f"observations[{index}] corrects an observation of a different brand/metric/publication"
+            )
+    _roots(rows)  # refuses a correction cycle by name
     return as_of, currency, entries, rows
 
 
 # --- aggregation and decision -------------------------------------------------------------------
 
 
+def _roots(rows: list[dict]) -> dict[int, int]:
+    """observation_id -> the id at the root of its correction chain (C corrects B corrects A -> A)."""
+    parent = {row["observation_id"]: row["supersedes_id"] for row in rows}
+    roots = {}
+    for start in parent:
+        seen, node = {start}, start
+        while parent[node] is not None:
+            node = parent[node]
+            if node in seen:
+                raise PortfolioError("observations contain a correction cycle")
+            seen.add(node)
+        roots[start] = node
+    return roots
+
+
 def _effective(rows: list[dict]) -> list[dict]:
-    """Drop superseded rows; of several corrections of one row, the highest observation_id wins."""
+    """One row per correction chain: the highest observation_id of the chain replaces the rest."""
+    roots = _roots(rows)
     groups: dict[int, list[dict]] = {}
     for row in rows:
-        groups.setdefault(row["supersedes_id"] or row["observation_id"], []).append(row)
+        groups.setdefault(roots[row["observation_id"]], []).append(row)
     return [max(group, key=lambda row: row["observation_id"]) for group in groups.values()]
 
 
-def _aggregate(rows: list[dict], metric: str, due: date) -> tuple[str | None, list[int]]:
+def _aggregate(rows: list[dict], metric: str, launch: date, due: date) -> tuple[str | None, list[int]]:
     counted = [row for row in rows if row["metric"] == metric and date.fromisoformat(row["window_end"][:10]) <= due]
+    if metric in ADDITIVE_METRICS:
+        # Daily counts before the channel launched are not the channel's performance.
+        counted = [row for row in counted if date.fromisoformat(row["window_end"][:10]) >= launch]
     if not counted:
         return None, []
     if metric in POINT_METRICS:
@@ -354,7 +384,7 @@ def evaluate(channels: list[dict], payload: Any) -> dict:
             observations: dict[str, str | None] = {}
             used: list[int] = []
             for metric in channel["stop_rule"]["metrics"]:
-                value, ids = _aggregate(mine, metric["metric_id"], due) if due <= as_of else (None, [])
+                value, ids = _aggregate(mine, metric["metric_id"], launch, due) if due <= as_of else (None, [])
                 observations[metric["metric_id"]] = value
                 used += ids
             measured = any(value is not None for value in observations.values())

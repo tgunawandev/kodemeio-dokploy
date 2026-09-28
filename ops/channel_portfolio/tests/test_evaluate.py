@@ -1,4 +1,4 @@
-"""Channel portfolio evaluator (Teracorp Track B, slice TB5; spec B5).
+"""Channel portfolio evaluator (Track B, slice TB5; spec B5).
 
 Synthetic F0f-shaped aggregates -> the G2 scorecard evaluator (imported, never copied) ->
 continue|pivot|stop per channel, plus a PROPOSAL of pending F10 items to cancel for stopped
@@ -173,6 +173,57 @@ def test_a_corrected_daily_count_replaces_the_original_not_adds_to_it():
     }  # fmt: skip
 
 
+def test_a_chained_correction_counts_once():
+    # F0f allows correcting a correction: C corrects B corrects A must count C only.
+    channels = portfolio()
+    target = next(channel for channel in channels if channel["code"] == A)
+    target["stop_rule"]["metrics"] = [{"metric_id": "sales", "direction": "gte", "unit": "count", "threshold": "2"}]
+    payload = only(series(), A)
+    original = next(row for row in payload["observations"] if row["metric"] == "sales")
+    first = dict(
+        original, observation_id=18, value=1, source="manual_correction", supersedes_id=original["observation_id"]
+    )
+    second = dict(first, observation_id=19, supersedes_id=18)
+    payload["observations"] += [first, second]
+    day90 = by_code(EV.evaluate(channels, payload))[A]["checkpoints"][1]
+    assert day90["metrics"]["sales"]["observed"] == "1"
+
+
+def test_a_correction_cycle_refuses():
+    payload = series()
+    payload["observations"][4]["supersedes_id"] = 20  # 14 <-> 20
+    refuses(payload, "correction cycle")
+
+
+def test_a_correction_of_another_publication_refuses():
+    payload = series()
+    payload["observations"][5]["publication_id"] = 101
+    refuses(payload, "different brand/metric/publication")
+
+
+def test_sales_before_launch_do_not_count():
+    channels = portfolio()
+    target = next(channel for channel in channels if channel["code"] == A)
+    target["stop_rule"]["metrics"] = [{"metric_id": "sales", "direction": "gte", "unit": "count", "threshold": "1"}]
+    payload = only(series(), A)
+    sales = next(row for row in payload["observations"] if row["metric"] == "sales")
+    sales.update(window_start="2026-05-20 00:00:00", window_end="2026-05-20 23:59:59")
+    day90 = by_code(EV.evaluate(channels, payload))[A]["checkpoints"][1]
+    assert day90["metrics"]["sales"]["status"] == "unmeasured"
+
+
+def test_partial_evidence_at_day_90_falls_back_to_day_60_as_documented():
+    # Pinned: day 90 met + unmeasured is neither a miss nor a full met, so the README's
+    # first-match table moves on to day 60 (here also partial) and ends at `unmeasured`.
+    channels = portfolio()
+    target = next(channel for channel in channels if channel["code"] == A)
+    target["stop_rule"]["metrics"].append({"metric_id": "watch_time_s", "direction": "gte", "unit": "seconds",
+                                           "threshold": "1"})  # fmt: skip
+    rows = by_code(EV.evaluate(channels, only(series(), A)))
+    assert rows[A]["checkpoints"][1]["metrics"]["views"]["status"] == "met"
+    assert (rows[A]["decision"], rows[A]["reason"]) == ("continue", "unmeasured")
+
+
 def test_the_latest_of_several_corrections_wins():
     payload = only(series(), A)
     later = dict(next(row for row in payload["observations"] if row["observation_id"] == 20))
@@ -301,7 +352,7 @@ def test_g2_is_imported_from_its_single_reference_not_copied():
     assert EV.G2_SCRIPT.is_file()
     source = (ROOT / "evaluate.py").read_text()
     assert "def evaluate_scorecards" not in source
-    assert source.count("teracorp_ops_metrics") == 1, "one reference, so the rename slice edits one line"
+    assert source.count(EV.G2_SCRIPT.stem) == 1, "one reference, so the rename slice edits one line"
 
 
 def test_the_output_carries_no_pii_or_urls():

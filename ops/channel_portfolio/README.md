@@ -39,9 +39,10 @@ uv run python ops/channel_portfolio/evaluate.py --channels-dir channels \
 1. **Aggregate per channel kit, as of each checkpoint's due date** (launch + 60 and + 90 days).
    - `views` and `watch_time_s` are running totals, so each publication contributes its latest
      snapshot, and those are summed.
-   - `sales` rows are daily counts and are added up.
-   - A correction (`supersedes_id`) replaces the row it supersedes. If there are several
-     corrections, the highest id wins.
+   - `sales` rows are daily counts and are added up. Days before the launch date are not counted.
+   - A correction (`supersedes_id`) replaces the row it supersedes, including a chain where one
+     correction corrects another. The highest id in the chain wins. A correction must keep the
+     original's brand, metric, publication and company; a mismatch or a cycle refuses by name.
 2. **Feed G2.** The channel's `stop_rule.metrics` and those aggregates go to the G2 scorecard
    evaluator, `evaluate_scorecards` in `ops/scripts/teracorp_ops_metrics.py`. G2 is imported
    through the single `G2_SCRIPT` reference, not copied. G2 reports `met`, `missed` or
