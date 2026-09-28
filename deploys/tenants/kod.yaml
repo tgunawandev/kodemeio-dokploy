@@ -13,7 +13,8 @@ environments:
     server: kod-prod-02
     dns_suffix: "-stg"
     db_suffix: "_stg"
-    auto_deploy: true
+    # Disabled 2026-09-29 (founder): no service deploys on git push; deploys are explicit.
+    auto_deploy: false
 
 odoo:
   - recipe: full
