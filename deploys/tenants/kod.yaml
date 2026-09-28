@@ -129,7 +129,12 @@ hermes:
       edition: business
       model:
         name: deepseek/deepseek-v4-flash
-        provider: openai
+        provider: vision-litellm
+        base_url: https://llm.kodeme.io/v1
+        api_key_env: OPENAI_API_KEY
+      vision_auxiliary:
+        name: google/gemini-2.5-flash-lite
+        provider: vision-litellm
         base_url: https://llm.kodeme.io/v1
         api_key_env: OPENAI_API_KEY
       inbound:

@@ -1091,6 +1091,7 @@ def gen_hermes(
         )
     upstream_ref = upstream_ref.strip()
 
+    vision_auxiliary = hermes.get("vision_auxiliary")
     model_block = hermes.get("model")
     if model_block is not None:
         if type(model_block) is not dict or set(model_block) != {"name", "provider", "base_url", "api_key_env"}:
@@ -1100,9 +1101,10 @@ def gen_hermes(
         model_name = model_block["name"]
         if not isinstance(model_name, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._/-]{0,127}", model_name):
             raise ValueError(f"tenants/{code}.yaml: hermes.model.name must be a safe model alias")
-        if model_block["provider"] != "openai":
+        expected_provider = "vision-litellm" if vision_auxiliary is not None else "openai"
+        if model_block["provider"] != expected_provider:
             raise ValueError(
-                f"tenants/{code}.yaml: hermes.model.provider must be openai for the governed LiteLLM route"
+                f"tenants/{code}.yaml: hermes.model.provider must be {expected_provider} for the governed route"
             )
         base_url = model_block["base_url"]
         try:
@@ -1125,6 +1127,33 @@ def gen_hermes(
             raise ValueError(f"tenants/{code}.yaml: hermes.model.base_url must be https://llm.kodeme.io/v1")
         if model_block["api_key_env"] != "OPENAI_API_KEY":
             raise ValueError(f"tenants/{code}.yaml: hermes.model.api_key_env must be OPENAI_API_KEY")
+
+    if vision_auxiliary is not None:
+        if code != "kod" or persona != "vision":
+            raise ValueError(
+                f"tenants/{code}.yaml: hermes.vision_auxiliary is only valid for tenant kod persona vision"
+            )
+        expected_vision_main_model = {
+            "name": "deepseek/deepseek-v4-flash",
+            "provider": "vision-litellm",
+            "base_url": "https://llm.kodeme.io/v1",
+            "api_key_env": "OPENAI_API_KEY",
+        }
+        if type(model_block) is not dict or model_block != expected_vision_main_model:
+            raise ValueError(
+                f"tenants/{code}.yaml: hermes.vision_auxiliary requires the approved hermes.model primary VISION route"
+            )
+        expected_vision_auxiliary = {
+            "name": "google/gemini-2.5-flash-lite",
+            "provider": "vision-litellm",
+            "base_url": "https://llm.kodeme.io/v1",
+            "api_key_env": "OPENAI_API_KEY",
+        }
+        if type(vision_auxiliary) is not dict or vision_auxiliary != expected_vision_auxiliary:
+            raise ValueError(
+                f"tenants/{code}.yaml: hermes.vision_auxiliary must exactly match "
+                "the approved VISION auxiliary named-provider settings"
+            )
 
     dashboard_block = hermes.get("dashboard", {})
     dashboard_on = bool(dashboard_block.get("enabled"))
@@ -1215,6 +1244,16 @@ def gen_hermes(
                 if model_block
                 else {}
             ),
+            **(
+                {
+                    "HERMES_VISION_MODEL": vision_auxiliary["name"],
+                    "HERMES_VISION_PROVIDER": vision_auxiliary["provider"],
+                    "HERMES_VISION_BASE_URL": vision_auxiliary["base_url"],
+                    "HERMES_VISION_API_KEY_ENV": vision_auxiliary["api_key_env"],
+                }
+                if vision_auxiliary
+                else {}
+            ),
             **HERMES_EDITION_RESOURCES[edition],
         },
     }
@@ -1249,6 +1288,16 @@ def gen_hermes(
             f"HERMES_MODEL_PROVIDER={model_block['provider']}",
             f"HERMES_MODEL_BASE_URL={model_block['base_url']}",
             "OPENAI_API_KEY=CHANGE_ME",
+            "",
+        ]
+
+    if vision_auxiliary:
+        lines += [
+            "# === Auxiliary vision route (LiteLLM virtual key) ===",
+            f"HERMES_VISION_MODEL={vision_auxiliary['name']}",
+            f"HERMES_VISION_PROVIDER={vision_auxiliary['provider']}",
+            f"HERMES_VISION_BASE_URL={vision_auxiliary['base_url']}",
+            f"HERMES_VISION_API_KEY_ENV={vision_auxiliary['api_key_env']}",
             "",
         ]
 

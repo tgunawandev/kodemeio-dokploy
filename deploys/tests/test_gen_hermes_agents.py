@@ -119,12 +119,200 @@ def test_agent_model_can_be_governed_by_litellm_virtual_key():
     assert "OPENAI_API_KEY:" not in manifest
 
 
+def test_vision_auxiliary_generates_exact_overrides_without_secret_value():
+    tenant = {"code": "kod", "name": "Kodemeio", "short_name": "KOD"}
+    hermes = {
+        "enabled": True,
+        "server": "kod-prod-02",
+        "inbound": {"mattermost": {"enabled": True, "url": "https://mm.kodeme.io"}},
+        "agents": [
+            {
+                "name": "vision",
+                "persona": "vision",
+                "edition": "business",
+                "model": {
+                    "name": "deepseek/deepseek-v4-flash",
+                    "provider": "vision-litellm",
+                    "base_url": "https://llm.kodeme.io/v1",
+                    "api_key_env": "OPENAI_API_KEY",
+                },
+                "vision_auxiliary": {
+                    "name": "google/gemini-2.5-flash-lite",
+                    "provider": "vision-litellm",
+                    "base_url": "https://llm.kodeme.io/v1",
+                    "api_key_env": "OPENAI_API_KEY",
+                },
+            }
+        ],
+    }
+    _, manifest, _, env_example = gen_hermes_agents(tenant, hermes, "production")[0]
+    for setting in (
+        "HERMES_VISION_MODEL: google/gemini-2.5-flash-lite",
+        "HERMES_VISION_PROVIDER: vision-litellm",
+        "HERMES_VISION_BASE_URL: https://llm.kodeme.io/v1",
+        "HERMES_VISION_API_KEY_ENV: OPENAI_API_KEY",
+    ):
+        assert setting in manifest
+    assert "HERMES_VISION_MODEL=google/gemini-2.5-flash-lite" in env_example
+    assert "OPENAI_API_KEY=" not in manifest
+    assert "OPENAI_API_KEY=CHANGE_ME" in env_example
+
+
+@pytest.mark.parametrize(
+    "override",
+    [
+        {
+            "name": "google/gemini-2.5-flash",
+            "provider": "vision-litellm",
+            "base_url": "https://llm.kodeme.io/v1",
+            "api_key_env": "OPENAI_API_KEY",
+        },
+        {
+            "name": "google/gemini-2.5-flash-lite",
+            "provider": "google",
+            "base_url": "https://llm.kodeme.io/v1",
+            "api_key_env": "OPENAI_API_KEY",
+        },
+        {
+            "name": "google/gemini-2.5-flash-lite",
+            "provider": "vision-litellm",
+            "base_url": "https://example.com/v1",
+            "api_key_env": "OPENAI_API_KEY",
+        },
+        {
+            "name": "google/gemini-2.5-flash-lite",
+            "provider": "vision-litellm",
+            "base_url": "https://llm.kodeme.io/v1",
+            "api_key_env": "GOOGLE_API_KEY",
+        },
+        {
+            "name": "google/gemini-2.5-flash-lite",
+            "provider": "vision-litellm",
+            "base_url": "http://llm.kodeme.io/v1",
+            "api_key_env": "OPENAI_API_KEY",
+        },
+    ],
+    ids=["model", "provider", "direct-or-unapproved-url", "key-env", "http-url"],
+)
+def test_invalid_vision_auxiliary_governance_config_refuses(override):
+    hermes = {
+        "enabled": True,
+        "server": "kod-prod-02",
+        "inbound": {"mattermost": {"enabled": True, "url": "https://mm.kodeme.io"}},
+        "agents": [
+            {
+                "name": "vision",
+                "persona": "vision",
+                "edition": "business",
+                "model": {
+                    "name": "deepseek/deepseek-v4-flash",
+                    "provider": "vision-litellm",
+                    "base_url": "https://llm.kodeme.io/v1",
+                    "api_key_env": "OPENAI_API_KEY",
+                },
+                "vision_auxiliary": override,
+            }
+        ],
+    }
+    with pytest.raises(ValueError, match="vision_auxiliary"):
+        gen_hermes_agents({"code": "kod", "name": "Kodemeio"}, hermes, "production")
+
+
+def test_vision_auxiliary_is_refused_for_non_vision_persona():
+    hermes = {
+        "enabled": True,
+        "server": "kod-prod-02",
+        "inbound": INBOUND,
+        "agents": [
+            {
+                "name": "jarvis",
+                "persona": "jarvis",
+                "edition": "business",
+                "vision_auxiliary": {
+                    "name": "google/gemini-2.5-flash-lite",
+                    "provider": "vision-litellm",
+                    "base_url": "https://llm.kodeme.io/v1",
+                    "api_key_env": "OPENAI_API_KEY",
+                },
+            }
+        ],
+    }
+    with pytest.raises(ValueError, match="only valid for tenant kod persona vision"):
+        gen_hermes_agents({"code": "kod", "name": "Kodemeio"}, hermes, "production")
+
+
+def test_vision_auxiliary_is_refused_for_non_kod_vision_tenant():
+    hermes = {
+        "enabled": True,
+        "server": "tpp-prod-04",
+        "inbound": INBOUND,
+        "agents": [
+            {
+                "name": "vision",
+                "persona": "vision",
+                "edition": "business",
+                "model": {
+                    "name": "deepseek/deepseek-v4-flash",
+                    "provider": "vision-litellm",
+                    "base_url": "https://llm.kodeme.io/v1",
+                    "api_key_env": "OPENAI_API_KEY",
+                },
+                "vision_auxiliary": {
+                    "name": "google/gemini-2.5-flash-lite",
+                    "provider": "vision-litellm",
+                    "base_url": "https://llm.kodeme.io/v1",
+                    "api_key_env": "OPENAI_API_KEY",
+                },
+            }
+        ],
+    }
+    with pytest.raises(ValueError, match="only valid for tenant kod persona vision"):
+        gen_hermes_agents(TENANT, hermes, "production")
+
+
+@pytest.mark.parametrize(
+    "main_model",
+    [
+        None,
+        {
+            "name": "deepseek/deepseek-v4-flash-lite",
+            "provider": "vision-litellm",
+            "base_url": "https://llm.kodeme.io/v1",
+            "api_key_env": "OPENAI_API_KEY",
+        },
+    ],
+    ids=["missing", "wrong-model-alias"],
+)
+def test_vision_auxiliary_requires_approved_main_model(main_model):
+    agent = {
+        "name": "vision",
+        "persona": "vision",
+        "edition": "business",
+        "vision_auxiliary": {
+            "name": "google/gemini-2.5-flash-lite",
+            "provider": "vision-litellm",
+            "base_url": "https://llm.kodeme.io/v1",
+            "api_key_env": "OPENAI_API_KEY",
+        },
+    }
+    if main_model is not None:
+        agent["model"] = main_model
+    hermes = {
+        "enabled": True,
+        "server": "kod-prod-02",
+        "inbound": {"mattermost": {"enabled": True, "url": "https://mm.kodeme.io"}},
+        "agents": [agent],
+    }
+    with pytest.raises(ValueError, match="requires the approved hermes.model"):
+        gen_hermes_agents({"code": "kod", "name": "Kodemeio"}, hermes, "production")
+
+
 @pytest.mark.parametrize(
     "model",
     [
         {
             "name": "deepseek-flash",
-            "provider": "openai",
+            "provider": "vision-litellm",
             "base_url": "http://llm.kodeme.io/v1",
             "api_key_env": "OPENAI_API_KEY",
         },
