@@ -8,6 +8,8 @@ caller-supplied claims; a passing report is not a runtime authorization.
 from __future__ import annotations
 
 import argparse
+import base64
+import binascii
 import json
 import re
 import sys
@@ -28,6 +30,7 @@ _AUTONOMY_KEYS = {
     "promotable",
     "never_promotable",
     "max_grant_days",
+    "revoked_grant_ids",
     "trust_roots",
 }
 _MAX_JSON_INT = 1_000_000_000
@@ -159,9 +162,22 @@ def _validate_autonomy_contract(contract: Any, policy: dict[str, Any]) -> dict[s
             raise InputError("autonomy contract trust root key_id must be a safe identifier")
         if root["algorithm"] != "ed25519" or not isinstance(root["public_key"], str):
             raise InputError("autonomy contract trust roots must be ed25519 public keys")
+        try:
+            raw_key = base64.b64decode(root["public_key"], validate=True)
+        except (binascii.Error, ValueError) as exc:
+            raise InputError("autonomy contract trust root public_key must be base64") from exc
+        if len(raw_key) != 32 or base64.b64encode(raw_key).decode("ascii") != root["public_key"]:
+            raise InputError("autonomy contract trust root public_key must be a canonical 32-byte key")
         checked_roots.append(dict(root))
     if len({root["key_id"] for root in checked_roots}) != len(checked_roots):
         raise InputError("autonomy contract trust root key_ids must be unique")
+    if len({root["public_key"] for root in checked_roots}) != len(checked_roots):
+        raise InputError("autonomy contract trust root public keys must be unique")
+    revoked = contract["revoked_grant_ids"]
+    if type(revoked) is not list or len(revoked) > 1000 or len(set(map(str, revoked))) != len(revoked):
+        raise InputError("autonomy contract revoked_grant_ids must be a unique list")
+    if not all(isinstance(item, str) and _ID.fullmatch(item) for item in revoked):
+        raise InputError("autonomy contract revoked_grant_ids entries must be safe identifiers")
     return {
         "version": 1,
         "policy_version": policy["version"],
@@ -169,6 +185,7 @@ def _validate_autonomy_contract(contract: Any, policy: dict[str, Any]) -> dict[s
         "promotable": promotable,
         "never_promotable": never,
         "max_grant_days": max_days,
+        "revoked_grant_ids": list(revoked),
         "trust_roots": checked_roots,
     }
 

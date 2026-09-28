@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import copy
+import hashlib
 import importlib.util
 import json
 import sys
@@ -38,6 +39,16 @@ SAMPLE_EVIDENCE = json.loads((SCRIPTS.parent / "autonomy/evidence.synthetic.json
 def public_b64(seed: bytes) -> str:
     raw = Ed25519PrivateKey.from_private_bytes(seed).public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
     return base64.b64encode(raw).decode("ascii")
+
+
+def fingerprint(seed: bytes) -> str:
+    return "sha256:" + hashlib.sha256(base64.b64decode(public_b64(seed))).hexdigest()
+
+
+@pytest.fixture(autouse=True)
+def founder_anchor(monkeypatch):
+    """Runtime trust anchor: only the synthetic founder key is pinned outside the repository."""
+    monkeypatch.setenv(GRANT.ANCHOR_ENV, fingerprint(FOUNDER_SEED))
 
 
 def contract(*roots: tuple[str, bytes]) -> dict:
@@ -218,7 +229,11 @@ def test_runtime_ignores_refused_grants_and_always_refuses_always_human() -> Non
     runtime = GRANT.AutonomyRuntime(
         POLICY,
         trust,
-        grants=[unsigned(), tampered, signed(action_class="money_movement", grant_id="grant-money-001")],
+        grants=[
+            unsigned(grant_id="grant-unsigned-001"),
+            tampered,
+            signed(action_class="money_movement", grant_id="grant-money-001"),
+        ],
         clock=lambda: NOW,
     )
     assert [code for _, code in runtime.refused] == ["unsigned", "signature_invalid", "always_human_refused"]
@@ -264,7 +279,21 @@ def test_cli_sign_and_verify_round_trip(tmp_path: Path, capsys) -> None:
 
     assert GRANT.main(["digest", str(evidence_file)]) == 0
     assert capsys.readouterr().out.strip() == unsigned()["evidence_sha256"]
-    assert GRANT.main(["sign", str(grant_file), "--key-file", str(key_file), "--key-id", "synthetic-founder"]) == 0
+    assert (
+        GRANT.main(
+            [
+                "sign",
+                str(grant_file),
+                "--key-file",
+                str(key_file),
+                "--key-id",
+                "synthetic-founder",
+                "--evidence",
+                str(evidence_file),
+            ]
+        )
+        == 0
+    )
     signed_text = capsys.readouterr().out
     assert FOUNDER_SEED.hex() not in signed_text
     signed_file = tmp_path / "signed.json"
@@ -282,7 +311,10 @@ def test_cli_refuses_a_group_or_world_readable_key_file(tmp_path: Path, capsys) 
     key_file.chmod(0o644)
     grant_file = tmp_path / "grant.json"
     grant_file.write_text(json.dumps(unsigned()), encoding="utf-8")
-    assert GRANT.main(["sign", str(grant_file), "--key-file", str(key_file), "--key-id", "synthetic-founder"]) == 2
+    evidence_file = tmp_path / "evidence.json"
+    evidence_file.write_text(json.dumps(SAMPLE_EVIDENCE), encoding="utf-8")
+    command = ["sign", str(grant_file), "--key-file", str(key_file), "--key-id", "synthetic-founder"]
+    assert GRANT.main([*command, "--evidence", str(evidence_file)]) == 2
     captured = capsys.readouterr()
     assert "permissions" in captured.err
     assert base64.b64encode(FOUNDER_SEED).decode("ascii") not in captured.err + captured.out
@@ -306,3 +338,93 @@ def test_grant_schema_accepts_signed_grants_and_rejects_unsigned_or_widened_ones
         grant = signed()
         mutate(grant)
         assert list(validator.iter_errors(grant))
+
+
+def test_repo_writer_enrolling_their_own_trust_root_is_refused_without_a_runtime_anchor() -> None:
+    """Review High: any repo writer could add a key to trust_roots and sign a grant."""
+    rogue = contract(("synthetic-founder", FOUNDER_SEED), ("agent-key", OTHER_SEED))
+    grant = signed(seed=OTHER_SEED, key_id="agent-key")
+    with pytest.raises(GRANT.GrantRefused, match="^trust_root_not_anchored$"):
+        verify(grant, trust=rogue)
+    verify(signed(), trust=rogue)  # the anchored founder key still works
+
+
+def test_no_runtime_anchor_refuses_every_grant(monkeypatch) -> None:
+    monkeypatch.delenv(GRANT.ANCHOR_ENV)
+    with pytest.raises(GRANT.GrantRefused, match="^trust_root_not_anchored$"):
+        verify(signed())
+    monkeypatch.setenv(GRANT.ANCHOR_ENV, "not-a-fingerprint")
+    with pytest.raises(GRANT.GrantRefused, match="^trust_root_not_anchored$"):
+        verify(signed())
+
+
+def test_explicit_anchor_set_overrides_the_environment() -> None:
+    with pytest.raises(GRANT.GrantRefused, match="^trust_root_not_anchored$"):
+        GRANT.verify_grant(signed(), POLICY, contract(), now=NOW, anchors=frozenset({fingerprint(OTHER_SEED)}))
+    GRANT.verify_grant(signed(), POLICY, contract(), now=NOW, anchors=frozenset({fingerprint(FOUNDER_SEED)}))
+
+
+def test_revoked_grant_is_refused_before_expiry() -> None:
+    trust = contract()
+    trust["revoked_grant_ids"] = ["grant-operational-001"]
+    with pytest.raises(GRANT.GrantRefused, match="^revoked$"):
+        verify(signed(), trust=trust)
+    runtime = GRANT.AutonomyRuntime(POLICY, trust, grants=[signed()], clock=lambda: NOW)
+    assert runtime.decide("operational", "teracorp-ops").auto_approve is False
+
+
+def test_runtime_refuses_every_grant_sharing_a_grant_id() -> None:
+    other_scope = signed(scope={"profiles": ["another-profile"]})
+    runtime = GRANT.AutonomyRuntime(POLICY, contract(), grants=[signed(), other_scope], clock=lambda: NOW)
+    assert runtime.refused == [
+        ("grant-operational-001", "duplicate_grant_id"),
+        ("grant-operational-001", "duplicate_grant_id"),
+    ]
+    assert runtime.decide("operational", "teracorp-ops").auto_approve is False
+
+
+@pytest.mark.parametrize(
+    "mutate,message",
+    [
+        (lambda c: c["trust_roots"][0].update(public_key="not base64!"), "public_key"),
+        (lambda c: c["trust_roots"][0].update(public_key=base64.b64encode(b"x" * 31).decode()), "public_key"),
+        (
+            lambda c: c["trust_roots"].append({**c["trust_roots"][0], "key_id": "same-key-again"}),
+            "unique",
+        ),
+        (lambda c: c.update(revoked_grant_ids=["Bad Id"]), "revoked_grant_ids"),
+    ],
+)
+def test_contract_rejects_malformed_or_duplicate_trust_roots(mutate, message: str) -> None:
+    trust = contract()
+    mutate(trust)
+    with pytest.raises(EVIDENCE.InputError, match=message):
+        EVIDENCE._validate_autonomy_contract(trust, POLICY)
+
+
+def test_non_canonical_signature_encoding_is_refused() -> None:
+    grant = signed()
+    value = grant["signature"]["value"]
+    alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+    last = value[-3]  # final data character before '=='; its low 4 bits are padding
+    twin = alphabet[alphabet.index(last) ^ 0x01]
+    grant["signature"]["value"] = value[:-3] + twin + "=="
+    assert base64.b64decode(grant["signature"]["value"]) == base64.b64decode(value)
+    with pytest.raises(GRANT.GrantRefused, match="^signature_invalid$"):
+        verify(grant)
+
+
+def test_cli_sign_refuses_unless_the_evidence_packet_binds_to_the_grant(tmp_path: Path, capsys) -> None:
+    key_file = tmp_path / "founder.key"
+    key_file.write_text(base64.b64encode(FOUNDER_SEED).decode("ascii"), encoding="ascii")
+    key_file.chmod(0o600)
+    grant_file = tmp_path / "grant.json"
+    grant_file.write_text(json.dumps(unsigned(evidence_sha256="0" * 64)), encoding="utf-8")
+    evidence_file = tmp_path / "evidence.json"
+    evidence_file.write_text(json.dumps(SAMPLE_EVIDENCE), encoding="utf-8")
+    command = ["sign", str(grant_file), "--key-file", str(key_file), "--key-id", "synthetic-founder"]
+    with pytest.raises(SystemExit):
+        GRANT.main(command)  # --evidence is mandatory for signing
+    capsys.readouterr()
+    assert GRANT.main([*command, "--evidence", str(evidence_file)]) == 2
+    assert "evidence_digest_mismatch" in capsys.readouterr().err

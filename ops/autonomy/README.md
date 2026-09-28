@@ -33,11 +33,19 @@ the granted profiles.
 
 ```sh
 uv run python ops/scripts/teracorp_autonomy_grant.py digest ops/autonomy/evidence.synthetic.json
-uv run python ops/scripts/teracorp_autonomy_grant.py sign grant.json --key-file ~/founder.key --key-id <id>   # founder, offline
+uv run python ops/scripts/teracorp_autonomy_grant.py sign grant.json --key-file ~/founder.key --key-id <id> \
+  --evidence ops/autonomy/evidence.synthetic.json   # founder, offline
 uv run python ops/scripts/teracorp_autonomy_grant.py verify signed.json --evidence ops/autonomy/evidence.synthetic.json
 ```
 
-`trust_roots` is empty in the checked-in contract, so every grant is refused until the founder
-enrols a public key (operational). Tests use deterministic synthetic keys only. Wiring the same
+Two-part trust: a `trust_roots` entry is honoured only if its `sha256:<hex>` fingerprint is also
+pinned in the runtime anchor `KODEMEIO_AUTONOMY_TRUST_ANCHORS` (founder-controlled deploy config,
+never this repository), so a repository writer cannot enrol their own key. `revoked_grant_ids`
+withdraws a grant before expiry; grants sharing a `grant_id` are all refused. `sign` requires
+`--evidence` and refuses unless the packet's digest matches and it evaluates to a candidate for the
+grant's class; the runtime consumer treats `evidence_sha256` as founder-attested.
+
+`trust_roots` is empty in the checked-in contract and no anchor is set, so every grant is refused
+until the founder enrols a public key and pins its fingerprint (operational). Tests use deterministic synthetic keys only. Wiring the same
 decision into Odoo `mcp_base` classify, key custody and rotation, and an authenticated evaluation
 store are operational follow-ups.
