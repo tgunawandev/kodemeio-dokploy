@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.kodeme.io/ops/affiliate/affiliate-statement.v1.schema.json",
+  "title": "Advertiser commission statement v1 (synthetic)",
+  "description": "An advertiser or network statement of payable commissions for one period, keyed by opaque order reference. Only synthetic statements are accepted until a real network statement format is reviewed. Lines never carry customer identifiers.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "statement_ref", "advertiser_id", "currency", "period_start", "period_end", "synthetic", "lines"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "statement_ref": {"$ref": "#/$defs/id"},
+    "advertiser_id": {"$ref": "#/$defs/id"},
+    "currency": {"type": "string", "pattern": "^[A-Z]{3}$"},
+    "period_start": {"type": "string", "format": "date", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"},
+    "period_end": {"type": "string", "format": "date", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"},
+    "synthetic": {"const": true},
+    "lines": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["order_ref", "commission_minor"],
+        "properties": {
+          "order_ref": {"$ref": "#/$defs/id"},
+          "commission_minor": {"type": "integer", "minimum": 0, "maximum": 1000000000000}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[a-z][a-z0-9_-]{0,63}$"}
+  }
+}

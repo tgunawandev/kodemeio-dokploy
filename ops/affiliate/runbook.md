@@ -2,9 +2,10 @@
 
 ## Scope and gate
 
-This is a local data validator and synthetic evidence calculator. It has no network client, browser
-pixel, tracking endpoint, redirect handler, persistence layer, scheduler, Cloudflare integration,
-API client, Odoo call, or payment operation. Inputs and outputs remain local to the invoking
+This is a local data validator, synthetic evidence calculator, short-link redirect handler with a
+minimised click log (`scripts/redirect.py`, local fakes and a loopback shim only) and an advertiser
+statement reconciler (`scripts/statement.py`). It has no network client, browser pixel, deployed
+tracking endpoint, scheduler, Cloudflare integration, API client, Odoo call, or payment operation. Inputs and outputs remain local to the invoking
 process. It makes no legal or compliance assertion.
 
 The CLI exits zero only for a structurally and semantically accepted candidate or synthetic report;
@@ -89,3 +90,11 @@ integrity and deduplication, reconciliation to trusted order evidence, refunds/r
 accounting treatment, access and retention, monitoring, and human approval before any payment.
 There is no automatic commission payment in this candidate. No live Cloudflare, API, Odoo, or
 external service integration has been implemented or exercised.
+
+## Operational gate (not built here)
+
+Deploying the handler as a Cloudflare Worker (and choosing its repository), the live click store
+and retention, the production salt custody and rotation, real advertiser/network accounts and
+their postback and statement formats (a reviewed `affiliate.v2` allowing non-synthetic events),
+refund/reversal treatment, posting reconciled commissions to Odoo, and payouts all remain founder
+and operational decisions.

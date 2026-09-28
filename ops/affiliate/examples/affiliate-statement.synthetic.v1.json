@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "statement_ref": "synthetic-statement-2026-09",
+  "advertiser_id": "synthetic-advertiser",
+  "currency": "IDR",
+  "period_start": "2026-09-01",
+  "period_end": "2026-09-30",
+  "synthetic": true,
+  "lines": [
+    {"order_ref": "synthetic-order-001", "commission_minor": 500}
+  ]
+}
