@@ -15,7 +15,9 @@ from itertools import pairwise
 from pathlib import Path
 from typing import Any
 
-BRANDS = {"terakod", "terakidz", "terafin", "terakon"}
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from brand_registry import known_brands  # noqa: E402
+
 HOOK_TYPES = {"problem", "benefit", "curiosity", "social_proof", "offer", "story"}
 EVIDENCE_KINDS = {"performance_source", "threshold_approval", "founder_approval"}
 MAX_INPUT_BYTES = 2_000_000
@@ -84,8 +86,15 @@ def _closed_enum(value: Any, options: set[str], where: str) -> str:
     return value
 
 
-def validate_library(payload: Any) -> dict[str, Any]:
-    """Validate data, dedupe identical replays, and validate only explicit decisions."""
+def validate_library(payload: Any, brands: frozenset[str] | set[str] | None = None) -> dict[str, Any]:
+    """Validate data, dedupe identical replays, and validate only explicit decisions.
+
+    ``brands`` defaults to the committed brand registry (``brands/<code>.yaml``); a brand is
+    never a closed list in this code.
+    """
+    brand_codes = set(known_brands() if brands is None else brands)
+    if not brand_codes:
+        raise InputError("brand registry is empty or missing")
     root = _obj(
         payload,
         "library",
@@ -115,7 +124,7 @@ def validate_library(payload: Any) -> dict[str, Any]:
         )
         hook_id = _id(item["hook_id"], f"{where}.hook_id")
         version = _positive_int(item["version"], f"{where}.version", 1, 2_147_483_647)
-        brand = _closed_enum(item["brand"], BRANDS, f"{where}.brand")
+        brand = _closed_enum(item["brand"], brand_codes, f"{where}.brand")
         hook_type = _closed_enum(item["hook_type"], HOOK_TYPES, f"{where}.hook_type")
         variant = _id(item["variant_label"], f"{where}.variant_label")
         created = _date(item["created_on"], f"{where}.created_on")
@@ -142,7 +151,7 @@ def validate_library(payload: Any) -> dict[str, Any]:
             raw, where, {"evidence_ref_id", "brand", "evidence_kind", "verification_status", "sha256", "observed_on"}
         )
         ref_id = _id(item["evidence_ref_id"], f"{where}.evidence_ref_id")
-        brand = _closed_enum(item["brand"], BRANDS, f"{where}.brand")
+        brand = _closed_enum(item["brand"], brand_codes, f"{where}.brand")
         kind = _closed_enum(item["evidence_kind"], EVIDENCE_KINDS, f"{where}.evidence_kind")
         status = _closed_enum(item["verification_status"], {"verified", "unverified"}, f"{where}.verification_status")
         digest = item["sha256"]
@@ -193,7 +202,7 @@ def validate_library(payload: Any) -> dict[str, Any]:
         window_id = _id(item["window_id"], f"{where}.window_id")
         hook_id = _id(item["hook_id"], f"{where}.hook_id")
         version = _positive_int(item["hook_version"], f"{where}.hook_version", 1, 2_147_483_647)
-        brand = _closed_enum(item["brand"], BRANDS, f"{where}.brand")
+        brand = _closed_enum(item["brand"], brand_codes, f"{where}.brand")
         hook = hooks.get((hook_id, version))
         if hook is None or hook["brand"] != brand:
             raise InputError(f"{where} does not match an existing hook brand/version")

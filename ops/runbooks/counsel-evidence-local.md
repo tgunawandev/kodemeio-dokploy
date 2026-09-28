@@ -4,7 +4,8 @@ Local evidence-inventory tooling only. It is not legal advice, a compliance find
 approval, or operational JARVIS functionality. G6 remains founder- and qualified-counsel-gated.
 
 The version-1 package covers one month and opaque evidence references for six counsel decision
-domains: PDP/data protection, OJK/regulatory boundary, Terakod contract/seller-of-record review,
+domains: PDP/data protection, OJK/regulatory boundary, per-brand contract/seller-of-record review
+(the decision carries `brand`, a code with a committed `brands/<code>.yaml`),
 processor/data-map changes, access/retention/deletion, and incidents/exceptions/remediation. Each
 decision must name counsel, include opaque qualification and evidence references, and carry issue,
 effective, and expiry timestamps. Product/processor change entries and incident entries must link

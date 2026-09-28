@@ -39,9 +39,12 @@
     "decision": {
       "type": "object", "additionalProperties": false,
       "required": ["decision_id", "topic", "scope_type", "scope_id", "status", "counsel", "evidence_refs", "issued_at", "valid_from", "valid_until"],
+      "if": {"required": ["topic"], "properties": {"topic": {"const": "contract_seller_of_record"}}},
+      "then": {"required": ["brand"]},
       "properties": {
         "decision_id": {"$ref": "#/$defs/identifier"},
-        "topic": {"enum": ["pdp_data_protection", "ojk_regulatory_boundary", "terakod_contract_seller_of_record", "processor_data_map_changes", "access_retention_deletion", "incident_exception_remediation"]},
+        "brand": {"type": "string", "pattern": "^[a-z][a-z0-9-]{1,31}$", "description": "Required for per-brand topics (contract_seller_of_record); a brand code, valid iff brands/<code>.yaml exists."},
+        "topic": {"enum": ["pdp_data_protection", "ojk_regulatory_boundary", "contract_seller_of_record", "processor_data_map_changes", "access_retention_deletion", "incident_exception_remediation"]},
         "scope_type": {"enum": ["month", "product", "processor", "incident"]},
         "scope_id": {"$ref": "#/$defs/identifier"},
         "status": {"enum": ["decided", "unresolved"]},

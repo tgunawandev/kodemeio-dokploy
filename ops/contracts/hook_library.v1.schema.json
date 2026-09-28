@@ -14,7 +14,7 @@
     "retirement_decisions": {"type": "array", "maxItems": 200, "items": {"$ref": "#/$defs/decision"}}
   },
   "$defs": {
-    "brand": {"enum": ["terakod", "terakidz", "terafin", "terakon"]},
+    "brand": {"type": "string", "pattern": "^[a-z][a-z0-9-]{1,31}$", "description": "A brand code; valid iff brands/<code>.yaml exists (checked by ops/scripts/hook_library.py)."},
     "identifier": {"type": "string", "pattern": "^[a-z][a-z0-9_-]{0,63}$"},
     "performance_window": {
       "type": "object",

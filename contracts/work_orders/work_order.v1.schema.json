@@ -7,7 +7,7 @@
   "required": ["work_order_id", "brand", "kind", "correlation_id", "state", "refs"],
   "properties": {
     "work_order_id": {"type": "string", "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"},
-    "brand": {"enum": ["terakidz", "terakon", "terafin", "terakod"]},
+    "brand": {"type": "string", "pattern": "^[a-z][a-z0-9-]{1,31}$", "description": "A brand code; valid iff brands/<code>.yaml exists in kodemeio-dokploy (the brand registry is data)."},
     "kind": {"enum": ["order", "factory_job"]},
     "factory": {
       "enum": ["website", "template", "ebook", "course", "video", "social", "affiliate", "software"]

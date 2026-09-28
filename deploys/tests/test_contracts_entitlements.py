@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+from typing import NamedTuple
 
 import pytest
 from contracts_lib import CONTRACTS, load, pii_hits, registry, schema_property_names, validator_for
@@ -14,6 +15,30 @@ EXAMPLES = CONTRACTS / "examples" / "entitlements"
 CHECKOUT = ENT / "app_checkout.v1.schema.json"
 ENTITLEMENT = ENT / "entitlement.v1.schema.json"
 SCHEMAS = {"app_checkout.v1": CHECKOUT, "entitlement.v1": ENTITLEMENT}
+APPS = ENT / "apps.v1.json"
+
+
+def registered_apps() -> list[str]:
+    """The paid-app registry is data: an `app` value is valid iff it is listed in apps.v1.json."""
+    return json.loads(APPS.read_text())["apps"]
+
+
+class ContractError(NamedTuple):
+    validator: str
+    absolute_path: tuple
+    message: str
+
+
+def contract_errors(schema_path, payload) -> list[ContractError]:
+    """Schema errors plus the registry check the schema deliberately does not pin."""
+    errors = [
+        ContractError(error.validator, tuple(error.absolute_path), error.message)
+        for error in validator_for(schema_path).iter_errors(payload)
+    ]
+    app = payload.get("app") if isinstance(payload, dict) else None
+    if isinstance(app, str) and not any(e.absolute_path == ("app",) for e in errors) and app not in registered_apps():
+        errors.append(ContractError("registry", ("app",), f"{app!r} is not a registered app (apps.v1.json)"))
+    return errors
 
 
 def _schema(example):
@@ -23,7 +48,7 @@ def _schema(example):
 # `<stem>.invalid-<reason>.json` -> (validator keyword, instance path, token in message).
 EXPECTED_INVALID = {
     "pii-field": ("additionalProperties", (), None),
-    "unknown-app": ("enum", ("app",), "'teramart'"),
+    "unknown-app": ("registry", ("app",), "'teramart'"),
     "extra-field": ("additionalProperties", (), "'note'"),
 }
 
@@ -40,6 +65,7 @@ def test_the_two_schemas_exist_with_their_ids():
 @pytest.mark.parametrize("path", sorted(EXAMPLES.glob("*.valid.json")), ids=lambda p: p.name)
 def test_valid_examples_validate(path):
     validator_for(_schema(path)).validate(json.loads(path.read_text()))
+    assert contract_errors(_schema(path), json.loads(path.read_text())) == []
 
 
 def test_every_schema_has_a_valid_example_and_all_three_invalid_reasons():
@@ -54,10 +80,10 @@ def test_invalid_examples_fail_for_their_named_reason(path):
     reason = _reason(path)
     assert reason in EXPECTED_INVALID, f"{path.name}: declare its reason"
     keyword, where, token = EXPECTED_INVALID[reason]
-    errors = list(validator_for(_schema(path)).iter_errors(json.loads(path.read_text())))
+    errors = contract_errors(_schema(path), json.loads(path.read_text()))
     assert errors, f"{path.name} unexpectedly validated"
     for error in errors:
-        assert error.validator == keyword and tuple(error.absolute_path) == where, error.message
+        assert error.validator == keyword and error.absolute_path == where, error.message
         if token:
             assert token in error.message
 
@@ -75,8 +101,38 @@ def test_no_pii_property_names(path):
     assert not pii_hits(names), pii_hits(names)
 
 
-def test_app_enum_is_exactly_the_three_paid_apps():
-    assert load(CHECKOUT)["properties"]["app"]["enum"] == ["terakidz", "terafin", "terakon-studio"]
+def test_app_registry_is_data_and_keeps_the_three_paid_apps():
+    # The allowed apps live in apps.v1.json (data); the schemas pin only the slug shape.
+    assert registered_apps() == ["terakidz", "terafin", "terakon-studio"]
+    for schema in SCHEMAS.values():
+        app = load(schema)["properties"]["app"]
+        assert "enum" not in app and "const" not in app
+        assert app["pattern"] == "^[a-z][a-z0-9]*(-[a-z0-9]+)*$"
+    for code in registered_apps():
+        assert len(code) <= 32 and not contract_errors(CHECKOUT, {**_valid_checkout(), "app": code})
+
+
+def _valid_checkout():
+    return json.loads((EXAMPLES / "app_checkout.v1.valid.json").read_text())
+
+
+@pytest.mark.parametrize("bad", ["Terakidz", "tera kidz", "-terakidz", "terakidz-", "a" * 33, ""])
+def test_app_must_be_a_slug(bad):
+    errors = contract_errors(CHECKOUT, {**_valid_checkout(), "app": bad})
+    assert errors and all(e.validator != "registry" for e in errors)
+
+
+def test_a_slug_outside_the_registry_is_refused_by_the_registry_not_the_schema():
+    payload = {**_valid_checkout(), "app": "newapp"}
+    assert not list(validator_for(CHECKOUT).iter_errors(payload))
+    assert [e.validator for e in contract_errors(CHECKOUT, payload)] == ["registry"]
+
+
+def test_every_example_and_recorded_app_is_registered():
+    bodies = [json.loads(p.read_text()) for p in EXAMPLES.glob("*.valid.json")]
+    for name in ("entitlement.v1.recorded.json", "signing.v1.vector.json"):
+        bodies.append(json.loads(json.loads((EXAMPLES / name).read_text())["body"]))
+    assert bodies and all(body["app"] in registered_apps() for body in bodies)
 
 
 @pytest.mark.parametrize("field", ["app", "app_account_ref", "plan_code", "issued_at"])

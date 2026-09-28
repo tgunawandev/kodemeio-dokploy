@@ -372,3 +372,26 @@ def test_december_month_end_rolls_into_next_year() -> None:
     payload = json.loads(text)
     assert_incomplete(payload, "as_of:before_month_end", "2026-12-31T23:59:59Z")
     assert evaluate(payload, "2027-01-01T00:00:00Z")["status"] == "complete-for-counsel-review-unverified"
+
+
+def test_seller_of_record_topic_is_per_brand_not_brand_named() -> None:
+    assert "contract_seller_of_record" in g6.TOPICS
+    assert not any("terakod" in topic for topic in g6.TOPICS)
+    decision = next(d for d in valid_payload()["decisions"] if d["topic"] == "contract_seller_of_record")
+    assert decision["brand"] in g6.known_brands()
+
+
+def test_seller_of_record_decision_without_brand_is_schema_invalid() -> None:
+    payload = valid_payload()
+    next(d for d in payload["decisions"] if d["topic"] == "contract_seller_of_record").pop("brand")
+    validator = Draft202012Validator(json.loads(SCHEMA.read_text(encoding="utf-8")), format_checker=FormatChecker())
+    assert list(validator.iter_errors(payload))
+    assert evaluate(payload, AS_OF)["status"] != "complete"
+
+
+def test_seller_of_record_decision_for_an_unregistered_brand_is_incomplete() -> None:
+    payload = valid_payload()
+    next(d for d in payload["decisions"] if d["topic"] == "contract_seller_of_record")["brand"] = "otherbrand"
+    report = evaluate(payload, AS_OF)
+    assert report["status"] == "incomplete"
+    assert any(issue.endswith(":unknown_brand") for issue in report["issues"])

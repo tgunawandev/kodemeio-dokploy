@@ -1,0 +1,8 @@
+{
+  "_comment": "Registry of paid apps for app_checkout.v1 and entitlement.v1. This is data: an `app` value is valid iff it is listed here. Adding an app is a data change (this file plus Odoo plan records and per-app secrets), never a schema or code change.",
+  "apps": [
+    "terakidz",
+    "terafin",
+    "terakon-studio"
+  ]
+}

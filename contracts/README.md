@@ -43,7 +43,11 @@ Owners: this repo holds the schemas; each service repo implements them.
   font must also appear in `assets`), a WhatsApp contact number, and expert reviewer logins.
   `brands/<code>.yaml` in this repo is the git source of truth (PR-reviewed); each consuming
   service imports its own read-only snapshot (e.g. Odoo's `factory_base`, per the F0
-  factory-commons plan) rather than editing the kit directly. `brands/terakidz.yaml` is
+  factory-commons plan) rather than editing the kit directly. **The brand registry is data:** a brand code is
+  valid iff `brands/<code>.yaml` exists. Every `brand` field (work_order.v1, brand_kit.v1, agent
+  profile.v1, the ops hook-library contracts) pins only the slug `^[a-z][a-z0-9-]{1,31}$`, and
+  `deploys/tests/test_brand_registry.py` cross-checks every committed reference, so a new brand
+  is one kit file, never a schema or code edit. `brands/terakidz.yaml` is
   `active`; `brands/terakon.yaml` is a `draft` test fixture only (no real product yet).
 - `templates/template.v1.schema.json` is a factory template (template factory, F3):
   a committed `templates/<id>/template.yaml` plus the layout sidecar it names (`.html` for
@@ -112,5 +116,5 @@ Owners: this repo holds the schemas; each service repo implements them.
   quiz answer is one of its options, and every source stays inside the closed Markdown
   vocabulary the renderer implements).
 - `product_lines/product_line.v1.schema.json` is a product line as data (Track B, K1): a committed `product_lines/<id>.yaml` naming its `brand_kit`, `items` (`kind` template|ebook|course|content_piece|physical, `ref` to a committed source id, optional per-item `kit`, `variants` setting only declared variables, `price_idr` ≥0 with 0 = free, a seeded `digital_kind`, `publish` factory_digital|digital|none) and `launch` F8 briefs (`platform`, `shape`, `brief_key`, optional F10 `publish_mode`); no value is ever a URL, and `deploys/tests/test_contracts_product_lines.py` resolves every ref and kit against this repo. Draft (placeholder) kits — `terakon`, `terafin`, `terakod` — must carry a `kit uji coba` required disclaimer (`deploys/tests/test_placeholder_kits.py`).
-- `entitlements/app_checkout.v1` and `entitlements/entitlement.v1` define the app entitlement bridge (ENT, TB-D1). An app asks Odoo PAY1 for a checkout using opaque refs only: `app` (one of the paid apps, listed as data in the enum), a uuid `app_account_ref`, `plan_code`, `idempotency_key` and `issued_at`. Odoo replies later with a signed `active` or `revoked` event carrying an `event_id` ULID, `valid_from` and `valid_until`. Both directions use HMAC-SHA256 with the `order_intake` scheme under generic `X-Webhook-*` header names. `entitlements/README.md` fixes the header names, the time window and the semantics. `examples/entitlements/signing.v1.vector.json` is the byte-exact test vector (`deploys/tests/test_contracts_entitlements.py`).
+- `entitlements/app_checkout.v1` and `entitlements/entitlement.v1` define the app entitlement bridge (ENT, TB-D1). An app asks Odoo PAY1 for a checkout using opaque refs only: `app` (a slug, valid iff listed in the data registry `entitlements/apps.v1.json`), a uuid `app_account_ref`, `plan_code`, `idempotency_key` and `issued_at`. Odoo replies later with a signed `active` or `revoked` event carrying an `event_id` ULID, `valid_from` and `valid_until`. Both directions use HMAC-SHA256 with the `order_intake` scheme under generic `X-Webhook-*` header names. `entitlements/README.md` fixes the header names, the time window and the semantics. `examples/entitlements/signing.v1.vector.json` is the byte-exact test vector (`deploys/tests/test_contracts_entitlements.py`).
 - Tests: `uv run pytest deploys/tests -k contracts`.

@@ -471,3 +471,35 @@ def test_cli_reads_are_bounded_and_huge_integer_is_sanitized(tmp_path, monkeypat
     assert result.returncode == 2
     assert "Traceback" not in result.stderr
     assert "JSON integer exceeds supported bounds" in result.stderr
+
+
+def test_brands_come_from_the_registry_not_a_closed_list(tmp_path):
+    # Default: the committed brands/<code>.yaml files are the registry.
+    assert {"terakod", "terakidz", "terafin", "terakon"} <= hooks.known_brands()
+    for name in ("hook_library.v1.schema.json", "hook_performance_window.v1.schema.json"):
+        schema = json.loads((Path(__file__).resolve().parents[3] / "ops/contracts" / name).read_text())
+        brand = schema.get("$defs", {}).get("brand") or schema["properties"]["brand"]
+        assert "enum" not in brand and brand["pattern"] == "^[a-z][a-z0-9-]{1,31}$"
+    # A new brand is a data change: one kit file, no code edit.
+    (tmp_path / "newbrand.yaml").write_text("code: newbrand\n")
+    payload = base_payload()
+    for section in ("hooks", "evidence_refs", "performance_windows"):
+        for row in payload[section]:
+            row["brand"] = "newbrand"
+    assert validate_library(payload, brands=hooks.known_brands(tmp_path))["hooks"]
+    with pytest.raises(InputError, match="brand is not an allowed value"):
+        validate_library(base_payload(), brands=hooks.known_brands(tmp_path))
+
+
+def test_an_unregistered_brand_fails_closed():
+    payload = base_payload()
+    for section in ("hooks", "evidence_refs", "performance_windows"):
+        for row in payload[section]:
+            row["brand"] = "otherbrand"
+    with pytest.raises(InputError, match="brand is not an allowed value"):
+        validate_library(payload)
+
+
+def test_an_empty_brand_registry_fails_closed(tmp_path):
+    with pytest.raises(InputError, match="brand registry"):
+        validate_library(base_payload(), brands=hooks.known_brands(tmp_path / "missing"))

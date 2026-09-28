@@ -14,13 +14,10 @@
   ],
   "properties": {
     "app": {
-      "description": "The paid app. One Odoo PAY1 payment path serves all of them (TB-D1).",
+      "description": "The paid app code. One Odoo PAY1 payment path serves all of them (TB-D1). A lowercase slug; valid iff it is listed in contracts/entitlements/apps.v1.json (the app registry is data, never a closed enum here).",
       "type": "string",
-      "enum": [
-        "terakidz",
-        "terafin",
-        "terakon-studio"
-      ]
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+      "maxLength": 32
     },
     "app_account_ref": {
       "description": "The app's opaque account id (a lowercase UUID, e.g. auth.users.id or a tenant id). Odoo stores only sha256(app:ref).",

@@ -14,18 +14,24 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from brand_registry import known_brands  # noqa: E402
+
 MAX_INPUT_BYTES = 262_144
 MAX_JSON_DEPTH = 64
 MAX_JSON_INTEGER_DIGITS = 20
 TOPICS = (
     "pdp_data_protection",
     "ojk_regulatory_boundary",
-    "terakod_contract_seller_of_record",
+    "contract_seller_of_record",
     "processor_data_map_changes",
     "access_retention_deletion",
     "incident_exception_remediation",
 )
 SCHEMA_PATH = Path(__file__).resolve().parents[1] / "contracts" / "counsel_evidence.v1.schema.json"
+# Topics decided per brand: the decision names its brand (a brand code, valid iff
+# brands/<code>.yaml exists) instead of the topic naming one.
+BRAND_TOPICS = frozenset({"contract_seller_of_record"})
 SYNTHETIC_REF_PREFIXES = ("ev.synthetic.", "qual.synthetic.")
 
 
@@ -147,6 +153,7 @@ def _evaluate_valid_shape(
         _add(issues, "as_of", "before_month_end")
 
     decisions = payload["decisions"]
+    brands = known_brands()
     by_id: dict[str, dict[str, Any]] = {}
     for index, decision in enumerate(decisions):
         path = f"decisions[{index}]"
@@ -170,6 +177,8 @@ def _evaluate_valid_shape(
             _add(issues, path, "invalid_decision_window")
         if decision["scope_type"] == "month" and decision["scope_id"] != month:
             _add(issues, path, "month_scope_mismatch")
+        if decision["topic"] in BRAND_TOPICS and decision.get("brand") not in brands:
+            _add(issues, path, "unknown_brand")
 
     for topic in TOPICS:
         candidates = [

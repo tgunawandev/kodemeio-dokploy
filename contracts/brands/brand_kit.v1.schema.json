@@ -23,7 +23,7 @@
     "code": {"type": "string", "pattern": "^[a-z][a-z0-9-]{1,31}$"},
     "version": {"type": "integer", "minimum": 1},
     "status": {"enum": ["draft", "active", "retired"]},
-    "brand": {"enum": ["terakidz", "terakon", "terafin", "terakod"]},
+    "brand": {"type": "string", "pattern": "^[a-z][a-z0-9-]{1,31}$", "description": "The brand this kit belongs to; valid iff brands/<brand>.yaml exists (a sub-brand kit names its parent)."},
     "locale": {"enum": ["id_ID", "en_US"]},
     "voice": {
       "type": "object",

@@ -10,7 +10,7 @@
     "window_id": {"type": "string", "pattern": "^[a-z][a-z0-9_-]{0,63}$"},
     "hook_id": {"type": "string", "pattern": "^[a-z][a-z0-9_-]{0,63}$"},
     "hook_version": {"type": "integer", "minimum": 1, "maximum": 2147483647},
-    "brand": {"enum": ["terakod", "terakidz", "terafin", "terakon"]},
+    "brand": {"type": "string", "pattern": "^[a-z][a-z0-9-]{1,31}$", "description": "A brand code; valid iff brands/<code>.yaml exists (checked by ops/scripts/hook_library.py)."},
     "window_start": {"type": "string", "format": "date"},
     "window_end": {"type": "string", "format": "date"},
     "observed_on": {"type": "string", "format": "date"},

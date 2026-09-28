@@ -11,8 +11,9 @@ app entitlement-webhook ◀──entitlement.v1── Odoo dispatcher cron ◀�
 ```
 
 Names are generic on purpose: the Odoo addon is `app_entitlement`, and the Supabase module is
-`modules/billing/app_entitlements`. Brand and app names live only in data: the `app` enum here,
-Odoo plan records, and per-app secrets and URLs. No code branches on them.
+`modules/billing/app_entitlements`. Brand and app names live only in data: the app registry
+`apps.v1.json` (an `app` value is valid iff it is listed there; the schemas only pin its slug
+shape), Odoo plan records, and per-app secrets and URLs. No code branches on them.
 
 | Contract | Direction | `X-Webhook-Source` | `X-Webhook-Event-Id` |
 |---|---|---|---|

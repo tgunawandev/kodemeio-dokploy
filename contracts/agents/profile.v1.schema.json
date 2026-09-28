@@ -11,7 +11,7 @@
     "profile": {"type": "string", "pattern": "^[a-z][a-z0-9_-]{1,31}$"},
     "version": {"type": "integer", "minimum": 1},
     "principal": {"type": "string", "pattern": "^agent:[a-z0-9-]+$"},
-    "brand": {"enum": ["terakidz", "terakon", "terafin", "terakod", "internal"]},
+    "brand": {"type": "string", "pattern": "^[a-z][a-z0-9-]{1,31}$", "description": "A brand code (valid iff brands/<code>.yaml exists) or the reserved value internal."},
     "tools": {"type": "array", "items": {"type": "string", "pattern": "^odoo_[a-z_]+$"}, "uniqueItems": true},
     "resources": {
       "type": "object", "additionalProperties": false, "required": ["read", "write"],
