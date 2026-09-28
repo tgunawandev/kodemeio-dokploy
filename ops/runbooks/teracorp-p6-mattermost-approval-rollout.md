@@ -12,15 +12,19 @@ inactive. The conditional architecture decision is in
    restore evidence, monitoring and a staging host. Stop if any prerequisite is unknown.
 2. Founder approves the exact Odoo database, Mattermost team/instance, callback origin and
    human approver roster. Verify no idtpp endpoint appears in the resolved configuration.
-3. Confirm the deployed Mattermost version preserves interactive-action context confidentiality
-   and that button callbacks reach the intended Odoo TLS origin. Treat a mismatch as a stop
+3. Confirm the deployed Mattermost version preserves **button** interactive-action context
+   confidentiality and that button callbacks reach the intended Odoo TLS origin. A reject
+   dialog's `callback_id` is client-visible by design: it can only reject, only as the same
+   reviewer, and only while the operation is pending. Treat a mismatch as a stop
    condition; do not substitute an unauthenticated proxy or enable the plugin alongside Odoo.
 4. Store the Odoo Mattermost signing secret in managed secret custody. Prove it is non-empty,
    scoped to this config, unavailable in card/client/log output, and has a documented rotation
    and emergency revocation procedure. Record only secret references, never values.
 5. Verify each Mattermost user maps to exactly the intended active internal Odoo user and
    company; no bot, portal, key-owned, disabled or self-approving identity can pass the
-   `mcp.operation` policy. Confirm private DM delivery and reviewer visibility.
+   `mcp.operation` policy. Odoo refuses an archived user on every channel (`kodemeio-odoo`
+   `90b0d7b78`). Offboarding must still deactivate the Mattermost account as well. Confirm
+   private DM delivery and reviewer visibility.
 6. Install/upgrade through the ordinary Odoo preflight path only after the independent P6
    acceptance suite and neighbor suites pass on a disposable local DB. Headless approval HTTP
    acceptance lives in the existing `mcp_mattermost` test suite; the rejected standalone
@@ -48,7 +52,8 @@ reviewer role, observed HTTP outcome, Odoo state and redacted audit reference.
 | Deactivate Mattermost config with action/dialog outstanding | Both callback routes refuse; no new approval through Mattermost |
 | Signing key revoked/rotated | Old cards refuse; newly issued cards use only the approved key |
 | Execute an approved synthetic operation | Exact prepared action hash/policy rechecked; changed arguments refuse |
-| Inspect logs and metrics | No signed token, secret, customer payload or unredacted PII persists |
+| Archive a reviewer's Odoo user while their card is outstanding, then click it | Refused; the operation stays pending |
+| Inspect logs, metrics and `queue_job` rows (args, kwargs, result) | No signed token, secret, customer payload or unredacted PII persists |
 | Start two synthetic work orders with the optional thread adapter enabled | Two distinct roots in the approved private channel; only order ID, safe line code and state leave Odoo |
 | Disable the thread config while a root job is queued | No post; delivery records a suppressed diagnostic |
 | Simulate an accepted-but-unrecorded root outcome | No automatic second POST; delivery is uncertain until an administrator verifies the bot-authored root and reconciles it |
