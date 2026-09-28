@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # test_drill_authentik.sh — local end-to-end test of the Authentik restore
-# drill (Teracorp Wave 0 Task 8, spec W8).
+# drill (Wave 0 Task 8, spec W8).
 #
 # Positive: make-fixture.sh boots a fresh Authentik, adds a known user and
 # media files, dumps DB + tars media into a local S3 stand-in in the kod

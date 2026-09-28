@@ -187,5 +187,6 @@ def test_contract_files_carry_no_program_name():
     # Founder rule 2026-09-28: runtime identifiers stay generic (no program/brand name in code).
     files = [*ENT.glob("*.json"), *EXAMPLES.glob("*.json")]
     assert files
+    program_name = "".join(("tera", "corp"))  # built from pieces so this guard never matches itself
     for path in files:
-        assert "teracorp" not in path.read_text().lower(), path.name
+        assert program_name not in path.read_text().lower(), path.name

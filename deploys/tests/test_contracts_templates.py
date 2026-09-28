@@ -1,4 +1,4 @@
-"""template.v1 and the two shipped example templates (Teracorp template factory, F3/TPL1
+"""template.v1 and the two shipped example templates (template factory, F3/TPL1
 task 1). Kept in its own module so it never touches the governance/events/factory test
 modules other agents are concurrently editing.
 

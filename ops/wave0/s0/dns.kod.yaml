@@ -1,7 +1,7 @@
-# Teracorp Wave 0, roadmap row 0.1 -- DNS desired state for the kod zones.
+# Wave 0, roadmap row 0.1 -- DNS desired state for the kod zones.
 #
-# Checked by ops/scripts/teracorp_s0_dns.py; founder procedure in
-# ops/runbooks/teracorp-wave0-s0.md (S0-1). The owned-IP inventory is NOT
+# Checked by ops/scripts/s0_dns.py; founder procedure in
+# ops/runbooks/wave0-s0.md (S0-1). The owned-IP inventory is NOT
 # written here: it is read from `kctl-hz --json servers list` exports of the
 # Hetzner projects that host kod services (kodemeio: kod-prod-01, kod-prod-02;
 # abcfood: abc-prod-02 (kod postgres/Odoo/Authentik/Mattermost), abc-prod-01

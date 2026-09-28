@@ -1,6 +1,6 @@
-# Teracorp A10 — offline autonomy evidence packet
+# A10 — offline autonomy evidence packet
 
-`python3 ops/scripts/teracorp_autonomy_evidence.py ops/autonomy/evidence.synthetic.json`
+`python3 ops/scripts/autonomy_evidence.py ops/autonomy/evidence.synthetic.json`
 validates a bounded local evidence package against the checked-in approval policy. The report can
 only be `evidence_insufficient`, `always_human_refused`, `already_autonomous_noop`,
 `not_promotable_refused`, or `candidate_for_manual_review_unverified`.
@@ -18,11 +18,11 @@ required before any runtime behavior can change. The existing always-human list 
 refusal boundary.
 
 The synthetic sample's thresholds illustrate input shape only. They are not recommendations or
-approved Teracorp policy.
+approved policy.
 
 ## Founder-signed grants (policy change path)
 
-`ops/scripts/teracorp_autonomy_grant.py` is the only path by which a class leaves human approval.
+`ops/scripts/autonomy_grant.py` is the only path by which a class leaves human approval.
 A grant (`contracts/approvals/autonomy-grant.v1.schema.json`) names one class, the evidence packet
 digest, the profiles it applies to, and an issue/expiry window (at most `max_grant_days`). It is
 honoured only with a valid Ed25519 signature by a key in `autonomy.v1.yaml` `trust_roots`; any
@@ -32,10 +32,10 @@ already-autonomous class refuses it. `AutonomyRuntime.decide()` is the runtime c
 the granted profiles.
 
 ```sh
-uv run python ops/scripts/teracorp_autonomy_grant.py digest ops/autonomy/evidence.synthetic.json
-uv run python ops/scripts/teracorp_autonomy_grant.py sign grant.json --key-file ~/founder.key --key-id <id> \
+uv run python ops/scripts/autonomy_grant.py digest ops/autonomy/evidence.synthetic.json
+uv run python ops/scripts/autonomy_grant.py sign grant.json --key-file ~/founder.key --key-id <id> \
   --evidence ops/autonomy/evidence.synthetic.json   # founder, offline
-uv run python ops/scripts/teracorp_autonomy_grant.py verify signed.json --evidence ops/autonomy/evidence.synthetic.json
+uv run python ops/scripts/autonomy_grant.py verify signed.json --evidence ops/autonomy/evidence.synthetic.json
 ```
 
 Two-part trust: a `trust_roots` entry is honoured only if its `sha256:<hex>` fingerprint is also

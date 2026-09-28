@@ -1,8 +1,8 @@
-# Teracorp Wave 0, roadmap row 0.3 -- Hetzner delete protection, desired state.
+# Wave 0, roadmap row 0.3 -- Hetzner delete protection, desired state.
 #
-# Checked by `ops/scripts/teracorp_s0_postgres.py protection` against
+# Checked by `ops/scripts/s0_postgres.py protection` against
 # `kctl-hz -p <profile> --json servers list` exports; founder procedure in
-# ops/runbooks/teracorp-wave0-s0.md (S0-3). Hetzner requires delete and
+# ops/runbooks/wave0-s0.md (S0-3). Hetzner requires delete and
 # rebuild protection to carry the same value, so both are required.
 #
 # Servers that serve the kodeme.io estate (Stage A audit §2 fleet inventory):

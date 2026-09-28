@@ -1,10 +1,10 @@
-# Teracorp G2/G3 metrics — local operator tool
+# G2/G3 metrics — local operator tool
 
-`../scripts/teracorp_ops_metrics.py` validates an explicitly supplied product scorecard or
+`../scripts/ops_metrics.py` validates an explicitly supplied product scorecard or
 summarizes aggregate founder-hours. It is offline and read-only; it does not fetch live metrics,
 connect to Odoo, update a scorecard, or make a continue/pivot/kill decision.
 
-The files under `examples/` are synthetic fixtures only. They are not Teracorp product targets,
+The files under `examples/` are synthetic fixtures only. They are not real product targets,
 actual founder time, or acceptance evidence. Copy an example to a separately controlled local
 working file, replace all synthetic values, and have the founder set thresholds before using it.
 Do not put customer/person names, credentials, incident narratives, or other sensitive details in
@@ -13,7 +13,7 @@ these inputs.
 ## G2 — product scorecards
 
 ```bash
-python3 ops/scripts/teracorp_ops_metrics.py validate-scorecards \
+python3 ops/scripts/ops_metrics.py validate-scorecards \
   ops/metrics/examples/product-scorecards.synthetic.json
 ```
 
@@ -33,7 +33,7 @@ does not satisfy G2's live-product gate.
 ## G3 — aggregate founder-hours
 
 ```bash
-python3 ops/scripts/teracorp_ops_metrics.py hours-trend \
+python3 ops/scripts/ops_metrics.py hours-trend \
   ops/metrics/examples/founder-hours.synthetic.json
 ```
 
@@ -54,7 +54,7 @@ aggregate minutes here, not names or incident/customer notes.
   from 0 to 10,080 minutes, and the weekly category total cannot exceed 10,080 minutes.
 - CLI reads only the explicit input file and writes JSON to stdout. It does not mutate that file.
 
-Local tests: `uv run pytest -q deploys/tests/test_teracorp_ops_metrics.py`.
+Local tests: `uv run pytest -q deploys/tests/test_ops_metrics.py`.
 
 This prepares local tooling for G2/G3. Real product scorecards, actual weekly records, management
 review, and the four-week trend remain required before either row is called operational.

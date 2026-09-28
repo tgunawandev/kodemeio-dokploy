@@ -131,7 +131,7 @@ differs from `default-authentication-flow` (e.g. enforced MFA), pass
 2. `git add ops/drills/results/<file>.json ops/drills/results/README.md` and
    commit (`docs(ops): restore drill <target> <date>`).
 3. Update the roadmap row **0.6** in
-   `kodemeio-docs/superpowers/specs/2026-09-25-teracorp-program-roadmap.md`
+   program roadmap, 2026-09-25
    ("Today" column) with the measured RPO/RTO and a link to the committed JSON.
    The row moves to operational only with this evidence.
 

@@ -1,10 +1,10 @@
 # R7 / PAY2 merchant-of-record candidate constraints
 
 This directory is an isolated, local-only candidate for roadmap R7 / PAY2. The
-roadmap (`kodemeio-docs/superpowers/specs/2026-09-25-teracorp-program-roadmap.md`,
+roadmap (program roadmap, 2026-09-25,
 row R7) describes foreign-market SaaS payments through a merchant of record
 (Paddle/Polar), with webhook and payout reconciliation tests; its account gate
-is still open. PAY1 results and `ops/runbooks/teracorp-midtrans-rollout.md`
+is still open. PAY1 results and `ops/runbooks/midtrans-rollout.md`
 provide nearby payment conventions, but PAY1 is a different provider and is not
 a signature or protocol specification for this candidate.
 

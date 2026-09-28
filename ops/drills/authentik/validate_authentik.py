@@ -1,4 +1,4 @@
-"""App-level validation of a restored Authentik (Teracorp Wave 0 Task 8, spec D13).
+"""App-level validation of a restored Authentik (Wave 0 Task 8, spec D13).
 
 Runs as a one-shot container on the drill's `internal: true` network (stdlib
 only — the network has no egress to install anything). Checks:

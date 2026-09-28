@@ -1,4 +1,4 @@
-# Terakon weekly planner — the template factory's XLSX proof (Teracorp F3/TPL1, spec D10).
+# Terakon weekly planner — the template factory's XLSX proof (F3/TPL1, spec D10).
 #
 # EXAMPLE CONTENT. Terakon has no shipped product (brands/terakon.yaml is itself a `draft`
 # fixture), so every string below is a placeholder whose only job is to give the factory a

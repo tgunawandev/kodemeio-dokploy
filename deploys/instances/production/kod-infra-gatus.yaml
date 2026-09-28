@@ -14,7 +14,7 @@ instance:
 
 project: kod
 environment: production
-server: kod-prod-01  # founder: monitor host — must NOT be the Teracorp production server (spec D6, G1)
+server: kod-prod-01  # founder: monitor host — must NOT be the kod production server (spec D6, G1)
 
 # Deployed from THIS repo (Wave 0 spec D6). The old `source_overrides: repo:
 # kodemeio-gatus` is retired: that repo was a stale copy nothing kept in sync.

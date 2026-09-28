@@ -1,7 +1,7 @@
-# Terakon niche channel "niche-a" (Teracorp Track B, slice TB5; spec B5; contract
+# Terakon niche channel "niche-a" (Track B, slice TB5; spec B5; contract
 # contracts/channels/channel.v1.schema.json). EXAMPLE CONTENT — not an approved channel:
 # every value is a PLACEHOLDER for the founder to replace at the operational gate
-# (ops/runbooks/teracorp-b5-channel-portfolio.md). It renders under its own draft sub-brand
+# (ops/runbooks/terakon-b5-channel-portfolio.md). It renders under its own draft sub-brand
 # kit, brands/terakon-niche-a.yaml, so each piece carries the `kit uji coba` disclaimer.
 #
 # Read by ops/channel_portfolio/evaluate.py (stop rule -> G2 -> continue|pivot|stop) and, via

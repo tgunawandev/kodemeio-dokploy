@@ -1,13 +1,13 @@
 # Runbook — kod offsite backup (restore when Hetzner is down)
 
-kodeme.io estate only (Teracorp). Nothing outside this estate — no other
+kodeme.io estate only. Nothing outside this estate — no other
 bucket, key, job or host — is touched, depended on, or reachable from these
 credentials. Design: Wave 0 spec D1–D5
-(`kodemeio-docs/superpowers/specs/2026-09-26-teracorp-wave0-ops-design.md`).
+(Wave 0 ops design, 2026-09-26).
 
 **Status:** built locally, **not deployed.** The toolbox (`kod-infra-kctl`) ships
 with `sha-PENDING` and all schedules `enabled: false`; go-live is the ordered
-founder procedure in [teracorp-wave0-rollout.md](teracorp-wave0-rollout.md).
+founder procedure in [wave0-rollout.md](wave0-rollout.md).
 
 ## What is copied where
 
@@ -66,7 +66,7 @@ SSE-B2 on.
 ## How it runs, and how you hear about it
 
 Toolbox `kod-infra-kctl` (compose `kodemeio-skills/compose/toolbox-kod.yml`,
-host = founder choice, never the Teracorp production server). Dokploy schedules
+host = founder choice, never the kod production server). Dokploy schedules
 run `jobrun <name>`:
 
 | Job | Cron (UTC) | Does | Healthchecks check (period / grace) |

@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.kodeme.io/ops/privacy/counsel-evidence.v1.schema.json",
+  "title": "G6 monthly counsel-evidence inventory",
+  "description": "Local-only inventory structure; not legal advice, compliance, approval, or verified evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "month", "decisions", "change_inventory", "incident_inventory"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "month": {"type": "string", "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])$"},
+    "decisions": {
+      "type": "array", "minItems": 6, "maxItems": 256,
+      "items": {"$ref": "#/$defs/decision"}
+    },
+    "change_inventory": {"$ref": "#/$defs/changeInventory"},
+    "incident_inventory": {"$ref": "#/$defs/incidentInventory"}
+  },
+  "$defs": {
+    "opaqueRef": {
+      "type": "string", "maxLength": 128,
+      "anyOf": [
+        {"minLength": 35, "maxLength": 35, "pattern": "^ev-[a-f0-9]{32}$"},
+        {"minLength": 37, "maxLength": 37, "pattern": "^qual-[a-f0-9]{32}$"},
+        {"enum": ["ev.synthetic.access", "ev.synthetic.b8", "ev.synthetic.b8.change", "ev.synthetic.changes", "ev.synthetic.incident-register", "ev.synthetic.incidents", "ev.synthetic.inventory", "ev.synthetic.ojk", "ev.synthetic.pdp", "ev.synthetic.processor", "ev.synthetic.processor.change", "ev.synthetic.terakod", "qual.synthetic.a"]}
+      ]
+    },
+    "identifier": {"type": "string", "minLength": 1, "maxLength": 96, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$"},
+    "timestamp": {"type": "string", "format": "date-time", "maxLength": 40},
+    "refs": {"type": "array", "minItems": 1, "maxItems": 32, "uniqueItems": true, "items": {"$ref": "#/$defs/opaqueRef"}},
+    "counsel": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "qualification_refs"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1, "maxLength": 160},
+        "qualification_refs": {"$ref": "#/$defs/refs"}
+      }
+    },
+    "decision": {
+      "type": "object", "additionalProperties": false,
+      "required": ["decision_id", "topic", "scope_type", "scope_id", "status", "counsel", "evidence_refs", "issued_at", "valid_from", "valid_until"],
+      "properties": {
+        "decision_id": {"$ref": "#/$defs/identifier"},
+        "topic": {"enum": ["pdp_data_protection", "ojk_regulatory_boundary", "terakod_contract_seller_of_record", "processor_data_map_changes", "access_retention_deletion", "incident_exception_remediation"]},
+        "scope_type": {"enum": ["month", "product", "processor", "incident"]},
+        "scope_id": {"$ref": "#/$defs/identifier"},
+        "status": {"enum": ["decided", "unresolved"]},
+        "counsel": {"$ref": "#/$defs/counsel"},
+        "evidence_refs": {"$ref": "#/$defs/refs"},
+        "issued_at": {"$ref": "#/$defs/timestamp"},
+        "valid_from": {"$ref": "#/$defs/timestamp"},
+        "valid_until": {"$ref": "#/$defs/timestamp"}
+      }
+    },
+    "changeItem": {
+      "type": "object", "additionalProperties": false,
+      "required": ["subject_type", "subject_id", "change_status", "evidence_refs", "decision_id"],
+      "properties": {
+        "subject_type": {"enum": ["product", "processor"]},
+        "subject_id": {"$ref": "#/$defs/identifier"},
+        "change_status": {"enum": ["changed", "unchanged", "unknown"]},
+        "evidence_refs": {"$ref": "#/$defs/refs"},
+        "decision_id": {"$ref": "#/$defs/identifier"}
+      }
+    },
+    "changeInventory": {
+      "type": "object", "additionalProperties": false,
+      "required": ["inventory_status", "processor_inventory_status", "evidence_refs", "items"],
+      "properties": {
+        "inventory_status": {"enum": ["complete", "unknown"]},
+        "processor_inventory_status": {"enum": ["complete", "none", "unknown"]},
+        "evidence_refs": {"$ref": "#/$defs/refs"},
+        "items": {"type": "array", "minItems": 1, "maxItems": 256, "items": {"$ref": "#/$defs/changeItem"}}
+      }
+    },
+    "incidentItem": {
+      "type": "object", "additionalProperties": false,
+      "required": ["incident_id", "handling_status", "evidence_refs", "decision_id"],
+      "properties": {
+        "incident_id": {"$ref": "#/$defs/identifier"},
+        "handling_status": {"enum": ["handled", "unhandled", "unknown"]},
+        "evidence_refs": {"$ref": "#/$defs/refs"},
+        "decision_id": {"$ref": "#/$defs/identifier"}
+      }
+    },
+    "incidentInventory": {
+      "type": "object", "additionalProperties": false,
+      "required": ["inventory_status", "evidence_refs", "items"],
+      "properties": {
+        "inventory_status": {"enum": ["complete", "unknown"]},
+        "evidence_refs": {"$ref": "#/$defs/refs"},
+        "items": {"type": "array", "maxItems": 256, "items": {"$ref": "#/$defs/incidentItem"}}
+      }
+    }
+  }
+}

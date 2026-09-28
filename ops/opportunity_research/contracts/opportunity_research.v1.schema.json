@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://contracts.kodeme.io/opportunity_research.v1.schema.json",
-  "title": "Teracorp opportunity research evidence ledger candidate",
+  "title": "Opportunity research evidence ledger candidate",
   "description": "Strict local input shape. Source assertions remain unverified and require owner review.",
   "type": "object",
   "additionalProperties": false,

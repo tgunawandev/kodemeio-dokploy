@@ -1,6 +1,6 @@
 # Contracts
 
-Versioned, machine-checked contracts shared by Teracorp services (kodeme.io estate).
+Versioned, machine-checked contracts shared by the kod (kodeme.io) estate's services.
 Owners: this repo holds the schemas; each service repo implements them.
 
 - One file per major version: `<name>.v<major>.schema.json`. Adding optional fields is a
@@ -24,7 +24,7 @@ Owners: this repo holds the schemas; each service repo implements them.
 - `agents/profile.v1.schema.json`'s `profile` field pattern was widened from
   `^[a-z][a-z0-9-]{1,31}$` to `^[a-z][a-z0-9_-]{1,31}$` (allows `_`) so `kido_chat` validates;
   by convention a profile's `profile:` value equals its file's stem.
-- `work_orders/work_order.v1.schema.json`'s `kind` gains `factory_job` (Teracorp factory
+- `work_orders/work_order.v1.schema.json`'s `kind` gains `factory_job` (F0 factory
   commons, additive-only widening — the compat test pins this). A factory job may also carry
   `factory` (the production line: `website`, `template`, `ebook`, `course`, `video`, `social`,
   `affiliate`, `software`) and `gate` (the stage reached: `auto`, `expert`, `founder`). `refs`
@@ -42,10 +42,10 @@ Owners: this repo holds the schemas; each service repo implements them.
   of the renderer's 13 colour/radius tokens, fonts (`asset:<key>` references — every referenced
   font must also appear in `assets`), a WhatsApp contact number, and expert reviewer logins.
   `brands/<code>.yaml` in this repo is the git source of truth (PR-reviewed); each consuming
-  service imports its own read-only snapshot (e.g. Odoo's `factory_base`, per the Teracorp
+  service imports its own read-only snapshot (e.g. Odoo's `factory_base`, per the F0
   factory-commons plan) rather than editing the kit directly. `brands/terakidz.yaml` is
   `active`; `brands/terakon.yaml` is a `draft` test fixture only (no real product yet).
-- `templates/template.v1.schema.json` is a factory template (Teracorp template factory, F3):
+- `templates/template.v1.schema.json` is a factory template (template factory, F3):
   a committed `templates/<id>/template.yaml` plus the layout sidecar it names (`.html` for
   `typst`/`wkhtml`, `.yaml`/`.json` for `xlsx` — the renderer pins the extension). **A layout is
   never a program** (spec D2 amendment, 2026-09-27): the HTML sidecar is a skeleton the renderer
@@ -69,7 +69,7 @@ Owners: this repo holds the schemas; each service repo implements them.
   `templates/terakon-planner/` (workbook); `deploys/tests/test_contracts_templates.py` checks
   both the schema and the semantics it cannot express (every placeholder resolves, every image
   block names a declared role).
-- `ebooks/ebook.v1.schema.json` is an e-book (Teracorp e-book factory, F4): a committed
+- `ebooks/ebook.v1.schema.json` is an e-book (e-book factory, F4): a committed
   `ebooks/<id>/ebook.yaml` plus `book.md`, the book's **canonical Markdown source** — the ONE
   artefact both renderers consume (Typst → PDF, Pandoc → EPUB, `renderers.pdf`/`renderers.epub`
   naming each as data; a renderer the consumer lacks refuses by name, `typst not installed` /
@@ -87,7 +87,7 @@ Owners: this repo holds the schemas; each service repo implements them.
   `template.v1` vocabulary **shared by reference as a pinned copy**:
   `test_the_block_vocabulary_is_f3s_pinned_copy` fails the moment the two contracts disagree.
   The one shipped book is `ebooks/terakidz-example/`.
-- `courses/course.v1.schema.json` is a factory course (Teracorp course factory, F5): a committed
+- `courses/course.v1.schema.json` is a factory course (course factory, F5): a committed
   `courses/<id>/course.yaml` plus the Markdown sources it names in `sources` (a source KEY →
   file name map). **A source is Markdown, never a program** — the file names are pinned to
   `.md`, exactly as `template.v1` pins its layout sidecar, so a `.py`/`.html` source is refused
@@ -111,6 +111,6 @@ Owners: this repo holds the schemas; each service repo implements them.
   express (every placeholder resolves, every lesson's source keys are declared and on disk, every
   quiz answer is one of its options, and every source stays inside the closed Markdown
   vocabulary the renderer implements).
-- `product_lines/product_line.v1.schema.json` is a product line as data (Teracorp Track B, K1): a committed `product_lines/<id>.yaml` naming its `brand_kit`, `items` (`kind` template|ebook|course|content_piece|physical, `ref` to a committed source id, optional per-item `kit`, `variants` setting only declared variables, `price_idr` ≥0 with 0 = free, a seeded `digital_kind`, `publish` factory_digital|digital|none) and `launch` F8 briefs (`platform`, `shape`, `brief_key`, optional F10 `publish_mode`); no value is ever a URL, and `deploys/tests/test_contracts_product_lines.py` resolves every ref and kit against this repo. Draft (placeholder) kits — `terakon`, `terafin`, `terakod` — must carry a `kit uji coba` required disclaimer (`deploys/tests/test_placeholder_kits.py`).
+- `product_lines/product_line.v1.schema.json` is a product line as data (Track B, K1): a committed `product_lines/<id>.yaml` naming its `brand_kit`, `items` (`kind` template|ebook|course|content_piece|physical, `ref` to a committed source id, optional per-item `kit`, `variants` setting only declared variables, `price_idr` ≥0 with 0 = free, a seeded `digital_kind`, `publish` factory_digital|digital|none) and `launch` F8 briefs (`platform`, `shape`, `brief_key`, optional F10 `publish_mode`); no value is ever a URL, and `deploys/tests/test_contracts_product_lines.py` resolves every ref and kit against this repo. Draft (placeholder) kits — `terakon`, `terafin`, `terakod` — must carry a `kit uji coba` required disclaimer (`deploys/tests/test_placeholder_kits.py`).
 - `entitlements/app_checkout.v1` and `entitlements/entitlement.v1` define the app entitlement bridge (ENT, TB-D1). An app asks Odoo PAY1 for a checkout using opaque refs only: `app` (one of the paid apps, listed as data in the enum), a uuid `app_account_ref`, `plan_code`, `idempotency_key` and `issued_at`. Odoo replies later with a signed `active` or `revoked` event carrying an `event_id` ULID, `valid_from` and `valid_until`. Both directions use HMAC-SHA256 with the `order_intake` scheme under generic `X-Webhook-*` header names. `entitlements/README.md` fixes the header names, the time window and the semantics. `examples/entitlements/signing.v1.vector.json` is the byte-exact test vector (`deploys/tests/test_contracts_entitlements.py`).
 - Tests: `uv run pytest deploys/tests -k contracts`.

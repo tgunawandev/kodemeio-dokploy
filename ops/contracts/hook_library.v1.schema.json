@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.kodeme.io/ops/hooks/hook-library.v1.schema.json",
+  "title": "Hook Library v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "as_of_date", "hooks", "evidence_refs", "performance_windows", "retirement_decisions"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "as_of_date": {"type": "string", "format": "date"},
+    "hooks": {"type": "array", "minItems": 1, "maxItems": 200, "items": {"$ref": "#/$defs/hook"}},
+    "evidence_refs": {"type": "array", "maxItems": 4000, "items": {"$ref": "#/$defs/evidence"}},
+    "performance_windows": {"type": "array", "maxItems": 2000, "items": {"$ref": "#/$defs/performance_window"}},
+    "retirement_decisions": {"type": "array", "maxItems": 200, "items": {"$ref": "#/$defs/decision"}}
+  },
+  "$defs": {
+    "brand": {"enum": ["terakod", "terakidz", "terafin", "terakon"]},
+    "identifier": {"type": "string", "pattern": "^[a-z][a-z0-9_-]{0,63}$"},
+    "performance_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "window_id", "hook_id", "hook_version", "brand", "window_start", "window_end", "observed_on", "provenance", "source_id", "impressions", "engagements", "conversions", "evidence_ref_id"],
+      "properties": {
+        "schema_version": {"const": 1},
+        "window_id": {"$ref": "#/$defs/identifier"},
+        "hook_id": {"$ref": "#/$defs/identifier"},
+        "hook_version": {"type": "integer", "minimum": 1, "maximum": 2147483647},
+        "brand": {"$ref": "#/$defs/brand"},
+        "window_start": {"type": "string", "format": "date"},
+        "window_end": {"type": "string", "format": "date"},
+        "observed_on": {"type": "string", "format": "date"},
+        "provenance": {"enum": ["real", "synthetic"]},
+        "source_id": {"$ref": "#/$defs/identifier"},
+        "impressions": {"type": "integer", "minimum": 0, "maximum": 1000000000},
+        "engagements": {"type": "integer", "minimum": 0, "maximum": 1000000000},
+        "conversions": {"type": "integer", "minimum": 0, "maximum": 1000000000},
+        "evidence_ref_id": {"$ref": "#/$defs/identifier"}
+      }
+    },
+    "hook": {
+      "type": "object", "additionalProperties": false,
+      "required": ["hook_id", "version", "brand", "hook_type", "variant_label", "created_on", "lifecycle"],
+      "properties": {
+        "hook_id": {"$ref": "#/$defs/identifier"},
+        "version": {"type": "integer", "minimum": 1, "maximum": 2147483647},
+        "brand": {"$ref": "#/$defs/brand"},
+        "hook_type": {"enum": ["problem", "benefit", "curiosity", "social_proof", "offer", "story"]},
+        "variant_label": {"$ref": "#/$defs/identifier"},
+        "created_on": {"type": "string", "format": "date"},
+        "lifecycle": {"enum": ["active", "retired"]}
+      }
+    },
+    "evidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["evidence_ref_id", "brand", "evidence_kind", "verification_status", "sha256", "observed_on"],
+      "properties": {
+        "evidence_ref_id": {"$ref": "#/$defs/identifier"},
+        "brand": {"$ref": "#/$defs/brand"},
+        "evidence_kind": {"enum": ["performance_source", "threshold_approval", "founder_approval"]},
+        "verification_status": {"const": "verified"},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "observed_on": {"type": "string", "format": "date"}
+      }
+    },
+    "decision": {
+      "type": "object", "additionalProperties": false,
+      "required": ["hook_id", "version", "decision", "decided_on", "approved_by", "approval_evidence_ref", "thresholds"],
+      "properties": {
+        "hook_id": {"$ref": "#/$defs/identifier"},
+        "version": {"type": "integer", "minimum": 1, "maximum": 2147483647},
+        "decision": {"enum": ["retire", "retain"]},
+        "decided_on": {"type": "string", "format": "date"},
+        "approved_by": {"$ref": "#/$defs/identifier"},
+        "approval_evidence_ref": {"$ref": "#/$defs/identifier"},
+        "thresholds": {
+          "type": "object", "additionalProperties": false,
+          "required": ["minimum_real_windows", "minimum_impressions_per_window", "maximum_conversion_rate", "threshold_evidence_ref"],
+          "properties": {
+            "minimum_real_windows": {"type": "integer", "minimum": 2, "maximum": 12},
+            "minimum_impressions_per_window": {"type": "integer", "minimum": 1, "maximum": 1000000000},
+            "maximum_conversion_rate": {"type": "string", "pattern": "^(0(\\.[0-9]{1,6})?|1(\\.0{1,6})?)$"},
+            "threshold_evidence_ref": {"$ref": "#/$defs/identifier"}
+          }
+        }
+      }
+    }
+  }
+}

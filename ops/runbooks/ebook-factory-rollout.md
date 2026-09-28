@@ -9,8 +9,8 @@ as such. Nothing here has been applied. Every command uses the kodeme.io estate 
 (`-p kodemeio`, or `./odoo.sh kod|kod-desk … prod`); no idtpp host, bucket, key or job is touched,
 and no production write happens anywhere in this document without `--yes`.
 
-Slice of record: `kodemeio-docs/superpowers/specs/2026-09-27-teracorp-ebook-factory-design.md` and
-`…/plans/2026-09-27-teracorp-ebook-factory.md` (Tasks 1–4). Roadmap row: **F4** (EBK1).
+Slice of record: F4 e-book factory design, 2026-09-27 and
+F4 e-book factory plan, 2026-09-27 (Tasks 1–4). Roadmap row: **F4** (EBK1).
 
 ## Facts this runbook is built on (verified read-only, 2026-09-27)
 

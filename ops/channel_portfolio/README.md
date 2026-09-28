@@ -44,7 +44,7 @@ uv run python ops/channel_portfolio/evaluate.py --channels-dir channels \
      correction corrects another. The highest id in the chain wins. A correction must keep the
      original's brand, metric, publication and company; a mismatch or a cycle refuses by name.
 2. **Feed G2.** The channel's `stop_rule.metrics` and those aggregates go to the G2 scorecard
-   evaluator, `evaluate_scorecards` in `ops/scripts/teracorp_ops_metrics.py`. G2 is imported
+   evaluator, `evaluate_scorecards` in `ops/scripts/ops_metrics.py`. G2 is imported
    through the single `G2_SCRIPT` reference, not copied. G2 reports `met`, `missed` or
    `unmeasured` per metric and checkpoint.
 3. **Decide.** Apply the first rule that matches:
@@ -68,7 +68,7 @@ proposed for cancellation.
 - Synthetic fixtures are not targets or evidence. The thresholds in `channels/` are
   placeholders, and the founder sets the real ones.
 - Live metrics ingestion, platform accounts and real niche kits are operational gates. See
-  `ops/runbooks/teracorp-b5-channel-portfolio.md`.
+  `ops/runbooks/terakon-b5-channel-portfolio.md`.
 - Video is listed in every channel but stays disabled (TB-D6).
 
 Tests:

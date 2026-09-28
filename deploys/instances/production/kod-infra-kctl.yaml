@@ -24,11 +24,11 @@ type: infrastructure
 
 instance:
   name: kod-infra-kctl
-  description: "kctl toolbox -- execution host for the kod (Teracorp, kodeme.io) estate's scheduled backup-freshness and offsite-mirror jobs"
+  description: "kctl toolbox -- execution host for the kod (kodeme.io) estate's scheduled backup-freshness and offsite-mirror jobs"
 
 project: kod
 environment: production
-# founder: set to the chosen toolbox host (spec §7 G1) — must NOT be the Teracorp production server
+# founder: set to the chosen toolbox host (spec §7 G1) — must NOT be the kod production server
 server: kod-prod-01
 
 # A plain `source:` block, not `source_overrides:` -- source_overrides is

@@ -1,6 +1,6 @@
 # P9 — Incident response, credential rotation, and quarterly access review
 
-**Scope:** founder-operated governance for the kodeme.io Teracorp estate.
+**Scope:** founder-operated governance for the kodeme.io (kod) estate.
 This supplements, and does not replace, [the existing incident-response
 runbook](incident-response.md), service-specific rollout procedures, or
 provider policies. It is a local documentation foundation only: no incident

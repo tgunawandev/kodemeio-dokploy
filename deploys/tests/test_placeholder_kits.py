@@ -1,4 +1,4 @@
-"""Placeholder brand kits (Teracorp Track B, slice K1; spec section 3.1).
+"""Placeholder brand kits (Track B, slice K1; spec section 3.1).
 
 Terakon, Terafin and Terakod have no approved brand yet, so their kits are `status: draft`
 PLACEHOLDERS. The guard lives in DATA, never in the kernel: every draft kit must carry a required

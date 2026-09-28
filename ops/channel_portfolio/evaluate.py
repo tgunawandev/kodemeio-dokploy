@@ -45,7 +45,7 @@ from jsonschema import Draft202012Validator
 
 REPO = Path(__file__).resolve().parents[2]
 # The G2 scorecard evaluator. Its ONE reference: a later slice renames the script by editing this line.
-G2_SCRIPT = REPO / "ops" / "scripts" / "teracorp_ops_metrics.py"
+G2_SCRIPT = REPO / "ops" / "scripts" / "ops_metrics.py"
 CHANNEL_SCHEMA = REPO / "contracts" / "channels" / "channel.v1.schema.json"
 DEFAULT_BRANDS = REPO / "brands"
 MAX_INPUT_BYTES = 1_048_576

@@ -1,4 +1,4 @@
-"""Static checker for Teracorp SW1 / FRIDAY's CI gates (plan task 5).
+"""Static checker for SW1 / FRIDAY's CI gates (plan task 5).
 
 FRIDAY opens draft PRs against sibling repos in this workspace
 (``contracts/agents/friday.yaml``'s ``repos:``; ``kodemeio-llmlite`` and

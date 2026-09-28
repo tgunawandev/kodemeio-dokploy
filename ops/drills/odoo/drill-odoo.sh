@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # drill-odoo.sh — timed, isolated Odoo DB+filestore restore drill with
-# app-level validation (Teracorp Wave 0 Task 7).
+# app-level validation (Wave 0 Task 7).
 #
 # Usage:
 #   drill-odoo.sh --db-name kod_odoo_erp --dump <remote:path|latest> \

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://kodeme.io/contracts/product_lines/product_line.v1.schema.json",
   "title": "Product line v1",
-  "description": "A product line as committed data (Teracorp Track B, spec 3.2): product_lines/<id>.yaml. The brand kit it renders under, the items it sells or ships (each a committed template, e-book or course by id, or an opaque content-piece/physical key) and the launch content (F8 briefs). Refs, kits and variant variables are resolved against the committed repo by deploys/tests/test_contracts_product_lines.py; no value is ever a URL. The schema is deliberately SELF-CONTAINED (no $ref, not even to its own branches) so contracts_lib's schema walkers keep working on it.",
+  "description": "A product line as committed data (Track B, spec 3.2): product_lines/<id>.yaml. The brand kit it renders under, the items it sells or ships (each a committed template, e-book or course by id, or an opaque content-piece/physical key) and the launch content (F8 briefs). Refs, kits and variant variables are resolved against the committed repo by deploys/tests/test_contracts_product_lines.py; no value is ever a URL. The schema is deliberately SELF-CONTAINED (no $ref, not even to its own branches) so contracts_lib's schema walkers keep working on it.",
   "type": "object",
   "additionalProperties": false,
   "required": [

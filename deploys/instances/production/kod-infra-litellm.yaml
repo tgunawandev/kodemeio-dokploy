@@ -19,7 +19,7 @@ type: infrastructure
 
 instance:
   name: kod-infra-litellm
-  description: "LiteLLM gateway -- metered, budgeted, no-prompt-storage front door for every Teracorp agent/factory model call"
+  description: "LiteLLM gateway -- metered, budgeted, no-prompt-storage front door for every kod-estate agent/factory model call"
 
 project: kod
 environment: production

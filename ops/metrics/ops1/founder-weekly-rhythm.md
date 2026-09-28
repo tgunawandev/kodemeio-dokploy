@@ -41,7 +41,7 @@ in the summary packet.
 From the Dokploy repository, run:
 
 ```sh
-python3 ops/scripts/teracorp_weekly_rhythm.py ops/metrics/ops1/examples/manifest.synthetic.json
+python3 ops/scripts/weekly_rhythm.py ops/metrics/ops1/examples/manifest.synthetic.json
 ```
 
 The output goes to stdout. Inputs must be the JSON summary outputs of OPS2/OPS3/OPS4. Treat all

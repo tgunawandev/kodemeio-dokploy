@@ -12,7 +12,7 @@ Scope is the **kodeme.io estate only**. Nothing here touches idtpp.
 | Contracts (schemas, header names, semantics, test vector, recorded request) | kodemeio-dokploy `contracts/entitlements/`, `contracts/examples/entitlements/` |
 | Odoo addon (checkout route, plans, paid/refund seams, dispatcher) | kodemeio-odoo `src/private/integrations/app_entitlement/` (read its `CLAUDE.md`), bundle `install/private-app-entitlement.yaml` |
 | Supabase module (table, `has_entitlement()`, `entitlement-webhook`) | kodemeio-supabase `modules/billing/app_entitlements/` (read its `README.md`) |
-| Payments | PAY1: `ops/runbooks/teracorp-midtrans-rollout.md` must be complete for the app's company first |
+| Payments | PAY1: `ops/runbooks/midtrans-rollout.md` must be complete for the app's company first |
 
 Names in code are generic (`app_entitlement`, `X-Webhook-*`). App and brand names appear only in
 records and secrets.

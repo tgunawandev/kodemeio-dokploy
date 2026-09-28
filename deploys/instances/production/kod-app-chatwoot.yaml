@@ -1,4 +1,4 @@
-# Teracorp CW1 — Chatwoot (Terakidz WhatsApp inbox) + kido_chat + the
+# CW1 — Chatwoot (Terakidz WhatsApp inbox) + kido_chat + the
 # order_intake ingress, bundled as one compose (kodemeio-chatwoot).
 #
 # Deliberately NOT `extends: ../../bases/infra.yaml` -- same reasoning as
@@ -8,7 +8,7 @@
 # Chatwoot's own postgres (chatwoot-postgres, service name inside THIS
 # compose, not the infra base's assumed "postgres" service) is not covered
 # by that generic phase anyway. Its backup is a documented GAP, not a
-# `backup:` block here -- see ops/runbooks/teracorp-cw1-rollout.md's
+# `backup:` block here -- see ops/runbooks/chatwoot-rollout.md's
 # "Backups" section and the note below, matching kod-infra-litellm.yaml's
 # own litellm-db precedent. The gap is an inventory item as well as prose:
 # ops/backup-inventory.kod.yaml carries `chatwoot-postgres`
@@ -21,15 +21,15 @@
 # it correctly.
 #
 # Design: kodemeio-support/kodemeio-docs/superpowers/specs/
-#         2026-09-26-teracorp-cw1-chatwoot-design.md (D11 "Chatwoot
+#         CW1 Chatwoot design, 2026-09-26 (D11 "Chatwoot
 #         deployment"; §8 founder gates M1-M7)
 # Task 9 brief/report: kodemeio-support/kodemeio-docs/.superpowers/sdd/
-#         2026-09-26-teracorp-cw1-chatwoot/{task-9-brief,task-9-report}.md
-# Runbooks (read teracorp-cw1-rollout.md FIRST, before any real deploy):
-#   ops/runbooks/teracorp-cw1-host.md          (M1 -- provision `server:` below)
-#   ops/runbooks/teracorp-cw1-meta-whatsapp.md (M2/M3 -- WABA, number, template)
-#   ops/runbooks/teracorp-cw1-privacy.md       (M5 -- draft for counsel)
-#   ops/runbooks/teracorp-cw1-rollout.md       (M6/M7 -- deploy order, kill
+#         CW1 Chatwoot SDD ledger, 2026-09-26: {task-9-brief,task-9-report}
+# Runbooks (read chatwoot-rollout.md FIRST, before any real deploy):
+#   ops/runbooks/chatwoot-host.md          (M1 -- provision `server:` below)
+#   ops/runbooks/chatwoot-meta-whatsapp.md (M2/M3 -- WABA, number, template)
+#   ops/runbooks/chatwoot-privacy.md       (M5 -- draft for counsel)
+#   ops/runbooks/chatwoot-rollout.md       (M6/M7 -- deploy order, kill
 #                                                switches, rollback)
 #
 # The spec's component list (3.3) sketches two manifests (kod-app-chatwoot.yaml,
@@ -41,14 +41,14 @@ type: infrastructure
 
 instance:
   name: kod-app-chatwoot
-  description: "Teracorp CW1 -- Chatwoot (Terakidz WhatsApp inbox) + kido_chat + order_intake ingress"
+  description: "CW1 -- Chatwoot (Terakidz WhatsApp inbox) + kido_chat + order_intake ingress"
 
 project: kod
 environment: production
 
 # FOUNDER DECISION PENDING (M1, spec D11): a NEW host, not kod-prod-01/02 --
 # Chatwoot alone needs >=4 vCPU/8GB (D1) plus kido_chat + order_intake's own
-# workers. See ops/runbooks/teracorp-cw1-host.md for sizing and the
+# workers. See ops/runbooks/chatwoot-host.md for sizing and the
 # provisioning steps. This literal value is a placeholder, not a real
 # server -- `kctl-dokploy deploy validate` only checks the manifest's shape,
 # it does not check that this server is registered in Dokploy.

@@ -1,5 +1,5 @@
 # PLACEHOLDER — Terakon niche channel kit "niche-a" (home recipes), DRAFT only
-# (2026-09-28 Teracorp Track B, slice TB5; spec B5).
+# (2026-09-28 Track B, slice TB5; spec B5).
 #
 # A sub-brand kit for ONE example niche channel of the Terakon channel portfolio
 # (channels/terakon/niche-a.yaml). No niche has been chosen, approved or launched: EVERY
@@ -7,7 +7,7 @@
 # brand-switched example pieces per channel and the portfolio evaluator can attribute F0f
 # aggregates per channel kit. Nothing here is approved brand content; the `kit uji coba`
 # disclaimer rides every artefact. Choosing a real niche and approving its kit is an
-# operational gate (ops/runbooks/teracorp-b5-channel-portfolio.md).
+# operational gate (ops/runbooks/terakon-b5-channel-portfolio.md).
 code: terakon-niche-a
 version: 1
 status: draft

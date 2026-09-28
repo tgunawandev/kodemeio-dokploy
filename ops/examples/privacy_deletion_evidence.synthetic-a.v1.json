@@ -1,0 +1,44 @@
+{
+  "body": {
+    "environment": "local_fake",
+    "executed_on": "2026-09-28",
+    "kind": "privacy_deletion_evidence",
+    "product_id": "prod_eeee86e67cccc9c835b726b99fcb884b",
+    "record_version": 1,
+    "status": "passed",
+    "store_map_sha256": "3db815e297ccce2edc32e4f64082479e7572e779e7cbb1e550e5378a30efdd08",
+    "stores": [
+      {
+        "erasure_mode": "erase",
+        "outcome": "absent",
+        "residue_count": 0,
+        "store_id": "store_866725e360bbe03fa3f3aa3364d573b7",
+        "store_kind": "chatwoot_contact"
+      },
+      {
+        "erasure_mode": "retention_bound",
+        "outcome": "tombstoned",
+        "residue_count": 0,
+        "store_id": "store_9ea5cbfac8219a71a0d26d14cb044f3f",
+        "store_kind": "backup_snapshot"
+      },
+      {
+        "erasure_mode": "erase",
+        "outcome": "absent",
+        "residue_count": 0,
+        "store_id": "store_d4014e20631cff8be9201cb8e95a076c",
+        "store_kind": "odoo_orm"
+      },
+      {
+        "erasure_mode": "erase",
+        "outcome": "absent",
+        "residue_count": 0,
+        "store_id": "store_d6e010b7252d42ae3786b10c341feff9",
+        "store_kind": "supabase_row"
+      }
+    ],
+    "subject_digest": "4f2eb9da994ce6fea668d12260b4de4fd92163eb539712b67c845b53060e711c",
+    "valid_until": "2026-12-27"
+  },
+  "signature": null
+}

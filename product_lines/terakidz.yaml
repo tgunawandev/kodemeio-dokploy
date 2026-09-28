@@ -1,5 +1,5 @@
 # Terakidz product line B1 — free printables and guide, paid monthly kit and course, launch
-# (Teracorp Track B, slice TB1; spec section 4 "B1"). EXAMPLE CONTENT — not approved product
+# (Track B, slice TB1; spec section 4 "B1"). EXAMPLE CONTENT — not approved product
 # copy: every source this line names carries Claude-authored example copy (TB-D9) until the
 # named special-education reviewer and the founder approve real copy at the operational gate.
 # Free delivery follows TB-D8: (a) a zero-price digital product through the same publish path
@@ -9,8 +9,8 @@
 
 # Schema: contracts/product_lines/product_line.v1.schema.json (resolution and typing:
 # deploys/tests/test_contracts_product_lines.py; the B1 shape: deploys/tests/test_terakidz_line.py).
-# Consumer: kodemeio-odoo `bin/teracorp-product-line terakidz --db odoo_test_tb_b1` (K2).
-# Rollout: ops/runbooks/teracorp-b1-terakidz-line.md.
+# Consumer: kodemeio-odoo `bin/product-line-acceptance terakidz --db odoo_test_tb_b1` (K2).
+# Rollout: ops/runbooks/terakidz-b1-line.md.
 id: terakidz
 brand_kit: terakidz
 

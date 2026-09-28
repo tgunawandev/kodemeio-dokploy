@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # test_drill_odoo.sh — local end-to-end test of the Odoo restore drill
-# (Teracorp Wave 0 Task 7, spec W6/W7).
+# (Wave 0 Task 7, spec W6/W7).
 #
 # Positive (W6): a synthetic fixture (fresh Odoo, one confirmed sale order,
 # 3 attachments with known content) is dumped + restic-backed-up into a

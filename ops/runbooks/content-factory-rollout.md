@@ -5,8 +5,8 @@ approval-gated content output** on the kodeme.io estate: a `social` work order m
 content piece whose voice, rules and palette come from the brand kit, the copy is judged by three
 automatic checks, approved by an expert and then by the founder, and **released — not published**.
 
-Slice of record: `kodemeio-docs/superpowers/specs/2026-09-27-teracorp-social-content-factory-design.md`
-and `…/plans/2026-09-27-teracorp-social-content-factory.md` (Tasks 1–4). Roadmap row: **F8** (SOC1).
+Slice of record: F8 social content factory design, 2026-09-27
+and F8 social content factory plan, 2026-09-27 (Tasks 1–4). Roadmap row: **F8** (SOC1).
 
 Everything in this runbook is a founder step (**M**) except the read-only checks, which are marked
 as such. **Nothing here has been applied.** Every command uses the kodeme.io estate only

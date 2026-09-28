@@ -9,8 +9,8 @@ This is a founder runbook. Read-only checks are **R**; production changes are **
 this document has been applied by the implementation slice. Every target is the kodeme.io estate,
 never idtpp.
 
-Slice of record: `kodemeio-docs/superpowers/specs/2026-09-28-teracorp-track-b-design.md` §4 "B2"
-and `…/plans/2026-09-28-teracorp-track-b.md` slice TB2. Roadmap row: **B2**. Founder decision
+Slice of record: Track B design, 2026-09-28 §4 "B2"
+and Track B plan, 2026-09-28 slice TB2. Roadmap row: **B2**. Founder decision
 **TB-D4 = (a)**: a QR is an **open link** to a companion activity — no single-use activation
 code, because the physical box is the product. (b), per-box codes minted by Odoo and redeemed by
 the app, is an L-size addition if link sharing is ever observed to cost sales.

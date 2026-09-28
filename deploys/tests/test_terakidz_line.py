@@ -1,4 +1,4 @@
-"""The Terakidz product line B1 (Teracorp Track B, slice TB1; spec section 4 "B1").
+"""The Terakidz product line B1 (Track B, slice TB1; spec section 4 "B1").
 
 TB1 adds three printables (F3 `template.v1`), one starter guide (F4 `ebook.v1`) and the line
 file `product_lines/terakidz.yaml` that sells or gives them away together with the existing

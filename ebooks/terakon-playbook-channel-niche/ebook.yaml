@@ -15,7 +15,7 @@
 # The cover logo `asset:image-terakon-cover-placeholder` is a key into the consumer's
 # licence-checked asset library; the renderer draws a labelled placeholder and fetches nothing.
 # It is NOT yet registered with licence evidence -- the runbook
-# (ops/runbooks/teracorp-b6-terakon-line.md) owns that gate, and the K2 harness registers a
+# (ops/runbooks/terakon-b6-line.md) owns that gate, and the K2 harness registers a
 # synthetic verified asset under this key in the test DB only.
 id: terakon-playbook-channel-niche
 version: 1

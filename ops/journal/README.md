@@ -1,14 +1,14 @@
-# Teracorp P8 — local action-journal primitive
+# P8 — local action-journal primitive
 
 This is a local, append-only JSONL journal primitive with a SHA-256 hash chain. It is **not yet
 integrated with Odoo, Hatchet, Hermes, approvals, or any production action source**. Events must
 currently be explicitly supplied as minimized JSON metadata.
 
 ```bash
-python3 ops/scripts/teracorp_action_journal.py append \
-  /var/lib/teracorp/actions.jsonl ops/journal/examples/action.synthetic.json
-python3 ops/scripts/teracorp_action_journal.py verify /var/lib/teracorp/actions.jsonl
-python3 ops/scripts/teracorp_action_journal.py verify /var/lib/teracorp/actions.jsonl \
+python3 ops/scripts/action_journal.py append \
+  /var/lib/action-journal/actions.jsonl ops/journal/examples/action.synthetic.json
+python3 ops/scripts/action_journal.py verify /var/lib/action-journal/actions.jsonl
+python3 ops/scripts/action_journal.py verify /var/lib/action-journal/actions.jsonl \
   --expected-head '<head-digest-held-separately>'
 ```
 
@@ -48,7 +48,7 @@ operational or production-ready.
 
 ## B2 Object Lock export candidate (offline code only)
 
-`ops/scripts/teracorp_action_journal_export.py` is a separate, explicit one-shot export candidate.
+`ops/scripts/action_journal_export.py` is a separate, explicit one-shot export candidate.
 It locks the existing journal against cooperating appenders while verifying and reading a bounded
 snapshot, then requests COMPLIANCE retention for a snapshot and canonical manifest under a random
 run prefix. It verifies each `put-object` response, `head-object` size and
@@ -60,7 +60,7 @@ The two credentials must be injected into the process environment under dedicate
 not read local AWS files or general `AWS_*` credential variables:
 
 ```bash
-python3 ops/scripts/teracorp_action_journal_export.py /var/lib/teracorp/actions.jsonl \
+python3 ops/scripts/action_journal_export.py /var/lib/action-journal/actions.jsonl \
   --bucket <founder-provisioned-bucket> \
   --prefix <dedicated-safe-prefix> \
   --endpoint https://s3.us-west-004.backblazeb2.com \
@@ -74,7 +74,7 @@ For unattended nightly runs, anchor each export on the previous run's manifest i
 addition to) `--expected-head`:
 
 ```bash
-python3 ops/scripts/teracorp_action_journal_export.py /var/lib/teracorp/actions.jsonl \
+python3 ops/scripts/action_journal_export.py /var/lib/action-journal/actions.jsonl \
   --bucket <founder-provisioned-bucket> --prefix <dedicated-safe-prefix> \
   --endpoint https://s3.us-west-004.backblazeb2.com --retention-days <approved-1-to-3000> \
   --anchor-manifest <previous-run>.manifest.json \
@@ -89,8 +89,8 @@ anchor; each manifest also records the `anchor` it continued from. The first run
 lost local manifest, needs `--expected-head` (or a manifest read back from the Object-Lock bucket).
 `put-object`/`get-object` timeouts scale with object size (60 s plus 1 s per 256 KiB, capped at
 one hour); other provider calls keep 60 s.
-Required environment names: `TERACORP_B2_ACCESS_KEY_ID`, `TERACORP_B2_SECRET_ACCESS_KEY`,
-`TERACORP_B2_READ_ACCESS_KEY_ID`, and `TERACORP_B2_READ_SECRET_ACCESS_KEY`; the read-only
+Required environment names: `ACTION_JOURNAL_B2_ACCESS_KEY_ID`, `ACTION_JOURNAL_B2_SECRET_ACCESS_KEY`,
+`ACTION_JOURNAL_B2_READ_ACCESS_KEY_ID`, and `ACTION_JOURNAL_B2_READ_SECRET_ACCESS_KEY`; the read-only
 credentials must be independently provisioned with read-only capabilities. Do not paste
 credentials into the command line or commit them.
 The child process receives only a sanitized environment with those explicit credentials and fixed

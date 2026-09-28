@@ -1,4 +1,4 @@
-"""course.v1 and the shipped example course (Teracorp course factory, F5/CRS1 task 1). Kept in
+"""course.v1 and the shipped example course (course factory, F5/CRS1 task 1). Kept in
 its own module so it never touches the governance/events/factory/template/ebook test modules
 other agents are concurrently editing.
 

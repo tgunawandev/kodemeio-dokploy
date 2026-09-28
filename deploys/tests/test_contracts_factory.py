@@ -1,4 +1,4 @@
-"""Tests for the factory_job work_order.v1 widening and brand_kit.v1 (Teracorp
+"""Tests for the factory_job work_order.v1 widening and brand_kit.v1 (F0
 factory commons, task 1). Kept in its own module so it never touches the
 governance/events test modules other agents are concurrently editing.
 """

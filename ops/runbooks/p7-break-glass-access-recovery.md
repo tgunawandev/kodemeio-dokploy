@@ -36,7 +36,7 @@ runbook calls for one. Record its opaque vault item reference, never its value.
 | Authentik | One named identity administrator for identity recovery; normal operators retain only the groups and app access required for their duties | No independent recovery account or approved bypass is codified here. The isolated Authentik restore drill tests restored synthetic-user login, not production break-glass access. Founder must document and stage the supported route before claiming P7 coverage. |
 | Odoo | Named Odoo administrator limited to the required Odoo database/instance; no routine database-superuser or host-root access | No Odoo break-glass path is codified here. Founder must identify a supported account-recovery route and demonstrate it in a disposable database. Do not infer that shell/database access is an approved bypass. |
 | Mattermost | Named system administrator only for Mattermost administration; ordinary users retain their normal team/channel roles | No independent Mattermost recovery path is codified here. Founder must confirm the configured authentication mode and stage the supported route without weakening SSO or broadening roles. |
-| Dokploy | Named authorized host operator only when required for the control plane; normal deploy operators use their assigned Dokploy permissions | `ops/traefik/dokploy-admin-gate.yml` documents an SSH tunnel to Dokploy's host-local port 3000. This bypasses Traefik/forward-auth, **not Dokploy's own login or authorization**. `teracorp-wave0-rollout.md` G8 requires proving the path before applying the gate. Host access scope and current usability still require founder verification. |
+| Dokploy | Named authorized host operator only when required for the control plane; normal deploy operators use their assigned Dokploy permissions | `ops/traefik/dokploy-admin-gate.yml` documents an SSH tunnel to Dokploy's host-local port 3000. This bypasses Traefik/forward-auth, **not Dokploy's own login or authorization**. `wave0-rollout.md` G8 requires proving the path before applying the gate. Host access scope and current usability still require founder verification. |
 
 If the current provider supports a lower-privilege or audited recovery method,
 prefer it over the target role above and record the actual role and reason for
@@ -115,7 +115,7 @@ production drill. No production drill is authorized by this document.
 5. Stop the session, revoke temporary access, and restore the last known
    approved access policy using the service's reviewed rollback procedure.
    For Dokploy gate changes, follow G8's rollback in
-   `teracorp-wave0-rollout.md`; this document does not authorize that change.
+   `wave0-rollout.md`; this document does not authorize that change.
    If rollback cannot be verified, stop further changes and escalate to the
    founder/provider support using the approved contact register.
 6. Verify normal access gates and service health with the established

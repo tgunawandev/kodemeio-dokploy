@@ -10,8 +10,8 @@ Nothing here has been applied. Every command uses the kodeme.io estate only (`-p
 `./odoo.sh kod|kod-desk … prod`); no idtpp host, bucket, key or job is touched, and no production
 write happens anywhere in this document without `--yes`.
 
-Slice of record: `kodemeio-docs/superpowers/specs/2026-09-27-teracorp-course-factory-design.md`
-(D1–D6, A1–A7) and `…/plans/2026-09-27-teracorp-course-factory.md` (Tasks 1–4). Roadmap row: **F5**
+Slice of record: F5 course factory design, 2026-09-27
+(D1–D6, A1–A7) and F5 course factory plan, 2026-09-27 (Tasks 1–4). Roadmap row: **F5**
 (CRS1). The pattern is F3's (`ops/runbooks/factory-template-rollout.md`); this document records
 what differs.
 

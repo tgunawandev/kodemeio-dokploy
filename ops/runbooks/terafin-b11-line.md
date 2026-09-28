@@ -10,8 +10,8 @@ are marked as such. Nothing here has been applied. The estate is kodeme.io only 
 `./odoo.sh kod … prod`); no idtpp host, bucket, key, job or agent is touched. No production write
 happens without `--yes`.
 
-Slice of record: `kodemeio-docs/superpowers/specs/2026-09-28-teracorp-track-b-design.md` (B11, §3.1–3.3,
-TB-D8/TB-D9) and `…/plans/2026-09-28-teracorp-track-b.md` (slice TB11). Roadmap row: **B11**. The
+Slice of record: Track B design, 2026-09-28 (B11, §3.1–3.3,
+TB-D8/TB-D9) and Track B plan, 2026-09-28 (slice TB11). Roadmap row: **B11**. The
 Terafin tracking app is B12 (slices TB12 + ENT), not this runbook.
 
 ## The law this line lives under: education, never advice
@@ -127,7 +127,7 @@ It must pass L1–L10 (spec §3.3). For this line specifically:
   `buyer@example.test`.
 
 Record the result JSON path (`logs/track-b/terafin-<utc>.json`) and counts in the TB11 ledger
-(`kodemeio-docs/.superpowers/sdd/2026-09-28-teracorp-track-b-tb11/progress.md`).
+(Track B TB11 SDD ledger, 2026-09-28: progress).
 
 ---
 
@@ -227,7 +227,7 @@ For the two free templates, confirm the TB-D8 outcome K2 recorded:
   `ops/runbooks/digital-delivery-rollout.md` M0. R6 refuses a cross-company checkout, so every
   Terafin product must live in that one company.
 - **Live PAY1.** Switch the Midtrans provider from the local fake to production keys, per
-  `ops/runbooks/teracorp-midtrans-rollout.md`. The harness only ever uses the PAY1 fake and signer.
+  `ops/runbooks/midtrans-rollout.md`. The harness only ever uses the PAY1 fake and signer.
 
 ## G8 — Release and publish on the instance (M)
 

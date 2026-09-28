@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # drill-authentik.sh — timed, isolated Authentik restore drill with app-level
-# validation (Teracorp Wave 0 Task 8, spec D11–D13).
+# validation (Wave 0 Task 8, spec D11–D13).
 #
 # Usage:
 #   drill-authentik.sh --dump <remote:path|remote:prefix/latest> \

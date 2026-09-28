@@ -1,4 +1,4 @@
-# Earned-autonomy promotion contract (Teracorp A10 / AU1). Read together with policy.v1.yaml.
+# Earned-autonomy promotion contract (A10 / AU1). Read together with policy.v1.yaml.
 # A class moves from human approval to auto-approval ONLY through a founder-signed grant
 # (contracts/approvals/autonomy-grant.v1.schema.json) verified against a trust root below.
 version: 1

@@ -1,4 +1,4 @@
-"""ebook.v1 and the one shipped example book (Teracorp e-book factory, F4/EBK1 task 1). Kept
+"""ebook.v1 and the one shipped example book (e-book factory, F4/EBK1 task 1). Kept
 in its own module so it never touches the governance/events/factory test modules other agents
 are concurrently editing.
 

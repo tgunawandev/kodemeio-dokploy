@@ -1,9 +1,9 @@
-"""product_line.v1 -- a product line as committed DATA (Teracorp Track B, slice K1; spec 3.2).
+"""product_line.v1 -- a product line as committed DATA (Track B, slice K1; spec 3.2).
 
 A line is `product_lines/<id>.yaml`: the brand kit it renders under, the items it sells or ships
 (each pointing at a committed template, e-book or course by id, with its variants, price and the
 publish path), and the launch content (F8 briefs). One file per line, so parallel slices never
-edit the same file. The product-line harness (kodemeio-odoo `bin/teracorp-product-line`) reads it.
+edit the same file. The product-line harness (kodemeio-odoo `bin/product-line-acceptance`) reads it.
 
 Two layers are checked, and the second one is the point:
 

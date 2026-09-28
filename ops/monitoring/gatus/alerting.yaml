@@ -1,4 +1,4 @@
-# SUPERSEDED by config.yaml (same directory) — Teracorp Wave 0, 2026-09-26.
+# SUPERSEDED by config.yaml (same directory) — Wave 0, 2026-09-26.
 #
 # Alerting (Telegram + email, thresholds 3 fail / 2 success, send-on-resolved)
 # now lives in the `alerting:` block of ops/monitoring/gatus/config.yaml, the

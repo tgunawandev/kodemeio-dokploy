@@ -1,10 +1,10 @@
-# Terakon product line B6, content part (Teracorp Track B, slice TB6; spec B6, contract
+# Terakon product line B6, content part (Track B, slice TB6; spec B6, contract
 # contracts/product_lines/product_line.v1.schema.json). EXAMPLE CONTENT — not approved product
 # copy: every item renders under the `draft` PLACEHOLDER `terakon` kit, so every artefact carries
 # the kit's `kit uji coba` disclaimer, and every price below is a placeholder for the founder to
-# set at the operational gate (ops/runbooks/teracorp-b6-terakon-line.md).
+# set at the operational gate (ops/runbooks/terakon-b6-line.md).
 #
-# Read by the product-line harness (kodemeio-odoo `bin/teracorp-product-line terakon --db
+# Read by the product-line harness (kodemeio-odoo `bin/product-line-acceptance terakon --db
 # odoo_test_tb_b6`). Membership (the monthly drop, slice MEM in kodemeio-odoo) is NOT in this
 # file: it sells released drop products through R6 unchanged and closes the B6 row with this one.
 #

@@ -9,8 +9,8 @@ marked as such. Nothing here has been applied. Every command uses the kodeme.io 
 (`-p kodemeio`, or `./odoo.sh kod|kod-desk … prod`); no idtpp host, bucket, key or job is
 touched, and no production write happens anywhere in this document without `--yes`.
 
-Slice of record: `kodemeio-docs/superpowers/specs/2026-09-27-teracorp-template-factory-design.md`
-and `…/plans/2026-09-27-teracorp-template-factory.md` (Tasks 1–5), plus the **2026-09-27 D2
+Slice of record: F3 template factory design, 2026-09-27
+and F3 template factory plan, 2026-09-27 (Tasks 1–5), plus the **2026-09-27 D2
 amendment** (a layout is never a program). Roadmap row: **F3** (TPL1).
 
 ## Facts this runbook is built on (verified read-only, 2026-09-27)

@@ -1,11 +1,11 @@
-# Teracorp G4 — offline monthly budget reconciliation
+# G4 — offline monthly budget reconciliation
 
 This read-only utility compares an explicitly supplied monthly budget with invoice amounts allocated
 to named legal entities. It performs deterministic arithmetic only; it is not a ledger, accounting
 system, tax calculation, payment tool, or financial recommendation.
 
 ```bash
-python3 ops/scripts/teracorp_budget_reconcile.py \
+python3 ops/scripts/budget_reconcile.py \
   ops/metrics/examples/monthly-budget.synthetic.json
 ```
 
@@ -27,7 +27,7 @@ python3 ops/scripts/teracorp_budget_reconcile.py \
   arithmetic reconciliation is not source verification or accounting approval.
 
 The checked-in example is entirely synthetic. Its entity labels, period, amounts, and references
-must not be treated as Teracorp's real budget. Keep customer names, credentials, invoice contents,
+must not be treated as the real budget. Keep customer names, credentials, invoice contents,
 and free-form descriptions out of the input. The CLI reads only the explicit file, prints JSON to
 stdout, and does not persist or transmit information.
 
@@ -35,4 +35,4 @@ G4 remains non-operational until the founder approves dated budgets and currency
 entity, records actual invoices against source evidence, reviews the allocations, and reconciles
 the result to the accounting system.
 
-Local checks: `uv run pytest -q deploys/tests/test_teracorp_budget_reconcile.py`.
+Local checks: `uv run pytest -q deploys/tests/test_budget_reconcile.py`.

@@ -18,15 +18,15 @@ source_overrides:
 
 env_file: ../../env/production/.env.tkz-infra-postgres
 
-# Teracorp Wave 0 row 0.3 (S0): bind Postgres, PgBouncer and the exporter to
+# Wave 0 row 0.3 (S0): bind Postgres, PgBouncer and the exporter to
 # the host's loopback only. kodemeio-postgres' compose publishes
 # ${POSTGRES_PORT:-5432}:5432, ${PGBOUNCER_PORT:-6432}:6432 and
 # ${POSTGRES_EXPORTER_PORT:-9187}:9187 -- i.e. 0.0.0.0 by default, and Docker's
 # published ports bypass ufw. The compose file is shared with other estates, so
 # the fix lives here, not there. Services reach the database over
 # dokploy-network; operators use an SSH tunnel to 127.0.0.1 (kctl-pg).
-# Checked by `ops/scripts/teracorp_s0_postgres.py ports`; applying it is a
-# founder redeploy (ops/runbooks/teracorp-wave0-s0.md, S0-3).
+# Checked by `ops/scripts/s0_postgres.py ports`; applying it is a
+# founder redeploy (ops/runbooks/wave0-s0.md, S0-3).
 env_overrides:
   POSTGRES_PORT: "127.0.0.1:5432"
   PGBOUNCER_PORT: "127.0.0.1:6432"

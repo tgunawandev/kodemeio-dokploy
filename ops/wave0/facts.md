@@ -1,4 +1,4 @@
-# Teracorp Wave 0 — verified facts (kodeme.io estate)
+# Wave 0 — verified facts (kodeme.io estate)
 
 Facts established while building Wave 0, with evidence. Read-only findings;
 nothing here was changed in production.

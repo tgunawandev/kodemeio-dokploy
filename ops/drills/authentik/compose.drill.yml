@@ -1,4 +1,4 @@
-# compose.drill.yml — isolated Authentik restore drill (Teracorp Wave 0 Task 8).
+# compose.drill.yml — isolated Authentik restore drill (Wave 0 Task 8).
 #
 # Brought up by drill-authentik.sh (and make-fixture.sh) with
 # `docker compose -p <unique-project> -f compose.drill.yml ...`.

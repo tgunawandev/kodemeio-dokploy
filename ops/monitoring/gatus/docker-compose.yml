@@ -1,7 +1,7 @@
 # Gatus (kod external uptime + admin-gate monitor) — deployed by
 # deploys/instances/production/kod-infra-gatus.yaml from THIS repo.
 #
-# Host: a monitor host that is NOT the Teracorp production server (spec D6,
+# Host: a monitor host that is NOT the kod production server (spec D6,
 # founder gate G1). No published port and no Traefik router: the status UI is
 # private by default (founder may add a router behind Authentik forward-auth,
 # G7). Alerts leave via Telegram + email; Gatus's own liveness leaves via the

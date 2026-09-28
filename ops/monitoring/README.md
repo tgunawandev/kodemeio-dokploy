@@ -14,7 +14,7 @@ Declarative monitoring configuration for the Kodemeio platform. All configs are 
 > | **Healthchecks.io** — the dead-man check every scheduled job pings (period + grace = the freshness threshold) | the `HC_*` ping URL per job; the contract for the metrics jobs is in `metrics/thresholds.yaml` |
 > | **The redacted metric snapshots** (P4 / O5, `kod-metrics-*` jobs) | read them with the runbook `ops/runbooks/observability-rollout.md` (M9); thresholds are committed in `metrics/thresholds.yaml` |
 >
-> **Grafana is deferred by decision (spec `2026-09-27-teracorp-observability-design.md` D2)** —
+> **Grafana is deferred by decision (spec P4 observability design, 2026-09-27 D2)** —
 > the dashboard recipe in that runbook's M10 is a plan, config-ready, that no
 > slice has built. The Grafana/Prometheus sections below predate Wave 0, were
 > not re-verified by it, and describe that plan, not a running system.
@@ -28,13 +28,13 @@ Declarative monitoring configuration for the Kodemeio platform. All configs are 
 | Prometheus | Metrics collection & alerting | (via Grafana) | prometheus.kodeme.io | **not deployed** |
 | Gatus | External uptime & health checks | (config-as-code) | no public UI | **runs** — `gatus/config.yaml` |
 
-> **Gatus is back (Teracorp Wave 0, 2026-09-26) — for the kod (kodeme.io) estate.**
+> **Gatus is back (Wave 0, 2026-09-26) — for the kod (kodeme.io) estate.**
 > External uptime, body-level health (`[BODY].db == connected` for LiteLLM), 14-day
 > certificate expiry and admin-gate checks (unauthenticated GET must be 302/401/403)
 > live as config-as-code in `gatus/config.yaml`, deployed from this repo by
 > `deploys/instances/production/kod-infra-gatus.yaml` (compose
 > `gatus/docker-compose.yml`, pinned `ghcr.io/twin/gatus:v5.37.0`, no public UI) on a
-> monitor host that is not the Teracorp production server. Alerts go to Telegram and
+> monitor host that is not the kod production server. Alerts go to Telegram and
 > email; a heartbeat sidecar pings Healthchecks.io every minute so a dead Gatus is
 > alerted from outside Hetzner. `uv run pytest ops/monitoring/gatus/tests -q` lints the
 > config and runs a local forced-outage test (fake targets + alert sink). The old

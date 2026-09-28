@@ -1,4 +1,4 @@
-"""The Terakon product line B6, content part (Teracorp Track B, slice TB6; spec B6).
+"""The Terakon product line B6, content part (Track B, slice TB6; spec B6).
 
 `product_lines/terakon.yaml` sells five paid items under the **placeholder** `terakon` kit:
 

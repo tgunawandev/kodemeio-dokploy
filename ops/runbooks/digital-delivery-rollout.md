@@ -12,8 +12,8 @@ Nothing in this document has been applied by the implementation slice. Every tar
 (`kod` or `kod-desk`), never idtpp. Do not run a production command until the seller-of-record
 decision in M0 is recorded.
 
-Slice of record: `kodemeio-docs/superpowers/specs/2026-09-27-teracorp-digital-delivery-design.md`
-and `…/plans/2026-09-27-teracorp-digital-delivery.md`. Roadmap row: **R6**.
+Slice of record: R6 digital delivery design, 2026-09-27
+and R6 digital delivery plan, 2026-09-27. Roadmap row: **R6**.
 
 ## What is built locally
 

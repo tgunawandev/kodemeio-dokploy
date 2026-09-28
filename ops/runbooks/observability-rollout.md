@@ -1,4 +1,4 @@
-# Runbook — Teracorp observability with redaction (P4 / O5) rollout (founder-gated)
+# Runbook — Observability with redaction (P4 / O5) rollout (founder-gated)
 
 What this slice ships: four read-only jobs on the **kod (kodeme.io)** toolbox,
 one per signal class, each writing a redacted snapshot and pinging its own
@@ -8,7 +8,7 @@ exists — the schedules ship `enabled: false` in
 founder gate. Every `kctl-*` command uses `-p kodemeio`; no other estate's host,
 key, job or bucket is named anywhere in this runbook.
 
-Spec: `kodemeio-docs/superpowers/specs/2026-09-27-teracorp-observability-design.md`
+Spec: P4 observability design, 2026-09-27
 (D1–D7, O1–O6). Roadmap row **P4** stays `built-local` until M1–M7 hold and the
 evidence below is recorded.
 
@@ -54,7 +54,7 @@ these. Real values stay in 1Password / Dokploy; nothing here is ever committed.
 
 ## M2 — Healthchecks: four more checks (extends Wave 0 G3)
 
-Wave 0's G3 created four checks (`teracorp-wave0-rollout.md`). Create four
+Wave 0's G3 created four checks (`wave0-rollout.md`). Create four
 more; the **name must equal the job name**, for the same reason: `hc.sh` pings
 by URL while `jobrun`'s failure mail names the job.
 

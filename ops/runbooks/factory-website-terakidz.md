@@ -11,8 +11,8 @@ marked as such. Nothing here has been applied. Every command uses the kodeme.io 
 touched, and no production write happens anywhere in this document without `--yes`.
 
 Slice of record:
-`kodemeio-docs/superpowers/specs/2026-09-26-teracorp-factory-commons-design.md` and
-`…/plans/2026-09-26-teracorp-factory-commons.md` (Tasks 1–11). Roadmap rows: F0a, F0c, F0d,
+F0 factory-commons design, 2026-09-26 and
+F0 factory-commons plan, 2026-09-26 (Tasks 1–11). Roadmap rows: F0a, F0c, F0d,
 F0e, F2.
 
 ## Facts this runbook is built on (verified read-only, 2026-09-27)
