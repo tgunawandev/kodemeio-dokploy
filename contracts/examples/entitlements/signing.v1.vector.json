@@ -1,0 +1,9 @@
+{
+  "_comment": "TEST-ONLY key, not a secret. Every signer/verifier must reproduce `signature` from key+source+timestamp+event_id+body.",
+  "key": "test-only-entitlement-signing-key-0123456789abcdef",
+  "source": "teracorp-odoo",
+  "timestamp": "1790564701",
+  "event_id": "01J9A1B2C3D4E5F6G7H8J9K0MP",
+  "body": "{\"app\":\"terakidz\",\"app_account_ref\":\"7f3c2a10-5b1e-4c7d-9a2f-0e6b8d4c1a23\",\"event_id\":\"01J9A1B2C3D4E5F6G7H8J9K0MP\",\"issued_at\":\"2026-09-28T03:05:01Z\",\"plan_code\":\"premium-30d\",\"status\":\"active\",\"valid_from\":\"2026-09-28T03:05:00Z\",\"valid_until\":\"2026-10-28T03:05:00Z\"}",
+  "signature": "sha256=ef5a8ccf4f6fbd18805424104f54bd042b248c7987f948d40446ec0719167ccc"
+}

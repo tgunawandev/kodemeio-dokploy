@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kodeme.io/contracts/entitlements/entitlement.v1.schema.json",
+  "title": "entitlement.v1 \u2014 Odoo tells an app that a plan is active or revoked",
+  "description": "Delivered by Odoo teracorp_app_billing's dispatcher to the app's entitlement-webhook after PAY1 settles (active) or a refund/cancel (revoked). Opaque references only. Signed per contracts/entitlements/README.md (X-Teracorp-Source: teracorp-odoo; X-Teracorp-Event-Id = event_id).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "app",
+    "app_account_ref",
+    "plan_code",
+    "status",
+    "valid_from",
+    "valid_until",
+    "issued_at"
+  ],
+  "properties": {
+    "event_id": {
+      "description": "ULID, unique per event; the consumer claims it once (replay is a no-op).",
+      "type": "string",
+      "pattern": "^[0-9A-HJKMNP-TV-Z]{26}$"
+    },
+    "app": {
+      "description": "The paid app. One Odoo PAY1 payment path serves all of them (TB-D1).",
+      "type": "string",
+      "enum": [
+        "terakidz",
+        "terafin",
+        "terakon-studio"
+      ]
+    },
+    "app_account_ref": {
+      "description": "The app's opaque account id (a lowercase UUID, e.g. auth.users.id or a tenant id). Odoo stores only sha256(app:ref).",
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "plan_code": {
+      "description": "A plan code configured in Odoo teracorp.app.plan, e.g. premium-30d. has_entitlement(app, plan_prefix) matches plan_code = prefix or plan_code starting with prefix || '-'.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+      "maxLength": 48
+    },
+    "status": {
+      "description": "active: grant or extend (valid_until only ever moves forward). revoked: the (app, app_account_ref, plan_code) entitlement ends now (refund or cancellation).",
+      "type": "string",
+      "enum": [
+        "active",
+        "revoked"
+      ]
+    },
+    "valid_from": {
+      "description": "RFC 3339, UTC, Z suffix.",
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?Z$"
+    },
+    "valid_until": {
+      "description": "RFC 3339, UTC, Z suffix.",
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?Z$"
+    },
+    "issued_at": {
+      "description": "RFC 3339, UTC, Z suffix.",
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?Z$"
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://kodeme.io/contracts/entitlements/app_checkout.v1.schema.json",
+  "title": "app_checkout.v1 \u2014 an app asks Odoo (PAY1) to open a paid plan checkout",
+  "description": "Sent by an app backend (Supabase edge function / Next server action) to Odoo `POST /teracorp/app/checkout`. Carries opaque references only: never a name, email, phone or address. Signed per contracts/entitlements/README.md (X-Teracorp-* headers; X-Teracorp-Event-Id = idempotency_key).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "app",
+    "app_account_ref",
+    "plan_code",
+    "idempotency_key",
+    "issued_at"
+  ],
+  "properties": {
+    "app": {
+      "description": "The paid app. One Odoo PAY1 payment path serves all of them (TB-D1).",
+      "type": "string",
+      "enum": [
+        "terakidz",
+        "terafin",
+        "terakon-studio"
+      ]
+    },
+    "app_account_ref": {
+      "description": "The app's opaque account id (a lowercase UUID, e.g. auth.users.id or a tenant id). Odoo stores only sha256(app:ref).",
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "plan_code": {
+      "description": "A plan code configured in Odoo teracorp.app.plan, e.g. premium-30d. has_entitlement(app, plan_prefix) matches plan_code = prefix or plan_code starting with prefix || '-'.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(-[a-z0-9]+)*$",
+      "maxLength": 48
+    },
+    "idempotency_key": {
+      "description": "Caller-chosen, unique per checkout attempt; a retry with the same key and body returns the original checkout. Also the signed X-Teracorp-Event-Id.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._:-]{8,128}$"
+    },
+    "issued_at": {
+      "description": "RFC 3339, UTC, Z suffix.",
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,6})?Z$"
+    }
+  }
+}
