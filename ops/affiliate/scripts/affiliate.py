@@ -11,7 +11,7 @@ import os
 import stat
 import sys
 from contextlib import suppress
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
@@ -224,6 +224,8 @@ def _semantic_issues(payload: dict[str, Any]) -> list[str]:
         when = event.get("occurred_at")
         try:
             parsed_time = datetime.fromisoformat(when.replace("Z", "+00:00"))
+            if parsed_time.tzinfo is not None:
+                parsed_time = parsed_time.astimezone(UTC)  # windows compare UTC calendar dates
         except (AttributeError, ValueError):
             parsed_time = None
         if not as_of or not parsed_time or parsed_time.tzinfo is None or parsed_time.date() > as_of:
@@ -344,6 +346,11 @@ def _deduplicated_events(events: Any) -> list[dict[str, Any]]:
     return unique
 
 
+def order_key(order_ref: Any) -> Any:
+    """Advertiser order references are matched case-insensitively (as-received refs are kept)."""
+    return order_ref.lower() if isinstance(order_ref, str) else order_ref
+
+
 def _deduplicated_commissions(
     unique_events: list[dict[str, Any]], advertiser_id: Any
 ) -> tuple[list[dict[str, Any]], int]:
@@ -358,7 +365,7 @@ def _deduplicated_commissions(
     for event in unique_events:
         if event.get("event_type") != "commission":
             continue
-        key = (advertiser_id, event.get("order_ref"))
+        key = (advertiser_id, order_key(event.get("order_ref")))
         economics = json.dumps(
             {field: event.get(field) for field in ORDER_ECONOMIC_FIELDS},
             sort_keys=True,
@@ -410,6 +417,7 @@ def reconcile(payload: Any) -> dict[str, Any]:
         "candidate_id": payload["candidate_id"],
         "synthetic": True,
         "click_count": sum(event["event_type"] == "click" for event in unique),
+        "bot_click_count": sum(event["event_type"] == "click" and event.get("ua_class") == "bot" for event in unique),
         "commission_count": len(commissions),
         "commission_total_minor": sum(event["commission_minor"] for event in commissions),
         "currency": payload["advertiser"]["commission_terms"]["currency"],

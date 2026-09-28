@@ -259,3 +259,26 @@ def test_local_http_shim_serves_the_same_handler_on_loopback_only(tmp_path: Path
         server.server_close()
     assert len(sink.records) == 1
     assert "127.0.0.1" not in json.dumps(sink.records)
+
+
+@pytest.mark.parametrize(
+    "path", ["//evil.example/a/synthetic-link-001", "http://evil.example/a/synthetic-link-001", "a/synthetic-link-001"]
+)
+def test_absolute_form_or_authority_paths_are_refused(path: str) -> None:
+    handler, sink = make()
+    assert handler(get(path)).status == 404
+    assert sink.records == []
+
+
+def test_jsonl_sink_refuses_non_regular_or_shared_files(tmp_path: Path) -> None:
+    import os
+
+    shared = tmp_path / "shared.jsonl"
+    shared.write_text("", encoding="utf-8")
+    shared.chmod(0o644)
+    with pytest.raises(OSError):
+        JsonlClickSink(shared)({"event_id": "x"})
+    fifo = tmp_path / "fifo.jsonl"
+    os.mkfifo(fifo)
+    with pytest.raises(OSError):
+        JsonlClickSink(fifo)({"event_id": "x"})

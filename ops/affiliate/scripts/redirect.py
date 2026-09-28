@@ -25,6 +25,7 @@ import json
 import os
 import re
 import secrets
+import stat
 import sys
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
@@ -200,7 +201,9 @@ class ShortLinkHandler:
         if method not in {"GET", "HEAD"}:
             return Response(405, {"Allow": "GET, HEAD", "Cache-Control": "no-store"}, b"", "method_not_allowed")
         raw_path = request.path if isinstance(request.path, str) else ""
-        match = PATH_PATTERN.fullmatch(urlsplit(raw_path).path) if len(raw_path) <= 2048 else None
+        # Origin-form only: an absolute-form or //authority target never resolves.
+        in_origin_form = raw_path.startswith("/a/") and len(raw_path) <= 2048
+        match = PATH_PATTERN.fullmatch(urlsplit(raw_path).path) if in_origin_form else None
         if not match:
             return self._not_found("unknown")
         link = self._links.get(match.group(1))
@@ -249,9 +252,19 @@ class JsonlClickSink:
 
     def __call__(self, record: dict[str, Any]) -> None:
         line = (json.dumps(record, sort_keys=True, separators=(",", ":"), ensure_ascii=True) + "\n").encode("ascii")
-        flags = os.O_WRONLY | os.O_APPEND | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0)
+        flags = (
+            os.O_WRONLY
+            | os.O_APPEND
+            | os.O_CREAT
+            | os.O_NONBLOCK
+            | getattr(os, "O_NOFOLLOW", 0)
+            | getattr(os, "O_CLOEXEC", 0)
+        )
         fd = os.open(self._path, flags, 0o600)
         try:
+            info = os.fstat(fd)
+            if not stat.S_ISREG(info.st_mode) or info.st_mode & 0o077:
+                raise OSError("click log must be a private (0600) regular file")
             os.write(fd, line)
         finally:
             os.close(fd)

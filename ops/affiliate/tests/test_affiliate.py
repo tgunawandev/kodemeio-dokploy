@@ -335,3 +335,20 @@ def test_commission_event_requires_order_ref():
     document = payload()
     del document["events"][1]["order_ref"]
     assert evaluate(document)["status"] == "blocked"
+
+
+def test_terms_window_uses_the_utc_date_of_an_offset_timestamp():
+    document = payload()
+    document["advertiser"]["commission_terms"]["valid_until"] = "2026-09-21"
+    document["events"][1]["occurred_at"] = "2026-09-22T05:00:00+07:00"  # 2026-09-21 UTC
+    document["as_of"] = "2026-09-21"
+    document["advertiser"]["approval"]["valid_until"] = "2026-12-31"
+    assert "events[1]:outside_terms_window" not in evaluate(document)["issues"]
+
+
+def test_bot_clicks_are_reported_separately():
+    document = payload()
+    document["events"][0]["ua_class"] = "bot"
+    result = reconcile(document)
+    assert result["click_count"] == 1
+    assert result["bot_click_count"] == 1

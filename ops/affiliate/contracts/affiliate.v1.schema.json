@@ -17,6 +17,7 @@
   },
   "$defs": {
     "id": {"type": "string", "pattern": "^[a-z][a-z0-9_-]{0,63}$"},
+    "order_ref": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$", "description": "Opaque advertiser order/conversion reference as received (never a customer identifier); matched case-insensitively. One commission per (advertiser, lower(order_ref))."},
     "text": {"type": "string", "minLength": 1, "maxLength": 1000, "pattern": "\\S"},
     "approval": {
       "type": "object", "additionalProperties": false,
@@ -93,7 +94,7 @@
       "properties": {
         "event_id": {"$ref": "#/$defs/id"}, "event_type": {"const": "commission"}, "synthetic": {"const": true},
         "occurred_at": {"type": "string", "format": "date-time"}, "click_event_id": {"$ref": "#/$defs/id"},
-        "order_ref": {"$ref": "#/$defs/id", "description": "Opaque advertiser order/conversion reference; never a customer identifier. One commission per (advertiser, order_ref)."},
+        "order_ref": {"$ref": "#/$defs/order_ref"},
         "order_amount_minor": {"type": "integer", "minimum": 1, "maximum": 1000000000000}, "commission_minor": {"type": "integer", "minimum": 0, "maximum": 1000000000000},
         "currency": {"type": "string", "pattern": "^[A-Z]{3}$"}
       }

@@ -198,3 +198,51 @@ def test_end_to_end_click_to_reconciled_commission(tmp_path: Path) -> None:
     report = reconcile_statement(doc, stmt)
     assert report["status"] == "reconciled"
     assert report["matched"] == [{"order_ref": "synthetic-order-e2e-1", "commission_minor": 12500}]
+
+
+def test_statement_period_uses_utc_dates_regardless_of_event_offset() -> None:
+    """Review Medium: the same instant in +07:00 fell out of period and showed up as 'extra'."""
+    for occurred_at in ("2026-09-21T17:30:00Z", "2026-09-22T00:30:00+07:00"):
+        doc = document()
+        doc["events"][1]["occurred_at"] = occurred_at
+        stmt = statement()
+        stmt["period_end"] = "2026-09-21"
+        report = reconcile_statement(doc, stmt)
+        assert report["status"] == "reconciled", occurred_at
+
+
+def test_out_of_period_tracked_order_on_the_statement_is_a_period_boundary_row_not_extra() -> None:
+    doc = document()
+    stmt = statement()
+    stmt["period_start"] = "2026-09-22"
+    report = reconcile_statement(doc, stmt)
+    assert report["extra_in_statement"] == []
+    assert report["period_boundary"] == [{"order_ref": "synthetic-order-001", "commission_minor": 500}]
+    assert report["status"] == "discrepancies"
+
+
+def test_advertiser_order_refs_are_accepted_as_they_arrive_and_matched_case_insensitively() -> None:
+    doc = document()
+    doc["events"][1]["order_ref"] = "INV-2026-001"
+    stmt = statement()
+    stmt["lines"] = [{"order_ref": "inv-2026-001", "commission_minor": 500}]
+    report = reconcile_statement(doc, stmt)
+    assert report["status"] == "reconciled"
+    assert report["matched"] == [{"order_ref": "inv-2026-001", "commission_minor": 500}]
+    numeric = document()
+    numeric["events"][1]["order_ref"] = "123456"
+    stmt["lines"] = [{"order_ref": "123456", "commission_minor": 500}]
+    assert reconcile_statement(numeric, stmt)["status"] == "reconciled"
+
+
+def test_order_refs_differing_only_by_case_are_one_order() -> None:
+    doc = document()
+    retry = copy.deepcopy(doc["events"][1])
+    retry["event_id"] = "synthetic-commission-retry"
+    retry["order_ref"] = "SYNTHETIC-ORDER-001"
+    doc["events"].append(retry)
+    assert reconcile(doc)["commission_count"] == 1
+    stmt = statement()
+    stmt["lines"].append({"order_ref": "Synthetic-Order-001", "commission_minor": 500})
+    with pytest.raises(InputError, match="^statement_duplicate_order_ref$"):
+        reconcile_statement(doc, stmt)

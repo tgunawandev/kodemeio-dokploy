@@ -22,13 +22,14 @@
         "additionalProperties": false,
         "required": ["order_ref", "commission_minor"],
         "properties": {
-          "order_ref": {"$ref": "#/$defs/id"},
+          "order_ref": {"$ref": "#/$defs/order_ref"},
           "commission_minor": {"type": "integer", "minimum": 0, "maximum": 1000000000000}
         }
       }
     }
   },
   "$defs": {
-    "id": {"type": "string", "pattern": "^[a-z][a-z0-9_-]{0,63}$"}
+    "id": {"type": "string", "pattern": "^[a-z][a-z0-9_-]{0,63}$"},
+    "order_ref": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$", "description": "Opaque advertiser order/conversion reference as received (never a customer identifier); matched case-insensitively. One commission per (advertiser, lower(order_ref))."}
   }
 }

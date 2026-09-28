@@ -13,13 +13,16 @@ Three local components complete the F9 gate ("click logged; commission reconcile
   terms at request time; everything else is a generic 404 that never echoes the path. Each GET
   logs one `click_event`-shaped record with `visitor_hash` (HMAC of day + /24 or /48 prefix +
   agent class under a >=32-byte secret salt) and `ua_class`; raw IP, user agent, query string and
-  referrer are never stored. An optional link `click_id_param` appends only the opaque click id.
+  referrer are never stored. The hash is pseudonymous, not anonymous: whoever holds the salt can
+brute-force a visitor's network prefix, so the salt is a secret with operator-only custody. An optional link `click_id_param` appends only the opaque click id.
   `JsonlClickSink` appends to a 0600 file; `redirect.py serve` is a loopback-only local shim.
-- Commission dedupe — one counted commission per `(advertiser_id, order_ref)`; retried postbacks
+- Commission dedupe — one counted commission per `(advertiser_id, lower(order_ref))` (refs are
+  accepted as received, e.g. `INV-2026-001` or `123456`); retried postbacks
   are counted once, conflicting economics fail closed; one counted order per click.
 - `scripts/statement.py` — reconciles tracked commissions against an
   `affiliate-statement.v1` advertiser statement: matched / missing_from_statement /
-  extra_in_statement / amount_mismatch, totals and difference (exit 0 reconciled, 3 discrepancies,
+  extra_in_statement / amount_mismatch / period_boundary (tracked order dated outside the
+  statement's UTC period), totals and difference (exit 0 reconciled, 3 discrepancies,
   1 refused).
 
 Worker placement: no Cloudflare Worker repository exists in the workspace yet, so the portable

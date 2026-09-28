@@ -14,7 +14,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -28,6 +28,7 @@ from affiliate import (  # noqa: E402
     _deduplicated_events,
     _unique_object,
     load_document,
+    order_key,
     reconcile,
 )
 from jsonschema import Draft202012Validator, FormatChecker  # noqa: E402
@@ -45,7 +46,7 @@ def _statement_validator() -> Draft202012Validator:
 
 
 def _event_date(event: dict[str, Any]) -> date:
-    return datetime.fromisoformat(event["occurred_at"].replace("Z", "+00:00")).date()
+    return datetime.fromisoformat(event["occurred_at"].replace("Z", "+00:00")).astimezone(UTC).date()
 
 
 def reconcile_statement(payload: Any, statement: Any) -> dict[str, Any]:
@@ -63,27 +64,29 @@ def reconcile_statement(payload: Any, statement: Any) -> dict[str, Any]:
 
     reported: dict[str, int] = {}
     for line in statement["lines"]:
-        if line["order_ref"] in reported:
+        key = order_key(line["order_ref"])
+        if key in reported:
             raise InputError("statement_duplicate_order_ref")
-        reported[line["order_ref"]] = line["commission_minor"]
+        reported[key] = line["commission_minor"]
     statement_total = sum(reported.values())
     if statement_total > MAX_TOTAL_MINOR:
         raise InputError("statement_total_out_of_range")
 
     commissions, _ = _deduplicated_commissions(_deduplicated_events(payload["events"]), advertiser["advertiser_id"])
     computed: dict[str, int] = {}
-    out_of_period = 0
+    outside_period: dict[str, int] = {}
     for event in commissions:
-        if start <= _event_date(event) <= end:
-            computed[event["order_ref"]] = event["commission_minor"]
-        else:
-            out_of_period += 1
+        bucket = computed if start <= _event_date(event) <= end else outside_period
+        bucket[order_key(event["order_ref"])] = event["commission_minor"]
 
-    matched, missing, extra, mismatch = [], [], [], []
+    matched, missing, extra, mismatch, boundary = [], [], [], [], []
     for order_ref in sorted(computed.keys() | reported.keys()):
         ours, theirs = computed.get(order_ref), reported.get(order_ref)
         if theirs is None:
             missing.append({"order_ref": order_ref, "commission_minor": ours})
+        elif ours is None and order_ref in outside_period:
+            # Tracked, but dated outside this statement's period (UTC): a period-boundary question.
+            boundary.append({"order_ref": order_ref, "commission_minor": theirs})
         elif ours is None:
             extra.append({"order_ref": order_ref, "commission_minor": theirs})
         elif ours == theirs:
@@ -99,7 +102,7 @@ def reconcile_statement(payload: Any, statement: Any) -> dict[str, Any]:
             )
     computed_total = sum(computed.values())
     return {
-        "status": "reconciled" if not (missing or extra or mismatch) else "discrepancies",
+        "status": "reconciled" if not (missing or extra or mismatch or boundary) else "discrepancies",
         "candidate_id": payload["candidate_id"],
         "statement_ref": statement["statement_ref"],
         "advertiser_id": advertiser["advertiser_id"],
@@ -110,10 +113,11 @@ def reconcile_statement(payload: Any, statement: Any) -> dict[str, Any]:
         "missing_from_statement": missing,
         "extra_in_statement": extra,
         "amount_mismatch": mismatch,
+        "period_boundary": boundary,
         "computed_total_minor": computed_total,
         "statement_total_minor": statement_total,
         "difference_minor": computed_total - statement_total,
-        "out_of_period_count": out_of_period,
+        "out_of_period_count": len(outside_period),
         "tracked_events_sha256": tracked["source_events_sha256"],
         "synthetic": True,
         "payments_created": False,
