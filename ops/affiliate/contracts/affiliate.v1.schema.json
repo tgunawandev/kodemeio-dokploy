@@ -72,7 +72,8 @@
         "status": {"enum": ["active", "paused", "retired"]},
         "expires_on": {"type": "string", "format": "date"},
         "attribution": {"$ref": "#/$defs/attribution"},
-        "attribution_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+        "attribution_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "click_id_param": {"type": "string", "pattern": "^[a-z][a-z0-9_]{0,31}$", "description": "Optional query parameter the short-link handler appends to the destination carrying the opaque click event id (advertiser sub-id)."}
       }
     },
     "click_event": {

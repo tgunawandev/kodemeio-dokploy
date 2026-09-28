@@ -271,9 +271,7 @@ def _semantic_issues(payload: dict[str, Any]) -> list[str]:
                 if event.get("commission_minor") != expected:
                     issues.append(f"events[{index}]:commission_amount_mismatch")
     commission_total = sum(
-        event.get("commission_minor", 0)
-        for event in counted_commissions
-        if type(event.get("commission_minor")) is int
+        event.get("commission_minor", 0) for event in counted_commissions if type(event.get("commission_minor")) is int
     )
     if commission_total > MAX_TOTAL_MINOR:
         issues.append("events:aggregate_commission_amount_out_of_range")
