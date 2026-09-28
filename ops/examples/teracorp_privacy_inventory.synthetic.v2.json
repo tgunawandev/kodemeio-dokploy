@@ -1,0 +1,394 @@
+{
+  "schema_version": 2,
+  "as_of_date": "2026-09-28",
+  "processor_inventory_status": "complete",
+  "processors": [
+    {
+      "processor_id": "proc_abae6f1024ddbadaadc0524a74277c2f",
+      "inventory_status": "identified",
+      "service_kind": "erp",
+      "hosting_region": "ID",
+      "evidence_refs": [
+        "ev_b8f5e68616d4207aaafb441dc2ee84a7"
+      ]
+    },
+    {
+      "processor_id": "proc_141b582d1a971adaa64b3fb52b559a05",
+      "inventory_status": "identified",
+      "service_kind": "crm_messaging",
+      "hosting_region": "SG",
+      "evidence_refs": [
+        "ev_63a92787bec0c7205cd413733516e786"
+      ]
+    },
+    {
+      "processor_id": "proc_c723436eef028f7cfd2bb2a1346a2e1e",
+      "inventory_status": "identified",
+      "service_kind": "database",
+      "hosting_region": "SG",
+      "evidence_refs": [
+        "ev_8ae16b259f95acda437da00e0e643f79"
+      ]
+    },
+    {
+      "processor_id": "proc_519a59b3d9ad4945dcd340a2e0b88370",
+      "inventory_status": "identified",
+      "service_kind": "backup_storage",
+      "hosting_region": "EU",
+      "evidence_refs": [
+        "ev_6ffae16067e600ef85d0eeae0f06384b"
+      ]
+    }
+  ],
+  "evidence_refs": [
+    {
+      "evidence_ref_id": "ev_b8f5e68616d4207aaafb441dc2ee84a7",
+      "sha256": "3be1f4ccd2b9c2fa34b34cd770780afc2daaffc91153d1bf474ea0bbdd7072ef",
+      "observed_on": "2026-09-20",
+      "product_id": null
+    },
+    {
+      "evidence_ref_id": "ev_63a92787bec0c7205cd413733516e786",
+      "sha256": "6afb37138915f9c4a0826c015f6b7fa09b568a0175c6cab8aa578e01f3de2a79",
+      "observed_on": "2026-09-20",
+      "product_id": null
+    },
+    {
+      "evidence_ref_id": "ev_8ae16b259f95acda437da00e0e643f79",
+      "sha256": "e716f83c63034e2e828194c2730942e2fd1cca9c0fd20c678b0d9a7153849cb6",
+      "observed_on": "2026-09-20",
+      "product_id": null
+    },
+    {
+      "evidence_ref_id": "ev_6ffae16067e600ef85d0eeae0f06384b",
+      "sha256": "3912cbe2bba57418a2d82babba19ed45f96473a5f33ad2826b25ae97e283e28c",
+      "observed_on": "2026-09-20",
+      "product_id": null
+    },
+    {
+      "evidence_ref_id": "ev_eb2bd35a9b374cf2ac3f759a24d54cdd",
+      "sha256": "079197c6656bbed40dabbdc3a16e126bb3a4ccb02313a4b994985fe353c86e59",
+      "observed_on": "2026-09-22",
+      "product_id": "prod_eeee86e67cccc9c835b726b99fcb884b"
+    },
+    {
+      "evidence_ref_id": "ev_365be2ed5c7151fd9151ef1804bf2779",
+      "sha256": "882162ea2651ca390c830939e26efcb0e7fffc9e47040f7a5534eb927cd06080",
+      "observed_on": "2026-09-22",
+      "product_id": "prod_eeee86e67cccc9c835b726b99fcb884b"
+    },
+    {
+      "evidence_ref_id": "ev_81d52a25883c76c2df75814f97093fa9",
+      "sha256": "9a0263cb12643727dbde93abe1e1f18b97e4da8f9f99fd16ecd6ed1e21f85d9d",
+      "observed_on": "2026-09-22",
+      "product_id": "prod_eeee86e67cccc9c835b726b99fcb884b"
+    },
+    {
+      "evidence_ref_id": "ev_5d1b3e692c221adc324f721e08712b87",
+      "sha256": "29eb82055a40f87d178e6020c12b76c2b41c9dd0014efe8d652d8ded6f94894d",
+      "observed_on": "2026-09-22",
+      "product_id": "prod_eeee86e67cccc9c835b726b99fcb884b"
+    },
+    {
+      "evidence_ref_id": "ev_57795e53da5bc4f59b2f35c4d563b675",
+      "sha256": "6a9d60ee17616b19dbe300a2cfec5a5a0f7886968b7c02527762ec6e0491d45e",
+      "observed_on": "2026-09-28",
+      "product_id": "prod_eeee86e67cccc9c835b726b99fcb884b"
+    },
+    {
+      "evidence_ref_id": "ev_cf896e5ebbb980e6bbef9bf069a2b8e1",
+      "sha256": "aa6b0a5df74a2799815f4aea5608b03ef7935aee0947567712317c8973852a93",
+      "observed_on": "2026-09-22",
+      "product_id": "prod_9dc614815f8ec65c7f21fd240ba876c7"
+    },
+    {
+      "evidence_ref_id": "ev_4665406b281b7cd98ae5e41487b2df9f",
+      "sha256": "e751730e2cf8b092a61f7a98acadf85f98f5678bb317d586d744085c577c1d5e",
+      "observed_on": "2026-09-22",
+      "product_id": "prod_9dc614815f8ec65c7f21fd240ba876c7"
+    },
+    {
+      "evidence_ref_id": "ev_c732fa75a79bfb908c161026f7d04e53",
+      "sha256": "f75844988c3a524c939ee054dd44e82f89e130bd6d6e400dd36c84c17b71e2e3",
+      "observed_on": "2026-09-22",
+      "product_id": "prod_9dc614815f8ec65c7f21fd240ba876c7"
+    },
+    {
+      "evidence_ref_id": "ev_7365efc9b52f55f64392a808824a89d4",
+      "sha256": "cbc02dbc11ccf6db2c9219d7db6e4e48a35c14cf1ac092aaa2408d7b0e1fa7e0",
+      "observed_on": "2026-09-22",
+      "product_id": "prod_9dc614815f8ec65c7f21fd240ba876c7"
+    },
+    {
+      "evidence_ref_id": "ev_38506e26f816d5cbd703f2ec52cbb822",
+      "sha256": "8ac3eb841fd932e11e3f82042cef896854413ff0a6b4000df91f1ff667f3cc0d",
+      "observed_on": "2026-09-28",
+      "product_id": "prod_9dc614815f8ec65c7f21fd240ba876c7"
+    }
+  ],
+  "purpose_registry": [
+    {
+      "product_id": "prod_eeee86e67cccc9c835b726b99fcb884b",
+      "purpose_id": "purp_666a03f0d012da9c577717cd38de22bb",
+      "purpose_kind": "service_delivery"
+    },
+    {
+      "product_id": "prod_eeee86e67cccc9c835b726b99fcb884b",
+      "purpose_id": "purp_a9650d0f6ab01c4f6963d00be8d63463",
+      "purpose_kind": "support"
+    },
+    {
+      "product_id": "prod_9dc614815f8ec65c7f21fd240ba876c7",
+      "purpose_id": "purp_54506b583a4dc198c749c24d39fa7949",
+      "purpose_kind": "service_delivery"
+    },
+    {
+      "product_id": "prod_9dc614815f8ec65c7f21fd240ba876c7",
+      "purpose_id": "purp_3a2f3be8d369bdfab7f01fe0cc086d85",
+      "purpose_kind": "support"
+    }
+  ],
+  "products": [
+    {
+      "product_id": "prod_eeee86e67cccc9c835b726b99fcb884b",
+      "inventory_status": "complete",
+      "consent_status": "documented",
+      "consent_evidence_refs": [
+        "ev_eb2bd35a9b374cf2ac3f759a24d54cdd"
+      ],
+      "retention_status": "documented",
+      "retention_evidence_refs": [
+        "ev_365be2ed5c7151fd9151ef1804bf2779"
+      ],
+      "retention_rules": [
+        {
+          "data_category": "account_profile",
+          "retention_days": 365,
+          "trigger": "account_closure",
+          "disposition": "delete"
+        },
+        {
+          "data_category": "contact",
+          "retention_days": 365,
+          "trigger": "account_closure",
+          "disposition": "delete"
+        },
+        {
+          "data_category": "payment_metadata",
+          "retention_days": 3650,
+          "trigger": "transaction_date",
+          "disposition": "anonymise"
+        },
+        {
+          "data_category": "support_message",
+          "retention_days": 365,
+          "trigger": "account_closure",
+          "disposition": "delete"
+        },
+        {
+          "data_category": "usage_telemetry",
+          "retention_days": 365,
+          "trigger": "account_closure",
+          "disposition": "delete"
+        }
+      ],
+      "deletion_test_status": "passed",
+      "deletion_tested_on": "2026-09-28",
+      "deletion_evidence_refs": [
+        "ev_57795e53da5bc4f59b2f35c4d563b675"
+      ],
+      "pia_status": "completed",
+      "pia_evidence_refs": [
+        "ev_81d52a25883c76c2df75814f97093fa9"
+      ],
+      "stores": [
+        {
+          "store_id": "store_d4014e20631cff8be9201cb8e95a076c",
+          "store_kind": "odoo_orm",
+          "processor_id": "proc_abae6f1024ddbadaadc0524a74277c2f",
+          "data_categories": [
+            "account_profile",
+            "contact",
+            "payment_metadata"
+          ],
+          "erasure_mode": "erase",
+          "retention_days": null
+        },
+        {
+          "store_id": "store_866725e360bbe03fa3f3aa3364d573b7",
+          "store_kind": "chatwoot_contact",
+          "processor_id": "proc_141b582d1a971adaa64b3fb52b559a05",
+          "data_categories": [
+            "contact",
+            "support_message"
+          ],
+          "erasure_mode": "erase",
+          "retention_days": null
+        },
+        {
+          "store_id": "store_d6e010b7252d42ae3786b10c341feff9",
+          "store_kind": "supabase_row",
+          "processor_id": "proc_c723436eef028f7cfd2bb2a1346a2e1e",
+          "data_categories": [
+            "account_profile",
+            "usage_telemetry"
+          ],
+          "erasure_mode": "erase",
+          "retention_days": null
+        },
+        {
+          "store_id": "store_9ea5cbfac8219a71a0d26d14cb044f3f",
+          "store_kind": "backup_snapshot",
+          "processor_id": "proc_519a59b3d9ad4945dcd340a2e0b88370",
+          "data_categories": [
+            "account_profile",
+            "contact"
+          ],
+          "erasure_mode": "retention_bound",
+          "retention_days": 35
+        }
+      ],
+      "data_flows": [
+        {
+          "flow_id": "flow_d6b333c6ffac51966172d2772c0a2e16",
+          "processor_id": "proc_abae6f1024ddbadaadc0524a74277c2f",
+          "purpose_id": "purp_666a03f0d012da9c577717cd38de22bb",
+          "store_id": "store_d4014e20631cff8be9201cb8e95a076c",
+          "data_categories": [
+            "account_profile",
+            "contact",
+            "payment_metadata"
+          ],
+          "evidence_refs": [
+            "ev_5d1b3e692c221adc324f721e08712b87"
+          ]
+        },
+        {
+          "flow_id": "flow_97cf1de10812523db823776c635d5660",
+          "processor_id": "proc_141b582d1a971adaa64b3fb52b559a05",
+          "purpose_id": "purp_a9650d0f6ab01c4f6963d00be8d63463",
+          "store_id": "store_866725e360bbe03fa3f3aa3364d573b7",
+          "data_categories": [
+            "contact",
+            "support_message"
+          ],
+          "evidence_refs": [
+            "ev_5d1b3e692c221adc324f721e08712b87"
+          ]
+        },
+        {
+          "flow_id": "flow_8ea1186feba7a6477bfe0404c647de01",
+          "processor_id": "proc_c723436eef028f7cfd2bb2a1346a2e1e",
+          "purpose_id": "purp_666a03f0d012da9c577717cd38de22bb",
+          "store_id": "store_d6e010b7252d42ae3786b10c341feff9",
+          "data_categories": [
+            "account_profile",
+            "usage_telemetry"
+          ],
+          "evidence_refs": [
+            "ev_5d1b3e692c221adc324f721e08712b87"
+          ]
+        }
+      ]
+    },
+    {
+      "product_id": "prod_9dc614815f8ec65c7f21fd240ba876c7",
+      "inventory_status": "complete",
+      "consent_status": "documented",
+      "consent_evidence_refs": [
+        "ev_cf896e5ebbb980e6bbef9bf069a2b8e1"
+      ],
+      "retention_status": "documented",
+      "retention_evidence_refs": [
+        "ev_4665406b281b7cd98ae5e41487b2df9f"
+      ],
+      "retention_rules": [
+        {
+          "data_category": "account_profile",
+          "retention_days": 365,
+          "trigger": "account_closure",
+          "disposition": "delete"
+        },
+        {
+          "data_category": "child_data",
+          "retention_days": 365,
+          "trigger": "account_closure",
+          "disposition": "delete"
+        },
+        {
+          "data_category": "contact",
+          "retention_days": 365,
+          "trigger": "account_closure",
+          "disposition": "delete"
+        },
+        {
+          "data_category": "support_message",
+          "retention_days": 365,
+          "trigger": "account_closure",
+          "disposition": "delete"
+        }
+      ],
+      "deletion_test_status": "passed",
+      "deletion_tested_on": "2026-09-28",
+      "deletion_evidence_refs": [
+        "ev_38506e26f816d5cbd703f2ec52cbb822"
+      ],
+      "pia_status": "completed",
+      "pia_evidence_refs": [
+        "ev_c732fa75a79bfb908c161026f7d04e53"
+      ],
+      "stores": [
+        {
+          "store_id": "store_663d18133bf4729cf8dc689f5a760734",
+          "store_kind": "supabase_row",
+          "processor_id": "proc_c723436eef028f7cfd2bb2a1346a2e1e",
+          "data_categories": [
+            "account_profile",
+            "child_data"
+          ],
+          "erasure_mode": "erase",
+          "retention_days": null
+        },
+        {
+          "store_id": "store_c3cd6ee65a623605fa4bda4a92c882b2",
+          "store_kind": "chatwoot_contact",
+          "processor_id": "proc_141b582d1a971adaa64b3fb52b559a05",
+          "data_categories": [
+            "contact",
+            "support_message"
+          ],
+          "erasure_mode": "erase",
+          "retention_days": null
+        }
+      ],
+      "data_flows": [
+        {
+          "flow_id": "flow_66293efa9c4511e305ef5f134723f151",
+          "processor_id": "proc_c723436eef028f7cfd2bb2a1346a2e1e",
+          "purpose_id": "purp_54506b583a4dc198c749c24d39fa7949",
+          "store_id": "store_663d18133bf4729cf8dc689f5a760734",
+          "data_categories": [
+            "account_profile",
+            "child_data"
+          ],
+          "evidence_refs": [
+            "ev_7365efc9b52f55f64392a808824a89d4"
+          ]
+        },
+        {
+          "flow_id": "flow_47f57bc391b829e8666a2a639e985a91",
+          "processor_id": "proc_141b582d1a971adaa64b3fb52b559a05",
+          "purpose_id": "purp_3a2f3be8d369bdfab7f01fe0cc086d85",
+          "store_id": "store_c3cd6ee65a623605fa4bda4a92c882b2",
+          "data_categories": [
+            "contact",
+            "support_message"
+          ],
+          "evidence_refs": [
+            "ev_7365efc9b52f55f64392a808824a89d4"
+          ]
+        }
+      ]
+    }
+  ]
+}

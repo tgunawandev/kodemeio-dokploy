@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.kodeme.io/teracorp/privacy-inventory.v2.schema.json",
+  "title": "Teracorp G7 Privacy Inventory v2",
+  "description": "The single G7 inventory contract (supersedes privacy-inventory v1 and the B1-B12 data-map v1). Offline structural inventory only; not legal advice, verification, compliance, or deletion proof. Every identifier is a typed generated opaque token. JSON Schema checks shape and per-record conditions; ops/scripts/teracorp_privacy_inventory.py is authoritative for cross-record references, scope, chronology, retention coverage and deletion-evidence records.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "as_of_date", "processor_inventory_status", "processors", "evidence_refs", "purpose_registry", "products"],
+  "properties": {
+    "schema_version": {"const": 2},
+    "as_of_date": {"$ref": "#/$defs/date"},
+    "processor_inventory_status": {"enum": ["complete", "none_declared", "unknown"]},
+    "processors": {"type": "array", "maxItems": 128, "items": {"$ref": "#/$defs/processor"}},
+    "evidence_refs": {"type": "array", "maxItems": 1024, "items": {"$ref": "#/$defs/evidence"}},
+    "purpose_registry": {"type": "array", "maxItems": 2048, "items": {"$ref": "#/$defs/purpose"}},
+    "products": {"type": "array", "minItems": 1, "maxItems": 128, "items": {"$ref": "#/$defs/product"}}
+  },
+  "$defs": {
+    "productId": {"type": "string", "pattern": "^prod_[a-f0-9]{32}$", "description": "Generated opaque token; never a product name or personal data."},
+    "processorId": {"type": "string", "pattern": "^proc_[a-f0-9]{32}$"},
+    "evidenceId": {"type": "string", "pattern": "^ev_[a-f0-9]{32}$"},
+    "purposeId": {"type": "string", "pattern": "^purp_[a-f0-9]{32}$"},
+    "flowId": {"type": "string", "pattern": "^flow_[a-f0-9]{32}$"},
+    "storeId": {"type": "string", "pattern": "^store_[a-f0-9]{32}$"},
+    "date": {"type": "string", "format": "date", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"},
+    "category": {"enum": ["account_profile", "contact", "child_data", "payment_metadata", "support_message", "usage_telemetry", "content_submission", "other"]},
+    "categories": {"type": "array", "minItems": 1, "maxItems": 16, "uniqueItems": true, "items": {"$ref": "#/$defs/category"}},
+    "evidenceList": {"type": "array", "maxItems": 32, "uniqueItems": true, "items": {"$ref": "#/$defs/evidenceId"}},
+    "refs": {"type": "array", "minItems": 1, "maxItems": 32, "uniqueItems": true, "items": {"$ref": "#/$defs/evidenceId"}},
+    "retentionDays": {"type": "integer", "minimum": 1, "maximum": 36500},
+    "purpose": {
+      "type": "object", "additionalProperties": false,
+      "required": ["product_id", "purpose_id", "purpose_kind"],
+      "properties": {
+        "product_id": {"$ref": "#/$defs/productId"},
+        "purpose_id": {"$ref": "#/$defs/purposeId"},
+        "purpose_kind": {"enum": ["service_delivery", "billing", "support", "marketing", "analytics", "security", "legal_obligation", "other"]}
+      }
+    },
+    "processor": {
+      "type": "object", "additionalProperties": false,
+      "required": ["processor_id", "inventory_status", "service_kind", "hosting_region", "evidence_refs"],
+      "properties": {
+        "processor_id": {"$ref": "#/$defs/processorId"},
+        "inventory_status": {"enum": ["identified", "unknown"]},
+        "service_kind": {"enum": ["first_party_hosting", "erp", "crm_messaging", "database", "payment", "email", "analytics", "llm", "backup_storage", "other"]},
+        "hosting_region": {"enum": ["ID", "SG", "US", "EU", "other", "unknown"]},
+        "evidence_refs": {"$ref": "#/$defs/evidenceList"}
+      },
+      "allOf": [{
+        "if": {"properties": {"inventory_status": {"const": "identified"}}, "required": ["inventory_status"]},
+        "then": {"properties": {"evidence_refs": {"$ref": "#/$defs/refs"}}}
+      }]
+    },
+    "evidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["evidence_ref_id", "sha256", "observed_on", "product_id"],
+      "properties": {
+        "evidence_ref_id": {"$ref": "#/$defs/evidenceId"},
+        "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$", "description": "For a deletion test: the record_sha256 of the harness evidence record."},
+        "observed_on": {"$ref": "#/$defs/date"},
+        "product_id": {"oneOf": [{"$ref": "#/$defs/productId"}, {"type": "null"}]}
+      }
+    },
+    "store": {
+      "type": "object", "additionalProperties": false,
+      "required": ["store_id", "store_kind", "processor_id", "data_categories", "erasure_mode", "retention_days"],
+      "properties": {
+        "store_id": {"$ref": "#/$defs/storeId"},
+        "store_kind": {"enum": ["odoo_orm", "chatwoot_contact", "supabase_row", "backup_snapshot", "other"]},
+        "processor_id": {"$ref": "#/$defs/processorId"},
+        "data_categories": {"$ref": "#/$defs/categories"},
+        "erasure_mode": {"enum": ["erase", "retention_bound"]},
+        "retention_days": {"oneOf": [{"$ref": "#/$defs/retentionDays"}, {"type": "null"}]}
+      },
+      "allOf": [
+        {"if": {"properties": {"erasure_mode": {"const": "retention_bound"}}, "required": ["erasure_mode"]}, "then": {"properties": {"retention_days": {"$ref": "#/$defs/retentionDays"}}}},
+        {"if": {"properties": {"erasure_mode": {"const": "erase"}}, "required": ["erasure_mode"]}, "then": {"properties": {"retention_days": {"type": "null"}}}}
+      ]
+    },
+    "retentionRule": {
+      "type": "object", "additionalProperties": false,
+      "required": ["data_category", "retention_days", "trigger", "disposition"],
+      "properties": {
+        "data_category": {"$ref": "#/$defs/category"},
+        "retention_days": {"oneOf": [{"$ref": "#/$defs/retentionDays"}, {"type": "null"}]},
+        "trigger": {"enum": ["account_closure", "last_activity", "transaction_date", "collection", "backup_taken"]},
+        "disposition": {"enum": ["delete", "anonymise", "expire"]}
+      }
+    },
+    "dataFlow": {
+      "type": "object", "additionalProperties": false,
+      "required": ["flow_id", "processor_id", "purpose_id", "store_id", "data_categories", "evidence_refs"],
+      "properties": {
+        "flow_id": {"$ref": "#/$defs/flowId"},
+        "processor_id": {"$ref": "#/$defs/processorId"},
+        "purpose_id": {"$ref": "#/$defs/purposeId"},
+        "store_id": {"$ref": "#/$defs/storeId"},
+        "data_categories": {"$ref": "#/$defs/categories"},
+        "evidence_refs": {"$ref": "#/$defs/refs"}
+      }
+    },
+    "product": {
+      "type": "object", "additionalProperties": false,
+      "required": ["product_id", "inventory_status", "consent_status", "consent_evidence_refs", "retention_status", "retention_evidence_refs", "retention_rules", "deletion_test_status", "deletion_tested_on", "deletion_evidence_refs", "pia_status", "pia_evidence_refs", "stores", "data_flows"],
+      "properties": {
+        "product_id": {"$ref": "#/$defs/productId"},
+        "inventory_status": {"enum": ["complete", "unknown"]},
+        "consent_status": {"enum": ["documented", "not_applicable_asserted", "unresolved"]},
+        "consent_evidence_refs": {"$ref": "#/$defs/evidenceList"},
+        "retention_status": {"enum": ["documented", "unresolved"]},
+        "retention_evidence_refs": {"$ref": "#/$defs/evidenceList"},
+        "retention_rules": {"type": "array", "maxItems": 16, "items": {"$ref": "#/$defs/retentionRule"}},
+        "deletion_test_status": {"enum": ["passed", "failed", "not_run", "unknown"]},
+        "deletion_tested_on": {"oneOf": [{"$ref": "#/$defs/date"}, {"type": "null"}]},
+        "deletion_evidence_refs": {"$ref": "#/$defs/evidenceList"},
+        "pia_status": {"enum": ["completed", "pending", "not_required_asserted", "unknown"]},
+        "pia_evidence_refs": {"$ref": "#/$defs/evidenceList"},
+        "stores": {"type": "array", "maxItems": 64, "items": {"$ref": "#/$defs/store"}},
+        "data_flows": {"type": "array", "maxItems": 512, "items": {"$ref": "#/$defs/dataFlow"}}
+      },
+      "allOf": [
+        {"if": {"properties": {"inventory_status": {"const": "complete"}}, "required": ["inventory_status"]}, "then": {"properties": {"data_flows": {"minItems": 1}, "stores": {"minItems": 1}}}},
+        {"if": {"properties": {"consent_status": {"const": "documented"}}, "required": ["consent_status"]}, "then": {"properties": {"consent_evidence_refs": {"$ref": "#/$defs/refs"}}}},
+        {"if": {"properties": {"retention_status": {"const": "documented"}}, "required": ["retention_status"]}, "then": {"properties": {"retention_evidence_refs": {"$ref": "#/$defs/refs"}}}},
+        {"if": {"properties": {"pia_status": {"const": "completed"}}, "required": ["pia_status"]}, "then": {"properties": {"pia_evidence_refs": {"$ref": "#/$defs/refs"}}}},
+        {"if": {"properties": {"deletion_test_status": {"enum": ["passed", "failed"]}}, "required": ["deletion_test_status"]}, "then": {"properties": {"deletion_tested_on": {"$ref": "#/$defs/date"}, "deletion_evidence_refs": {"$ref": "#/$defs/refs"}}}},
+        {"if": {"properties": {"deletion_test_status": {"enum": ["not_run", "unknown"]}}, "required": ["deletion_test_status"]}, "then": {"properties": {"deletion_tested_on": {"type": "null"}, "deletion_evidence_refs": {"maxItems": 0}}}}
+      ]
+    }
+  }
+}

@@ -10,14 +10,19 @@ import pytest
 from jsonschema import Draft202012Validator, FormatChecker
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from teracorp_privacy_inventory import InputError, load, validate  # noqa: E402
+import teracorp_privacy_inventory as inventory  # noqa: E402
+from teracorp_privacy_inventory import InputError, load, parse_record, validate  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
-SAMPLE = ROOT / "ops/examples/teracorp_privacy_inventory.synthetic.v1.json"
-SCHEMA = ROOT / "ops/contracts/teracorp_privacy_inventory.v1.schema.json"
+SCRIPT = ROOT / "ops/scripts/teracorp_privacy_inventory.py"
+LEGACY = ROOT / "ops/scripts/teracorp_g7_data_map.py"
+SAMPLE = ROOT / "ops/examples/teracorp_privacy_inventory.synthetic.v2.json"
+RECORD_FILES = [
+    ROOT / "ops/examples/teracorp_g7_deletion_evidence.synthetic-a.v1.json",
+    ROOT / "ops/examples/teracorp_g7_deletion_evidence.synthetic-b.v1.json",
+]
+SCHEMA = ROOT / "ops/contracts/teracorp_privacy_inventory.v2.schema.json"
 AS_OF = "2026-09-28"
-PRODUCT_ID = "prod_00000000000000000000000000000001"
-OTHER_PRODUCT_ID = "prod_00000000000000000000000000000002"
 UNKNOWN_PRODUCT_ID = "prod_ffffffffffffffffffffffffffffffff"
 
 
@@ -25,26 +30,48 @@ def payload() -> dict:
     return json.loads(SAMPLE.read_text(encoding="utf-8"))
 
 
+def records() -> list[inventory.DeletionRecord]:
+    return [parse_record(load(path)) for path in RECORD_FILES]
+
+
+def good(data: dict | None = None, **kwargs) -> dict:
+    return validate(data or payload(), AS_OF, records(), allow_local_fake=True, **kwargs)
+
+
+def run_cli(*args: str, script: Path = SCRIPT) -> subprocess.CompletedProcess[str]:
+    return subprocess.run([sys.executable, str(script), *args], check=False, capture_output=True, text=True)
+
+
+def record_args() -> list[str]:
+    return [item for path in RECORD_FILES for item in ("--deletion-record", str(path))]
+
+
+# --------------------------------------------------------------------------- schema and happy path
+
+
 def test_schema_and_synthetic_inventory_are_valid_but_never_verified() -> None:
     schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
     Draft202012Validator.check_schema(schema)
     assert not list(Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(payload()))
-    report = validate(payload(), AS_OF)
-    assert report["status"] == "inventory-structured-for-founder-counsel-review-unverified"
+    report = good()
+    assert report["status"] == inventory.OK_STATUS
+    assert report["deletion_records_matched"] == 2
     assert report["verified"] is False
     assert report["legal_reviewed"] is False
     assert report["deletion_verified"] is False
 
 
 def test_schema_rejects_basic_evidence_state_mismatches() -> None:
-    schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
-    validator = Draft202012Validator(schema, format_checker=FormatChecker())
+    validator = Draft202012Validator(json.loads(SCHEMA.read_text(encoding="utf-8")), format_checker=FormatChecker())
     cases = [
         lambda p: p["products"][0].update(product_id="jane-doe"),
         lambda p: p["processors"][0].update(evidence_refs=[]),
         lambda p: p["products"][0].update(consent_evidence_refs=[]),
         lambda p: p["products"][0].update(deletion_evidence_refs=[]),
         lambda p: p["products"][0].update(data_flows=[]),
+        lambda p: p["products"][0].update(stores=[]),
+        lambda p: p["products"][0]["stores"][3].update(retention_days=None),
+        lambda p: p["products"][0]["stores"][0].update(retention_days=30),
     ]
     for mutate in cases:
         data = payload()
@@ -52,15 +79,39 @@ def test_schema_rejects_basic_evidence_state_mismatches() -> None:
         assert list(validator.iter_errors(data))
 
 
-def test_schema_rejects_name_like_product_ids() -> None:
-    schema = json.loads(SCHEMA.read_text(encoding="utf-8"))
-    validator = Draft202012Validator(schema, format_checker=FormatChecker())
-    for value in ("jane-doe", f"{PRODUCT_ID}\n"):
+@pytest.mark.parametrize(
+    ("path", "kind"),
+    [
+        (("processors", 0, "processor_id"), "proc"),
+        (("evidence_refs", 0, "evidence_ref_id"), "ev"),
+        (("purpose_registry", 0, "purpose_id"), "purp"),
+        (("products", 0, "data_flows", 0, "flow_id"), "flow"),
+        (("products", 0, "stores", 0, "store_id"), "store"),
+    ],
+)
+@pytest.mark.parametrize("label", ["john-doe", "first-party-service", "ev-consent"])
+def test_every_identifier_must_be_an_opaque_typed_token(path: tuple, kind: str, label: str) -> None:
+    data = payload()
+    target = data
+    for key in path[:-1]:
+        target = target[key]
+    target[path[-1]] = label
+    with pytest.raises(InputError, match=f"opaque generated {kind}_ identifier") as excinfo:
+        good(data)
+    assert label not in str(excinfo.value)
+    validator = Draft202012Validator(json.loads(SCHEMA.read_text(encoding="utf-8")), format_checker=FormatChecker())
+    assert list(validator.iter_errors(data))
+
+
+def test_name_like_or_newline_product_ids_are_rejected() -> None:
+    for value in ("jane-doe", payload()["products"][0]["product_id"] + "\n"):
         data = payload()
         data["products"][0]["product_id"] = value
         with pytest.raises(InputError, match="opaque generated product identifier"):
-            validate(data, AS_OF)
-        assert list(validator.iter_errors(data))
+            good(data)
+
+
+# --------------------------------------------------------------------------- unresolved states and exit code
 
 
 def test_unknown_or_asserted_states_are_not_promoted_to_complete() -> None:
@@ -81,33 +132,167 @@ def test_unknown_or_asserted_states_are_not_promoted_to_complete() -> None:
         pia_evidence_refs=[],
         data_flows=[],
     )
-    report = validate(data, AS_OF)
+    report = good(data)
+    assert report["status"] == "incomplete"
     assert report["unresolved_count"] >= 6
-    assert report["verified"] is False and report["deletion_verified"] is False
     assert "products[0]:inventory_status:unknown" in report["unresolved"]
 
 
 def test_none_declared_processor_inventory_is_distinct_and_unverified() -> None:
     data = payload()
     data.update(processor_inventory_status="none_declared", processors=[])
-    data["products"][0].update(inventory_status="unknown", data_flows=[])
-    report = validate(data, AS_OF)
+    for product in data["products"]:
+        product.update(inventory_status="unknown", data_flows=[], stores=[])
+    data["evidence_refs"] = [item for item in data["evidence_refs"] if item["product_id"] is not None]
+    report = good(data)
     assert "processor_inventory_status:none_declared_unverified" in report["unresolved"]
+
+
+def test_unknown_hosting_region_and_other_store_kind_are_unresolved() -> None:
+    data = payload()
+    data["processors"][0]["hosting_region"] = "unknown"
+    data["products"][1]["stores"][0]["store_kind"] = "other"
+    report = validate(data, AS_OF)
+    assert "processors[0]:hosting_region:unknown" in report["unresolved"]
+    assert "products[1].stores[0]:store_kind:other" in report["unresolved"]
+
+
+def test_retention_rules_must_cover_every_held_category() -> None:
+    data = payload()
+    data["products"][0]["retention_rules"] = [
+        rule for rule in data["products"][0]["retention_rules"] if rule["data_category"] != "support_message"
+    ]
+    data["products"][0]["retention_rules"][0]["retention_days"] = None
+    report = good(data)
+    first = data["products"][0]["retention_rules"][0]["data_category"]
+    assert "products[0]:retention_rule:support_message:missing" in report["unresolved"]
+    assert f"products[0]:retention_rule:{first}:period_unresolved" in report["unresolved"]
+    data["products"][0]["retention_rules"].append(copy.deepcopy(data["products"][0]["retention_rules"][1]))
+    with pytest.raises(InputError, match="duplicate categories"):
+        good(data)
+
+
+def test_failed_deletion_status_makes_cli_exit_non_zero(tmp_path: Path) -> None:
+    data = payload()
+    data["products"][0]["deletion_test_status"] = "failed"
+    document = tmp_path / "failed.json"
+    document.write_text(json.dumps(data), encoding="utf-8")
+    result = run_cli("--as-of", AS_OF, "--allow-local-fake-evidence", *record_args(), str(document))
+    report = json.loads(result.stdout)
+    assert result.returncode == 1
+    assert report["status"] == "incomplete"
+    assert "products[0]:deletion_test_status:failed" in report["unresolved"]
+
+
+def test_passed_status_without_a_matching_record_is_missing_and_non_zero() -> None:
+    report = validate(payload(), AS_OF, allow_local_fake=True)
+    assert report["status"] == "incomplete"
+    assert "products[0]:deletion_record:missing" in report["unresolved"]
+    result = run_cli("--as-of", AS_OF, str(SAMPLE))
+    assert result.returncode == 1
+    assert "products[1]:deletion_record:missing" in json.loads(result.stdout)["unresolved"]
+
+
+def test_not_run_deletion_test_is_unresolved() -> None:
+    data = payload()
+    data["products"][1].update(deletion_test_status="not_run", deletion_tested_on=None, deletion_evidence_refs=[])
+    report = good(data)
+    assert "products[1]:deletion_test_status:not_run" in report["unresolved"]
+
+
+# --------------------------------------------------------------------------- deletion-evidence binding
+
+
+def test_local_fake_records_are_refused_unless_explicitly_allowed() -> None:
+    report = validate(payload(), AS_OF, records())
+    assert "products[0]:deletion_record:local_fake_environment" in report["unresolved"]
+    assert good()["status"] == inventory.OK_STATUS
+
+
+def test_stale_record_is_unresolved() -> None:
+    data = payload()
+    data["as_of_date"] = "2027-01-01"
+    report = validate(data, "2027-01-01", records(), allow_local_fake=True)
+    assert "products[0]:deletion_record:stale" in report["unresolved"]
+
+
+def test_record_must_cover_the_current_store_map() -> None:
+    data = payload()
+    data["products"][0]["stores"][0]["data_categories"].append("other")
+    report = good(data)
+    assert "products[0]:deletion_record:store_map_mismatch" in report["unresolved"]
+
+
+def test_record_cannot_be_reused_across_products_or_dates() -> None:
+    data = payload()
+    delete_a = data["products"][0]["deletion_evidence_refs"][0]
+    delete_b = data["products"][1]["deletion_evidence_refs"][0]
+    sha_a = next(item["sha256"] for item in data["evidence_refs"] if item["evidence_ref_id"] == delete_a)
+    for item in data["evidence_refs"]:
+        if item["evidence_ref_id"] == delete_b:
+            item["sha256"] = sha_a
+    report = good(data)
+    assert "products[1]:deletion_record:cross_product_scope" in report["unresolved"]
+
+    data = payload()
+    for item in data["evidence_refs"]:
+        if item["evidence_ref_id"] == delete_a:
+            item["observed_on"] = "2026-09-28"
+    data["products"][0]["deletion_tested_on"] = "2026-09-27"
+    report = good(data)
+    assert "products[0]:deletion_record:date_mismatch" in report["unresolved"]
+
+
+def test_tampered_record_no_longer_matches_inventory_digest() -> None:
+    raw = load(RECORD_FILES[0])
+    raw["body"]["stores"][0]["residue_count"] = 0
+    raw["body"]["valid_until"] = "2099-01-01"
+    tampered = [parse_record(raw), parse_record(load(RECORD_FILES[1]))]
+    report = validate(payload(), AS_OF, tampered, allow_local_fake=True)
+    assert "products[0]:deletion_record:missing" in report["unresolved"]
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda r: r["body"].update(status="failed"),
+        lambda r: r["body"]["stores"][0].update(outcome="residue"),
+        lambda r: r["body"].update(valid_until="2026-09-01"),
+        lambda r: r["body"].update(kind="other"),
+        lambda r: r["body"]["stores"].append(copy.deepcopy(r["body"]["stores"][0])),
+        lambda r: r.update(signature={"alg": "md5", "key_id": "key_" + "0" * 32, "value": "0" * 64}),
+        lambda r: r["body"].update(extra=True),
+    ],
+)
+def test_malformed_or_self_contradictory_records_are_invalid(mutate) -> None:
+    raw = load(RECORD_FILES[0])
+    mutate(raw)
+    with pytest.raises(InputError):
+        parse_record(raw)
+
+
+def test_hmac_signature_is_required_when_a_key_is_supplied(tmp_path: Path) -> None:
+    key = b"k" * 32
+    report = good(hmac_key=key)
+    assert "products[0]:deletion_record:signature_invalid" in report["unresolved"]
+    key_file = tmp_path / "key"
+    key_file.write_bytes(b"short")
+    result = run_cli("--as-of", AS_OF, "--hmac-key-file", str(key_file), str(SAMPLE))
+    assert result.returncode == 2
+    assert json.loads(result.stdout)["error"] == "signing_key_must_be_32_to_4096_bytes"
+
+
+# --------------------------------------------------------------------------- structural refusals
 
 
 def test_linked_evidence_count_includes_processor_product_and_flow_claims() -> None:
     data = payload()
-    report = validate(data, AS_OF)
+    report = good(data)
     expected = sum(len(processor["evidence_refs"]) for processor in data["processors"])
     expected += sum(
-        len(product[field])
+        len(product[name])
         for product in data["products"]
-        for field in (
-            "consent_evidence_refs",
-            "retention_evidence_refs",
-            "deletion_evidence_refs",
-            "pia_evidence_refs",
-        )
+        for name in ("consent_evidence_refs", "retention_evidence_refs", "deletion_evidence_refs", "pia_evidence_refs")
     )
     expected += sum(len(flow["evidence_refs"]) for product in data["products"] for flow in product["data_flows"])
     assert report["linked_evidence_reference_count"] == expected
@@ -117,197 +302,128 @@ def test_identified_processor_requires_source_reference() -> None:
     data = payload()
     data["processors"][0]["evidence_refs"] = []
     with pytest.raises(InputError, match="non-empty"):
-        validate(data, AS_OF)
+        good(data)
+
+
+MISSING_PROC = "proc_" + "9" * 32
+MISSING_EV = "ev_" + "9" * 32
+MISSING_PURP = "purp_" + "9" * 32
 
 
 @pytest.mark.parametrize(
     "mutate",
     [
-        lambda p: p["products"][0]["data_flows"][0].update(processor_id="missing"),
-        lambda p: p["products"][0]["data_flows"][0].update(evidence_refs=["missing"]),
+        lambda p: p["products"][0]["data_flows"][0].update(processor_id=MISSING_PROC),
+        lambda p: p["products"][0]["data_flows"][0].update(evidence_refs=[MISSING_EV]),
+        lambda p: p["products"][0]["data_flows"][0].update(purpose_id=MISSING_PURP),
+        lambda p: p["products"][0]["data_flows"][0].update(store_id=p["products"][1]["stores"][0]["store_id"]),
+        lambda p: p["products"][0]["stores"][0].update(processor_id=MISSING_PROC),
+        lambda p: p["products"][1]["stores"].append(copy.deepcopy(p["products"][0]["stores"][0])),
         lambda p: p["products"][0].update(consent_status="documented", consent_evidence_refs=[]),
         lambda p: p["products"][0].update(deletion_tested_on="2026-09-29"),
         lambda p: p["evidence_refs"][0].update(sha256="bad"),
-        lambda p: p["products"][0]["data_flows"][0].update(data_categories=["account_profile", "account_profile"]),
-        lambda p: p["products"][0]["data_flows"][0].update(purpose_id="undeclared-purpose"),
+        lambda p: p["products"][0]["data_flows"][0].update(data_categories=["contact", "contact"]),
+        lambda p: p["products"][0]["stores"][0].update(erasure_mode="retention_bound", retention_days=None),
+        lambda p: p["products"][0]["stores"][0].update(retention_days=7),
+        lambda p: p.update(schema_version=1),
     ],
 )
 def test_broken_references_or_inconsistent_evidence_fail_closed(mutate) -> None:
     data = payload()
     mutate(data)
     with pytest.raises(InputError):
-        validate(data, AS_OF)
+        good(data)
 
 
 def test_product_and_flow_identifiers_must_be_unique() -> None:
     data = payload()
-    second = copy.deepcopy(data["products"][0])
-    data["products"].append(second)
+    data["products"].append(copy.deepcopy(data["products"][0]))
     with pytest.raises(InputError, match="product_id"):
-        validate(data, AS_OF)
+        good(data)
 
 
-def test_failed_deletion_test_is_reported_and_evidence_cannot_predate_test() -> None:
+def test_deletion_evidence_cannot_predate_test() -> None:
     data = payload()
-    data["products"][0]["deletion_test_status"] = "failed"
-    report = validate(data, AS_OF)
-    assert "products[0]:deletion_test_status:failed" in report["unresolved"]
-    data["evidence_refs"][4]["observed_on"] = "2026-09-23"
+    delete_ref = data["products"][0]["deletion_evidence_refs"][0]
+    for item in data["evidence_refs"]:
+        if item["evidence_ref_id"] == delete_ref:
+            item["observed_on"] = "2026-09-23"
     with pytest.raises(InputError, match="predates"):
-        validate(data, AS_OF)
+        good(data)
+
+
+def test_purpose_and_evidence_scope_reject_cross_product_and_dangling_references() -> None:
+    data = payload()
+    other_purpose = data["purpose_registry"][2]["purpose_id"]
+    data["products"][0]["data_flows"][0]["purpose_id"] = other_purpose
+    with pytest.raises(InputError, match="cross-product purpose"):
+        good(data)
+    data = payload()
+    data["purpose_registry"].append(
+        {"product_id": UNKNOWN_PRODUCT_ID, "purpose_id": "purp_" + "8" * 32, "purpose_kind": "other"}
+    )
+    with pytest.raises(InputError, match="unknown product"):
+        good(data)
+    data = payload()
+    data["products"][0]["data_flows"][0]["evidence_refs"] = [data["processors"][0]["evidence_refs"][0]]
+    with pytest.raises(InputError, match="outside this product scope"):
+        good(data)
+    data = payload()
+    data["processors"][0]["evidence_refs"] = [data["products"][0]["consent_evidence_refs"][0]]
+    with pytest.raises(InputError, match="package-scoped evidence"):
+        good(data)
 
 
 def test_bad_shapes_never_crash_or_echo_untrusted_values() -> None:
     data = payload()
     data["products"][0]["consent_status"] = {"private-canary": "bad"}
+    with pytest.raises(InputError) as excinfo:
+        good(data)
+    assert "private-canary" not in str(excinfo.value)
     with pytest.raises(InputError):
-        validate(data, AS_OF)
-    malformed = {"private-canary": "bad"}
-    with pytest.raises(InputError):
-        validate(malformed, AS_OF)
+        good({"private-canary": "bad"})
 
 
-def test_name_like_product_ids_are_rejected_even_when_references_match() -> None:
-    data = payload()
-    marker = "jane-doe"
-    data["products"][0]["product_id"] = marker
-    for evidence in data["evidence_refs"]:
-        if evidence["product_id"] == PRODUCT_ID:
-            evidence["product_id"] = marker
-    for purpose in data["purpose_registry"]:
-        if purpose["product_id"] == PRODUCT_ID:
-            purpose["product_id"] = marker
-    with pytest.raises(InputError, match="opaque generated product identifier"):
-        validate(data, AS_OF)
-
-
-def test_report_never_echoes_name_like_processor_identifiers() -> None:
-    data = payload()
-    marker = "person-jane-doe-private"
-    data["products"][0]["inventory_status"] = "unknown"
-    data["processor_inventory_status"] = "unknown"
-    old_processor_id = data["processors"][0]["processor_id"]
-    data["processors"][0]["processor_id"] = marker
-    for product in data["products"]:
-        for flow in product["data_flows"]:
-            if flow["processor_id"] == old_processor_id:
-                flow["processor_id"] = marker
-    data["processors"][1]["inventory_status"] = "unknown"
-
-    report = validate(data, AS_OF)
-
-    assert "unknown" in json.dumps(report)
-    assert marker not in json.dumps(report)
-
-
-def test_cli_duplicate_keys_oversize_and_invalid_utf8_fail_closed(tmp_path: Path) -> None:
-    duplicate = tmp_path / "duplicate.json"
-    duplicate.write_text('{"schema_version":1,"schema_version":1}', encoding="utf-8")
-    with pytest.raises(InputError, match="duplicate_json_key"):
-        load(duplicate)
-    oversized = tmp_path / "oversized.json"
-    oversized.write_bytes(b" " * 1_000_001)
-    with pytest.raises(InputError, match="input_too_large"):
-        load(oversized)
-    invalid_utf8 = tmp_path / "invalid.json"
-    invalid_utf8.write_bytes(b"\xff")
-    with pytest.raises(InputError, match="input_unreadable_or_invalid_json"):
-        load(invalid_utf8)
-
-
-def test_cli_json_depth_is_bounded_but_string_brackets_are_ignored(tmp_path: Path) -> None:
-    too_deep = tmp_path / "too-deep.json"
-    too_deep.write_text("[" * 33 + "0" + "]" * 33, encoding="utf-8")
-    with pytest.raises(InputError, match="input_too_deep"):
-        load(too_deep)
-
+def test_loader_rejects_duplicate_keys_oversize_invalid_utf8_and_deep_json(tmp_path: Path) -> None:
+    cases = {
+        "duplicate_json_key": b'{"schema_version":2,"schema_version":2}',
+        "input_too_large": b" " * 1_000_001,
+        "input_unreadable_or_invalid_json": b"\xff",
+        "input_too_deep": b"[" * 33 + b"0" + b"]" * 33,
+    }
+    for error, content in cases.items():
+        document = tmp_path / f"{error}.json"
+        document.write_bytes(content)
+        with pytest.raises(InputError, match=error):
+            load(document)
     quoted = tmp_path / "quoted.json"
     quoted.write_text('{"note":"escaped \\" [ ] { } ' + "[" * 64 + '"}', encoding="utf-8")
     assert load(quoted) == {"note": 'escaped " [ ] { } ' + "[" * 64}
 
 
-def test_huge_json_integer_cli_refuses_without_traceback(tmp_path: Path) -> None:
+def test_huge_json_integer_cli_refuses_with_invalid_exit_code(tmp_path: Path) -> None:
     document = tmp_path / "huge-integer.json"
     document.write_text('{"schema_version":' + "9" * 5000 + "}", encoding="utf-8")
-    result = subprocess.run(
-        [sys.executable, str(ROOT / "ops/scripts/teracorp_privacy_inventory.py"), "--as-of", AS_OF, str(document)],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    assert result.returncode == 1
+    result = run_cli("--as-of", AS_OF, str(document))
+    assert result.returncode == 2
     assert "Traceback" not in result.stderr
     assert json.loads(result.stdout)["error"] == "json_integer_out_of_range"
 
 
-def test_purpose_registry_rejects_cross_product_and_dangling_product_references() -> None:
-    data = payload()
-    data["purpose_registry"].append({"product_id": PRODUCT_ID, "purpose_id": "other-purpose"})
-    data["products"][0]["data_flows"][0]["purpose_id"] = "purpose-other-product"
-    with pytest.raises(InputError, match="cross-product purpose"):
-        validate(data, AS_OF)
-    data = payload()
-    data["purpose_registry"].append({"product_id": UNKNOWN_PRODUCT_ID, "purpose_id": "purpose-orphan"})
-    with pytest.raises(InputError, match="unknown product"):
-        validate(data, AS_OF)
-
-
-def test_evidence_references_are_package_or_exact_product_scoped() -> None:
-    data = payload()
-    data["products"][0]["data_flows"][0]["evidence_refs"] = ["ev-vendor"]
-    with pytest.raises(InputError, match="outside this product scope"):
-        validate(data, AS_OF)
-
-    data = payload()
-    second = copy.deepcopy(data["products"][0])
-    second["product_id"] = OTHER_PRODUCT_ID
-    second["consent_evidence_refs"] = ["ev-consent"]
-    second["retention_evidence_refs"] = ["ev-retention"]
-    second["deletion_evidence_refs"] = ["ev-delete"]
-    second["pia_evidence_refs"] = ["ev-pia"]
-    second["data_flows"][0]["flow_id"] = "another-flow"
-    second["data_flows"][0]["purpose_id"] = "purpose-another"
-    second["data_flows"][0]["evidence_refs"] = ["ev-flow"]
-    data["purpose_registry"].append({"product_id": OTHER_PRODUCT_ID, "purpose_id": "purpose-another"})
-    data["products"].append(second)
-    with pytest.raises(InputError, match="outside this product scope"):
-        validate(data, AS_OF)
-
-    data = payload()
-    data["processors"][0]["evidence_refs"] = ["ev-consent"]
-    with pytest.raises(InputError, match="package-scoped evidence"):
-        validate(data, AS_OF)
-
-    data = payload()
-    data["evidence_refs"].append(
-        {
-            "evidence_ref_id": "orphan-evidence",
-            "sha256": "2" * 64,
-            "observed_on": AS_OF,
-            "product_id": UNKNOWN_PRODUCT_ID,
-        }
-    )
-    with pytest.raises(InputError, match="evidence scope references an unknown product"):
-        validate(data, AS_OF)
-
-
-def test_future_caller_as_of_does_not_authenticate_or_verify_inventory() -> None:
-    data = payload()
-    data["as_of_date"] = "2099-01-01"
-    report = validate(data, "2099-01-01")
-    assert report["as_of_date"] == "2099-01-01"
-    assert report["verified"] is False and report["legal_reviewed"] is False
-
-
-def test_cli_has_no_network_and_emits_only_structural_unverified_status() -> None:
-    result = subprocess.run(
-        [sys.executable, str(ROOT / "ops/scripts/teracorp_privacy_inventory.py"), "--as-of", AS_OF, str(SAMPLE)],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
+def test_cli_complete_package_exits_zero_and_emits_only_unverified_status() -> None:
+    result = run_cli("--as-of", AS_OF, "--allow-local-fake-evidence", *record_args(), str(SAMPLE))
     report = json.loads(result.stdout)
-    assert result.returncode == 0
-    assert report["verified"] is False and report["legal_reviewed"] is False
-    assert report["deletion_verified"] is False
+    assert result.returncode == 0, result.stdout
+    assert report["status"] == inventory.OK_STATUS
+    assert report["verified"] is False and report["legal_reviewed"] is False and report["deletion_verified"] is False
     assert "compliant" not in result.stdout.lower()
+
+
+def test_deprecated_data_map_entry_warns_and_delegates() -> None:
+    result = run_cli("--as-of", AS_OF, "--allow-local-fake-evidence", *record_args(), str(SAMPLE), script=LEGACY)
+    assert result.returncode == 0
+    assert "deprecated" in result.stderr
+    assert json.loads(result.stdout)["status"] == inventory.OK_STATUS
+    legacy_style = run_cli(str(SAMPLE), script=LEGACY)
+    assert legacy_style.returncode != 0
+    assert "deprecated" in legacy_style.stderr
