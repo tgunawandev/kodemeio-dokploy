@@ -22,8 +22,9 @@ inactive. The conditional architecture decision is in
    company; no bot, portal, key-owned, disabled or self-approving identity can pass the
    `mcp.operation` policy. Confirm private DM delivery and reviewer visibility.
 6. Install/upgrade through the ordinary Odoo preflight path only after the independent P6
-   acceptance suite and neighbor suites pass on a disposable local DB. The test-only P6 addon
-   is not part of the production install list.
+   acceptance suite and neighbor suites pass on a disposable local DB. Headless approval HTTP
+   acceptance lives in the existing `mcp_mattermost` test suite; the rejected standalone
+   test-only addon must not be installed or restored.
 
 ## Staging acceptance — record evidence for every row
 
