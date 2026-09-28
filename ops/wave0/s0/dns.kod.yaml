@@ -1,0 +1,32 @@
+# Teracorp Wave 0, roadmap row 0.1 -- DNS desired state for the kod zones.
+#
+# Checked by ops/scripts/teracorp_s0_dns.py; founder procedure in
+# ops/runbooks/teracorp-wave0-s0.md (S0-1). The owned-IP inventory is NOT
+# written here: it is read from `kctl-hz --json servers list` exports of the
+# Hetzner projects that host kod services (kodemeio: kod-prod-01, kod-prod-02;
+# abcfood: abc-prod-02 (kod postgres/Odoo/Authentik/Mattermost), abc-prod-01
+# (Mailcow)), so a released IP drops out of the inventory the day its server
+# is deleted.
+#
+# Gate: no record resolves outside those Hetzner projects. Anything else must
+# be listed below WITH a reason, or it is removed.
+version: 1
+estate: kodeme.io
+cloudflare_profile: kodemeio
+zones:
+  - kodeme.io
+  - terakidz.com
+
+# Third-party hostnames a CNAME/MX/SRV/NS may point at (suffix match on a label
+# boundary). Deliberately empty: the Stage A audit did not inventory them. The
+# founder's first dry run lists every `unowned-target`; each one is either
+# added here with its reason or removed.
+allowed_external_targets: []
+
+# Non-Hetzner addresses an A/AAAA may point at. Deliberately empty (see above).
+allowed_ips: []
+
+# Hostnames whose service is gone even though the address may still be ours.
+retired_hostnames:
+  - name: mcp.kodeme.io
+    reason: kodemeio-mcp gateway retired 2026-09-25 (404, no container); Hermes uses in-Odoo mcp_base
