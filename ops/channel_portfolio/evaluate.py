@@ -71,6 +71,8 @@ PENDING_STATES = {
     "publish_unknown",
 }
 POINT_METRICS = {"views", "watch_time_s"}
+# F0f `append_correction` copies these from the row it corrects; a correction that differs is refused.
+_CORRECTION_KEYS = ("brand", "metric", "publication_id", "company_id", "window_start", "window_end")
 ADDITIVE_METRICS = {"sales"}
 UNITS = {"views": "count", "watch_time_s": "seconds", "sales": "count"}
 SOURCES = {"content_publish_base", "factory_digital.purchase", "manual_correction"}
@@ -294,9 +296,9 @@ def _validate_input(payload: Any, channels: list[dict]) -> tuple[date, str, dict
         if target not in by_id:
             raise PortfolioError(f"observations[{index}] supersedes an observation not in the input")
         original = by_id[target]
-        if any(row[key] != original[key] for key in ("brand", "metric", "publication_id", "company_id")):
+        if any(row[key] != original[key] for key in _CORRECTION_KEYS):
             raise PortfolioError(
-                f"observations[{index}] corrects an observation of a different brand/metric/publication"
+                f"observations[{index}] corrects an observation of a different brand/metric/publication/window"
             )
     _roots(rows)  # refuses a correction cycle by name
     return as_of, currency, entries, rows

@@ -198,7 +198,13 @@ def test_a_correction_cycle_refuses():
 def test_a_correction_of_another_publication_refuses():
     payload = series()
     payload["observations"][5]["publication_id"] = 101
-    refuses(payload, "different brand/metric/publication")
+    refuses(payload, "different brand/metric/publication/window")
+
+
+def test_a_correction_with_another_window_refuses():
+    payload = series()
+    payload["observations"][5]["window_end"] = "2026-09-01 09:00:00"
+    refuses(payload, "different brand/metric/publication/window")
 
 
 def test_sales_before_launch_do_not_count():
