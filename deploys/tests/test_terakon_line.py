@@ -327,10 +327,14 @@ def test_the_course_names_no_video_until_f6_is_built_and_carries_a_quiz():
 # --- every TB6 source --------------------------------------------------------
 
 
-@pytest.mark.parametrize("path", tb6_files(), ids=lambda path: path.relative_to(REPO).as_posix())
+# Markdown sources are left out on purpose: a course source may not carry an HTML comment (the
+# course parser refuses any line starting with `<`), and book.md must equal the derivation byte for
+# byte. The course.yaml / ebook.yaml header covers the sources it declares.
+_YAML_FILES = [path for path in tb6_files() if path.suffix == ".yaml"]
+
+
+@pytest.mark.parametrize("path", _YAML_FILES, ids=lambda path: path.relative_to(REPO).as_posix())
 def test_every_authored_yaml_header_marks_example_content(path):
-    if path.suffix != ".yaml":
-        pytest.skip("Markdown sources carry no comment syntax; their course.yaml / ebook.yaml header covers them")
     assert "EXAMPLE CONTENT" in path.read_text().split("\n\n", 1)[0], path.name
 
 

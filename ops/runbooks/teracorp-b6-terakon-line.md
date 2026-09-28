@@ -1,7 +1,7 @@
 # Runbook — Terakon product line B6 (content part), founder-gated
 
-Takes the Terakon line from **built-local** (committed sources, contract-tested, run end to end on
-a disposable test DB by the product-line harness) to **sold on kodeme.io**: real brand, real copy,
+Takes the Terakon line from **built-local** (committed sources, contract-tested, and — once the K2
+product-line harness lands — run end to end on a disposable test DB) to **sold on kodeme.io**: real brand, real copy,
 real prices, licence-clean assets, a seller of record and live payments.
 
 Everything here is a founder step (**M**) except the read-only checks, which are marked as such.
@@ -86,8 +86,9 @@ Experts rewrite each source (workbook blocks, prompt table, playbook chapters, c
 decks and quizzes) and the founder approves it. Then:
 
 - remove the `EXAMPLE CONTENT` headers only from files whose copy is approved (the line-file header
-  test in `test_contracts_product_lines.py` requires the marker while the line is example content —
-  change that rule deliberately, not by deleting the marker);
+  test in `test_contracts_product_lines.py` requires the marker on EVERY line file, and
+  `test_terakon_line.py` on every TB6 YAML source — change those tests deliberately in the same
+  commit, never by deleting the marker alone);
 - bump each changed source's `version` (the importer refuses a lower or equal version);
 - regenerate `ebooks/terakon-playbook-channel-niche/book.md` from `ebook.yaml` (it is derived; the
   test fails on drift);

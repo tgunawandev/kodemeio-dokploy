@@ -43,7 +43,7 @@ blocks:
     items:
       - "Pilih satu pilar utama untuk setiap minggu."
       - "Isi kolom Judul kerja sebelum mulai merekam."
-      - "Isi Tanggal tayang setelah konten benar-benar terbit."
+      - "Isi Tanggal tayang dalam format tanggal setelah konten benar-benar terbit."
       - "Tinjau angka di akhir bulan, bukan setiap hari."
   - type: footer
     text: "Dibuat dengan Terakon Content Calendar"
