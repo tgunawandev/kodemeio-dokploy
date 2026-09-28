@@ -18,6 +18,7 @@ safe operating instructions.
 | [teracorp-cw1-privacy.md](teracorp-cw1-privacy.md) | CW1: privacy/consent/retention draft for counsel (M5) |
 | [teracorp-cw1-rollout.md](teracorp-cw1-rollout.md) | CW1: deploy order, kill switches, handback, rollback (M6/M7) |
 | [teracorp-wave0-rollout.md](teracorp-wave0-rollout.md) | Founder-gated Wave 0 rollout (G1–G10): B2 offsite, Healthchecks, Gatus, admin gates, drills |
+| [teracorp-wave0-s0.md](teracorp-wave0-s0.md) | Founder-gated Wave 0 S0 (rows 0.1–0.3): dangling DNS removal, leaked GitHub App key rotation, kod Postgres ports + Hetzner delete protection |
 | [kod-offsite-backup.md](kod-offsite-backup.md) | kodeme.io backups: what is copied where, and restore when Hetzner is down |
 | [restore-drill.md](restore-drill.md) | Timed, isolated Odoo + Authentik restore drill from B2; record RPO/RTO |
 | [supabase-export.md](supabase-export.md) | Founder-run Supabase (TeraKidz) export to B2 and sandbox restore |
