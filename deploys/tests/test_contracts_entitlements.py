@@ -164,12 +164,23 @@ def test_readme_names_the_four_headers_and_window():
     assert "300 s" in readme and "`odoo`" in readme
 
 
-def test_recorded_dispatcher_payload_validates_when_present():
-    recorded = EXAMPLES / "entitlement.v1.recorded.json"
-    if not recorded.exists():
-        pytest.skip("recorded Odoo dispatcher payload lands in ENT T4")
-    data = json.loads(recorded.read_text())
-    validator_for(ENTITLEMENT).validate(json.loads(data["body"]))
+def test_recorded_dispatcher_request_validates_and_verifies():
+    """ENT T4: the request app_entitlement's Odoo dispatcher test recorded (byte-pinned there).
+
+    The same file is replayed by kodemeio-supabase's entitlement-webhook Deno test and its body
+    is applied by the pgTAP suite, so one recording ties the three legs together.
+    """
+    recorded = json.loads((EXAMPLES / "entitlement.v1.recorded.json").read_text())
+    assert "TEST-ONLY" in recorded["_comment"]
+    headers, body = recorded["headers"], recorded["body"]
+    assert set(headers) == {"X-Webhook-Source", "X-Webhook-Timestamp", "X-Webhook-Event-Id", "X-Webhook-Signature"}
+    event = json.loads(body)
+    validator_for(ENTITLEMENT).validate(event)
+    assert headers["X-Webhook-Source"] == "odoo"
+    assert headers["X-Webhook-Event-Id"] == event["event_id"]
+    assert body.encode() == json.dumps(event, separators=(",", ":"), sort_keys=True).encode(), "canonical body"
+    expected = sign(recorded["key"], "odoo", headers["X-Webhook-Timestamp"], event["event_id"], body.encode())
+    assert headers["X-Webhook-Signature"] == expected
 
 
 def test_contract_files_carry_no_program_name():

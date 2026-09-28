@@ -61,6 +61,11 @@ byte.
 - **Consumer rules.** Claim `event_id` once. For `active`, set
   `valid_until = greatest(current, new)`, so the window only moves forward. Ignore any event whose
   `issued_at` is older than the row's last `revoked`.
+- **Reading an entitlement (app side).** `has_entitlement(p_app, p_plan_prefix, p_account_ref)`
+  is true only while the row is `active` and `valid_from <= now < valid_until`, and only when
+  `plan_code` equals the prefix or starts with `prefix-`. The caller must be allowed to see the
+  account: either it is the caller's own id, or the project's `ent_account_visible` hook admits
+  them. Anyone else gets `false`.
 - **Delivery.** Odoo sends each event at most once: an event is marked delivered on a 2xx and is
   never re-sent. Failures retry with exponential backoff and stop at a named `dead` state.
 

@@ -1,0 +1,12 @@
+{
+  "_comment": "Recorded from app_entitlement's dispatcher test (TEST-ONLY key). Replayed by the Supabase entitlement-webhook test.",
+  "key": "test-only-entitlement-signing-key-0123456789abcdef",
+  "url": "http://127.0.0.1:54321/functions/v1/entitlement-webhook",
+  "headers": {
+    "X-Webhook-Source": "odoo",
+    "X-Webhook-Timestamp": "1790564701",
+    "X-Webhook-Event-Id": "01J9A1B2C3D4E5F6G7H8J9K0MP",
+    "X-Webhook-Signature": "sha256=982ba1534641e326a0ff25a3e3808b01ee525a44c96113abe06c8ce7c52aa907"
+  },
+  "body": "{\"app\":\"terakidz\",\"app_account_ref\":\"7f3c2a10-5b1e-4c7d-9a2f-0e6b8d4c1a23\",\"event_id\":\"01J9A1B2C3D4E5F6G7H8J9K0MP\",\"issued_at\":\"2026-09-28T03:05:01Z\",\"plan_code\":\"premium-30d\",\"status\":\"active\",\"valid_from\":\"2026-09-28T03:05:00Z\",\"valid_until\":\"2026-10-28T03:05:00Z\"}"
+}
