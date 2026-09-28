@@ -32,6 +32,28 @@ MAX_SNAPSHOT_BYTES = 256 * 1024 * 1024
 MAX_PROVIDER_OUTPUT_BYTES = 64 * 1024
 MAX_PREFIX_BYTES = 256
 MAX_CREDENTIAL_BYTES = 1024
+MAX_ANCHOR_MANIFEST_BYTES = 64 * 1024
+BASE_PROVIDER_TIMEOUT_SECONDS = 60.0
+# Transfers get one extra second per 256 KiB (i.e. they tolerate links down to ~256 KiB/s).
+TRANSFER_BYTES_PER_EXTRA_SECOND = 256 * 1024
+MAX_TRANSFER_TIMEOUT_SECONDS = 3600.0
+_MANIFEST_KEYS = frozenset(
+    {
+        "schema_version",
+        "run_id",
+        "bucket",
+        "prefix",
+        "snapshot_key",
+        "manifest_key",
+        "snapshot_sha256",
+        "snapshot_size_bytes",
+        "record_count",
+        "head_hash",
+        "object_lock_mode",
+        "retain_until",
+    }
+)
+_SHA256 = re.compile(r"^[0-9a-f]{64}$")
 AWS_REGION = "us-east-1"
 ACCESS_KEY_ENV = "TERACORP_B2_ACCESS_KEY_ID"
 SECRET_KEY_ENV = "TERACORP_B2_SECRET_ACCESS_KEY"
@@ -73,6 +95,73 @@ def validate_destination(bucket: str, prefix: str, endpoint: str, retention_days
         raise ExportError("B2 endpoint must be an HTTPS B2 S3 endpoint")
     if type(retention_days) is not int or not 1 <= retention_days <= 3000:
         raise ExportError("retention days must be an integer from 1 through 3000")
+
+
+def _transfer_timeout(size_bytes: int) -> float:
+    """Scale the provider timeout for object transfers so large valid snapshots do not time out."""
+    extra = max(0, size_bytes) // TRANSFER_BYTES_PER_EXTRA_SECOND
+    return min(BASE_PROVIDER_TIMEOUT_SECONDS + float(extra), MAX_TRANSFER_TIMEOUT_SECONDS)
+
+
+def _anchor_reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ExportError("anchor manifest is invalid")
+        result[key] = value
+    return result
+
+
+def load_anchor_manifest(path: Path) -> dict[str, Any]:
+    """Read the previous run's local manifest copy (bounded, no symlinks, strict JSON)."""
+    try:
+        fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    except OSError:
+        raise ExportError("anchor manifest could not be read") from None
+    try:
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            raise ExportError("anchor manifest could not be read")
+        raw = os.read(fd, MAX_ANCHOR_MANIFEST_BYTES + 1)
+    except OSError:
+        raise ExportError("anchor manifest could not be read") from None
+    finally:
+        os.close(fd)
+    if len(raw) > MAX_ANCHOR_MANIFEST_BYTES:
+        raise ExportError("anchor manifest exceeds its size limit")
+    try:
+        value = json.loads(raw.decode("utf-8"), object_pairs_hook=_anchor_reject_duplicate_keys)
+    except (UnicodeDecodeError, json.JSONDecodeError, RecursionError):
+        raise ExportError("anchor manifest is invalid") from None
+    if type(value) is not dict:
+        raise ExportError("anchor manifest is invalid")
+    return value
+
+
+def _anchor_from_manifest(manifest: Any, bucket: str, prefix: str) -> dict[str, Any]:
+    """Extract ``(record_count, head_hash)`` from a previous export manifest for this destination."""
+    if type(manifest) is not dict or set(manifest) not in (set(_MANIFEST_KEYS), set(_MANIFEST_KEYS) | {"anchor"}):
+        raise ExportError("anchor manifest is invalid")
+    if manifest["schema_version"] != 1 or type(manifest["schema_version"]) is not int:
+        raise ExportError("anchor manifest is invalid")
+    if manifest["bucket"] != bucket or manifest["prefix"] != prefix:
+        raise ExportError("anchor manifest belongs to a different export destination")
+    if manifest["object_lock_mode"] != "COMPLIANCE":
+        raise ExportError("anchor manifest is invalid")
+    count, head = manifest["record_count"], manifest["head_hash"]
+    if type(count) is not int or count < 0 or not isinstance(head, str) or not _SHA256.fullmatch(head):
+        raise ExportError("anchor manifest is invalid")
+    return {"record_count": count, "head_hash": head}
+
+
+def _chain_hash_at(snapshot: bytes, record_count: int) -> str | None:
+    """Return the verified chain head after ``record_count`` records, or None if the chain is shorter."""
+    if record_count == 0:
+        return journal._GENESIS
+    lines = snapshot.split(b"\n", record_count)
+    if len(lines) < record_count or (len(lines) == record_count and not lines[-1]):
+        return None
+    record = json.loads(lines[record_count - 1])
+    return record["entry_hash"] if record.get("sequence") == record_count else None
 
 
 def _retention_date(days: int, clock: Clock) -> str:
@@ -254,6 +343,7 @@ def _aws_call(
     endpoint: str,
     env: Mapping[str, str],
     runner: Runner,
+    timeout: float = BASE_PROVIDER_TIMEOUT_SECONDS,
 ) -> dict[str, Any]:
     argv = [
         "aws",
@@ -269,7 +359,7 @@ def _aws_call(
         *operation_args,
     ]
     try:
-        completed = runner(argv, env, 60.0)
+        completed = runner(argv, env, timeout)
     except Exception:
         # Never expose exception strings: subprocess/provider errors can echo credentials or payloads.
         raise ExportError(f"B2 {operation} operation failed") from None
@@ -330,6 +420,7 @@ def _upload_and_verify(
         endpoint,
         env,
         runner,
+        _transfer_timeout(path.stat().st_size),
     )
     _assert_retention(put.get("ObjectLockMode"), put.get("ObjectLockRetainUntilDate"), retain_until)
     if not isinstance(put.get("ETag"), str) or not put["ETag"]:
@@ -354,6 +445,7 @@ def _upload_and_verify(
         endpoint,
         read_env,
         runner,
+        _transfer_timeout(path.stat().st_size),
     )
     try:
         info = download_path.lstat()
@@ -397,14 +489,30 @@ def export_snapshot(
     secret_key: str,
     read_access_key: str,
     read_secret_key: str,
-    expected_head: str,
+    expected_head: str | None = None,
+    anchor_manifest: Mapping[str, Any] | None = None,
+    manifest_out: Path | None = None,
     runner: Runner = _default_runner,
     clock: Clock = lambda: datetime.now(UTC),
     run_id_factory: RunIdFactory = lambda: uuid.uuid4().hex,
 ) -> dict[str, Any]:
+    """Export a verified snapshot.
+
+    Trust comes from ``expected_head`` (an independently held current head), from
+    ``anchor_manifest`` (the previous run's manifest: the chain must reproduce its
+    ``(record_count, head_hash)`` and may only append after it), or from both.
+    ``manifest_out`` saves this run's manifest locally to anchor the next run.
+    """
     validate_destination(bucket, prefix, endpoint, retention_days)
-    if not isinstance(expected_head, str) or not re.fullmatch(r"[0-9a-f]{64}", expected_head):
+    if expected_head is None and anchor_manifest is None:
+        raise ExportError("an expected journal head or a previous export anchor manifest is required")
+    if expected_head is not None and (not isinstance(expected_head, str) or not _SHA256.fullmatch(expected_head)):
         raise ExportError("expected journal head must be a lowercase SHA-256 digest")
+    anchor = None if anchor_manifest is None else _anchor_from_manifest(dict(anchor_manifest), bucket, prefix)
+    if manifest_out is not None:
+        manifest_out = Path(manifest_out)
+        if os.path.lexists(manifest_out):
+            raise ExportError("manifest output path already exists")
     if (access_key, secret_key) == (read_access_key, read_secret_key):
         raise ExportError("B2 writer and read-only credentials must be distinct")
     if not isinstance(journal_path, Path):
@@ -442,8 +550,13 @@ def export_snapshot(
             raise ExportError("private snapshot verification failed")
         if stat.S_IMODE(snapshot_path.stat().st_mode) & 0o077:
             raise ExportError("private snapshot permissions are invalid")
-        if state["head_hash"] != expected_head:
+        if expected_head is not None and state["head_hash"] != expected_head:
             raise ExportError("journal head does not match independent expected journal head")
+        if anchor is not None and (
+            anchor["record_count"] > state["record_count"]
+            or _chain_hash_at(snapshot, anchor["record_count"]) != anchor["head_hash"]
+        ):
+            raise ExportError("journal chain does not continue from the previous export anchor")
 
         manifest = {
             "schema_version": 1,
@@ -458,6 +571,7 @@ def export_snapshot(
             "head_hash": state["head_hash"],
             "object_lock_mode": "COMPLIANCE",
             "retain_until": retain_until,
+            "anchor": anchor,
         }
         manifest_bytes = journal._canonical(manifest) + b"\n"
         manifest_path = _private_temp_file(temp_dir, "manifest.json", manifest_bytes)
@@ -486,6 +600,11 @@ def export_snapshot(
             runner=runner,
             expected_sha256=hashlib.sha256(manifest_bytes).hexdigest(),
         )
+    if manifest_out is not None:
+        try:
+            _private_temp_file(manifest_out.parent, manifest_out.name, manifest_bytes)
+        except OSError:
+            raise ExportError("manifest output could not be written after a verified export") from None
     return {
         "status": "verified",
         "run_id": run_id,
@@ -507,13 +626,20 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--prefix", required=True)
     parser.add_argument("--endpoint", required=True, help="HTTPS B2 S3 endpoint URL")
     parser.add_argument("--retention-days", required=True, type=int)
-    parser.add_argument("--expected-head", required=True, help="independent protected journal head SHA-256")
+    parser.add_argument("--expected-head", help="independent protected journal head SHA-256")
+    parser.add_argument(
+        "--anchor-manifest",
+        type=Path,
+        help="previous run's manifest; the chain must continue from its record_count/head_hash",
+    )
+    parser.add_argument("--manifest-out", type=Path, help="write this run's manifest here (new file, 0600)")
     args = parser.parse_args(argv)
     try:
         access_key = os.environ.get(ACCESS_KEY_ENV, "")
         secret_key = os.environ.get(SECRET_KEY_ENV, "")
         read_access_key = os.environ.get(READ_ACCESS_KEY_ENV, "")
         read_secret_key = os.environ.get(READ_SECRET_KEY_ENV, "")
+        anchor_manifest = None if args.anchor_manifest is None else load_anchor_manifest(args.anchor_manifest)
         result = export_snapshot(
             journal_path=args.journal,
             bucket=args.bucket,
@@ -525,6 +651,8 @@ def main(argv: list[str] | None = None) -> int:
             read_access_key=read_access_key,
             read_secret_key=read_secret_key,
             expected_head=args.expected_head,
+            anchor_manifest=anchor_manifest,
+            manifest_out=args.manifest_out,
         )
     except (ExportError, OSError) as exc:
         # Messages are deliberately generic; no AWS output, local journal content, or credential data.

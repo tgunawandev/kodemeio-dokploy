@@ -69,6 +69,26 @@ python3 ops/scripts/teracorp_action_journal_export.py /var/lib/teracorp/actions.
 ```
 
 The expected head must come from a separately protected source, not the journal being checked.
+
+For unattended nightly runs, anchor each export on the previous run's manifest instead of (or in
+addition to) `--expected-head`:
+
+```bash
+python3 ops/scripts/teracorp_action_journal_export.py /var/lib/teracorp/actions.jsonl \
+  --bucket <founder-provisioned-bucket> --prefix <dedicated-safe-prefix> \
+  --endpoint https://s3.us-west-004.backblazeb2.com --retention-days <approved-1-to-3000> \
+  --anchor-manifest <previous-run>.manifest.json \
+  --manifest-out <this-run>.manifest.json
+```
+
+The chain must reproduce the anchor's `(record_count, head_hash)` at that sequence and may only
+append after it; a rewritten or truncated record at or before the anchor is refused before any
+provider call. The anchor must name the same bucket and prefix. `--manifest-out` writes the exact
+uploaded manifest (new file, mode 0600) only after both objects verified, so it becomes the next
+anchor; each manifest also records the `anchor` it continued from. The first run, or a run after a
+lost local manifest, needs `--expected-head` (or a manifest read back from the Object-Lock bucket).
+`put-object`/`get-object` timeouts scale with object size (60 s plus 1 s per 256 KiB, capped at
+one hour); other provider calls keep 60 s.
 Required environment names: `TERACORP_B2_ACCESS_KEY_ID`, `TERACORP_B2_SECRET_ACCESS_KEY`,
 `TERACORP_B2_READ_ACCESS_KEY_ID`, and `TERACORP_B2_READ_SECRET_ACCESS_KEY`; the read-only
 credentials must be independently provisioned with read-only capabilities. Do not paste

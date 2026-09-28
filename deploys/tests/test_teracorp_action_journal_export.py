@@ -538,3 +538,238 @@ def test_exporter_does_not_read_snapshot_content_to_terminal(tmp_path, capsys) -
     captured = capsys.readouterr()
     assert "evt-export" not in captured.out + captured.err
     assert "payload_sha256" not in captured.out + captured.err
+
+
+# --- Previous-manifest anchor (nightly chain continuity) -------------------------------------------
+
+
+def export_with_manifest(path: Path, tmp_path: Path, name: str, **overrides) -> tuple[dict, dict]:
+    runner, calls, _ = runner_for()
+    manifest_out = tmp_path / f"{name}.manifest.json"
+    result = export(path, runner, manifest_out=manifest_out, **overrides)
+    assert calls, "a verified export must reach the provider"
+    return result, json.loads(manifest_out.read_bytes())
+
+
+def rewrite_record(path: Path, sequence: int) -> None:
+    """Rebuild a fully valid chain in which record ``sequence`` has different content."""
+    records = [json.loads(line) for line in path.read_bytes().splitlines()]
+    previous = JOURNAL._GENESIS
+    for record in records:
+        if record["sequence"] == sequence:
+            record["event"]["actor_id"] = "act-" + "5" * 32
+        record["previous_hash"] = previous
+        record["entry_hash"] = JOURNAL._hash(record["sequence"], record["event"], previous)
+        previous = record["entry_hash"]
+    path.write_bytes(b"".join(JOURNAL._canonical(record) + b"\n" for record in records))
+    path.chmod(0o600)
+    JOURNAL.verify_journal(path)  # the rebuilt chain is internally valid
+
+
+def test_previous_manifest_anchor_allows_appends_after_it(tmp_path) -> None:
+    path = tmp_path / "actions.jsonl"
+    seed_journal(path)
+    first, first_manifest = export_with_manifest(
+        path, tmp_path, "first", expected_head=JOURNAL.verify_journal(path)["head_hash"]
+    )
+    assert first_manifest["anchor"] is None
+    JOURNAL.append_event(path, event("evt-second"))
+    JOURNAL.append_event(path, event("evt-third"))
+
+    second, second_manifest = export_with_manifest(path, tmp_path, "second", anchor_manifest=first_manifest)
+
+    assert second["status"] == "verified"
+    assert second["record_count"] == 3
+    assert second["head_hash"] == JOURNAL.verify_journal(path)["head_hash"]
+    assert second_manifest["anchor"] == {"record_count": 1, "head_hash": first["head_hash"]}
+    # The new manifest is the next anchor: a third run with no appends still continues the chain.
+    third, _ = export_with_manifest(path, tmp_path, "third", anchor_manifest=second_manifest)
+    assert third["head_hash"] == second["head_hash"]
+
+
+@pytest.mark.parametrize("rewritten_sequence", [1, 2])
+def test_rewriting_a_record_at_or_before_the_anchor_is_refused(tmp_path, rewritten_sequence) -> None:
+    path = tmp_path / "actions.jsonl"
+    seed_journal(path)
+    JOURNAL.append_event(path, event("evt-second"))
+    _, anchor = export_with_manifest(path, tmp_path, "first", expected_head=JOURNAL.verify_journal(path)["head_hash"])
+    rewrite_record(path, rewritten_sequence)
+    JOURNAL.append_event(path, event("evt-third"))
+    runner, calls, _ = runner_for()
+    with pytest.raises(EXPORTER.ExportError, match="does not continue from the previous export anchor"):
+        export(path, runner, anchor_manifest=anchor)
+    assert calls == []
+
+
+def test_rewriting_only_records_after_the_anchor_still_continues_the_chain(tmp_path) -> None:
+    path = tmp_path / "actions.jsonl"
+    seed_journal(path)
+    _, anchor = export_with_manifest(path, tmp_path, "first", expected_head=JOURNAL.verify_journal(path)["head_hash"])
+    JOURNAL.append_event(path, event("evt-second"))
+    rewrite_record(path, 2)
+    result, _ = export_with_manifest(path, tmp_path, "second", anchor_manifest=anchor)
+    assert result["record_count"] == 2
+
+
+def test_truncation_below_the_anchor_is_refused(tmp_path) -> None:
+    path = tmp_path / "actions.jsonl"
+    seed_journal(path)
+    JOURNAL.append_event(path, event("evt-second"))
+    _, anchor = export_with_manifest(path, tmp_path, "first", expected_head=JOURNAL.verify_journal(path)["head_hash"])
+    path.write_bytes(path.read_bytes().splitlines(keepends=True)[0])
+    path.chmod(0o600)
+    runner, calls, _ = runner_for()
+    with pytest.raises(EXPORTER.ExportError, match="does not continue from the previous export anchor"):
+        export(path, runner, anchor_manifest=anchor)
+    assert calls == []
+
+
+def test_anchor_and_expected_head_are_both_enforced_when_supplied(tmp_path) -> None:
+    path = tmp_path / "actions.jsonl"
+    seed_journal(path)
+    _, anchor = export_with_manifest(path, tmp_path, "first", expected_head=JOURNAL.verify_journal(path)["head_hash"])
+    JOURNAL.append_event(path, event("evt-second"))
+    runner, calls, _ = runner_for()
+    with pytest.raises(EXPORTER.ExportError, match="expected journal head"):
+        export(path, runner, anchor_manifest=anchor, expected_head="b" * 64)
+    assert calls == []
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda m: m.update(bucket="other-teracorp-bucket"),
+        lambda m: m.update(prefix="journal/elsewhere"),
+        lambda m: m.update(record_count=True),
+        lambda m: m.update(record_count=-1),
+        lambda m: m.update(head_hash="A" * 64),
+        lambda m: m.update(schema_version=2),
+        lambda m: m.update(unexpected="value"),
+        lambda m: m.pop("head_hash"),
+        lambda m: m.update(object_lock_mode="GOVERNANCE"),
+    ],
+    ids=["bucket", "prefix", "bool-count", "negative-count", "upper-hash", "schema", "unknown", "missing", "mode"],
+)
+def test_malformed_or_foreign_anchor_manifest_refuses_before_provider_calls(tmp_path, mutate) -> None:
+    path = tmp_path / "actions.jsonl"
+    seed_journal(path)
+    _, anchor = export_with_manifest(path, tmp_path, "first", expected_head=JOURNAL.verify_journal(path)["head_hash"])
+    mutate(anchor)
+    runner, calls, _ = runner_for()
+    with pytest.raises(EXPORTER.ExportError, match="anchor manifest"):
+        export(path, runner, anchor_manifest=anchor)
+    assert calls == []
+
+
+def test_manifest_out_matches_uploaded_manifest_and_is_private(tmp_path) -> None:
+    path = tmp_path / "actions.jsonl"
+    seed_journal(path)
+    delegate, _, _ = runner_for()
+    uploaded = []
+
+    def runner(argv, env, timeout):
+        if argv[argv.index("s3api") + 1] == "put-object":
+            uploaded.append(Path(argv[argv.index("--body") + 1]).read_bytes())
+        return delegate(argv, env, timeout)
+
+    manifest_out = tmp_path / "manifest.json"
+    export(path, runner, expected_head=JOURNAL.verify_journal(path)["head_hash"], manifest_out=manifest_out)
+    assert manifest_out.read_bytes() == uploaded[1]
+    assert os.stat(manifest_out).st_mode & 0o777 == 0o600
+
+
+def test_existing_manifest_out_refuses_before_provider_calls(tmp_path) -> None:
+    path = tmp_path / "actions.jsonl"
+    seed_journal(path)
+    manifest_out = tmp_path / "manifest.json"
+    manifest_out.write_text("{}")
+    runner, calls, _ = runner_for()
+    with pytest.raises(EXPORTER.ExportError, match="manifest output"):
+        export(path, runner, expected_head=JOURNAL.verify_journal(path)["head_hash"], manifest_out=manifest_out)
+    assert calls == []
+    assert manifest_out.read_text() == "{}"
+
+
+def test_anchor_manifest_file_loader_is_bounded_and_strict(tmp_path) -> None:
+    path = tmp_path / "actions.jsonl"
+    seed_journal(path)
+    manifest_out = tmp_path / "first.manifest.json"
+    runner, _, _ = runner_for()
+    export(path, runner, expected_head=JOURNAL.verify_journal(path)["head_hash"], manifest_out=manifest_out)
+    assert EXPORTER.load_anchor_manifest(manifest_out)["record_count"] == 1
+    duplicate = tmp_path / "duplicate.json"
+    duplicate.write_text('{"record_count":1,"record_count":2}')
+    oversized = tmp_path / "oversized.json"
+    oversized.write_bytes(b" " * (EXPORTER.MAX_ANCHOR_MANIFEST_BYTES + 1))
+    link = tmp_path / "link.json"
+    link.symlink_to(manifest_out)
+    for bad in (duplicate, oversized, link, tmp_path / "missing.json"):
+        with pytest.raises(EXPORTER.ExportError, match="anchor manifest"):
+            EXPORTER.load_anchor_manifest(bad)
+
+
+def test_cli_passes_anchor_manifest_and_manifest_out_without_expected_head(tmp_path, monkeypatch) -> None:
+    seen = {}
+    anchor_path = tmp_path / "previous.manifest.json"
+    anchor_path.write_text('{"schema_version":1}')
+    monkeypatch.setattr(EXPORTER, "load_anchor_manifest", lambda path: {"loaded_from": str(path)})
+
+    def fake_export(**kwargs):
+        seen.update(kwargs)
+        return {"status": "verified", "run_id": "a" * 32}
+
+    monkeypatch.setattr(EXPORTER, "export_snapshot", fake_export)
+    result = EXPORTER.main(
+        [
+            str(tmp_path / "actions.jsonl"),
+            "--bucket",
+            "teracorp-backup",
+            "--prefix",
+            "journal/offsite",
+            "--endpoint",
+            "https://s3.us-west-004.backblazeb2.com",
+            "--retention-days",
+            "365",
+            "--anchor-manifest",
+            str(anchor_path),
+            "--manifest-out",
+            str(tmp_path / "next.manifest.json"),
+        ]
+    )
+    assert result == 0
+    assert seen["expected_head"] is None
+    assert seen["anchor_manifest"] == {"loaded_from": str(anchor_path)}
+    assert seen["manifest_out"] == tmp_path / "next.manifest.json"
+
+
+# --- Transfer timeouts scale with object size ------------------------------------------------------
+
+
+def test_transfer_timeout_scales_with_object_size_and_is_capped() -> None:
+    assert EXPORTER._transfer_timeout(0) == 60.0
+    assert EXPORTER._transfer_timeout(1024) == 60.0
+    assert EXPORTER._transfer_timeout(EXPORTER.MAX_SNAPSHOT_BYTES) > 60.0 + 256
+    assert EXPORTER._transfer_timeout(10 * EXPORTER.MAX_SNAPSHOT_BYTES) == EXPORTER.MAX_TRANSFER_TIMEOUT_SECONDS
+    sizes = [0, 1 << 20, 64 << 20, 256 << 20]
+    timeouts = [EXPORTER._transfer_timeout(size) for size in sizes]
+    assert timeouts == sorted(timeouts)
+
+
+def test_put_and_get_object_use_size_scaled_timeout(tmp_path, monkeypatch) -> None:
+    path = tmp_path / "actions.jsonl"
+    seed_journal(path)
+    delegate, _, _ = runner_for()
+    seen: list[tuple[str, float]] = []
+    monkeypatch.setattr(EXPORTER, "_transfer_timeout", lambda size: 60.0 + 1000.0 + size)
+
+    def runner(argv, env, timeout):
+        operation = argv[argv.index("s3api") + 1]
+        seen.append((operation, timeout))
+        return delegate(argv, env, 60.0)
+
+    export(path, runner, expected_head=JOURNAL.verify_journal(path)["head_hash"])
+    for operation, timeout in seen:
+        if operation in {"put-object", "get-object"}:
+            assert timeout > 1060.0
+        else:
+            assert timeout == 60.0
