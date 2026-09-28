@@ -1,0 +1,40 @@
+# Terakon content calendar -- the layout sidecar named by template.yaml (`layout`).
+#
+# EXAMPLE CONTENT — not approved product copy (Track B TB6; see template.yaml's header).
+#
+# DATA, NOT CODE (spec D2 amendment, 2026-09-27): the renderer interprets this file, it never
+# executes it. The shape and the closed vocabularies are documented in
+# templates/terakon-planner/layout.yaml. Every block of template.yaml is placed below, the
+# disclaimer block included, so the kit's `kit uji coba` notice is in every rendered workbook.
+sheets:
+  - name: Kalender
+    columns:
+      A: 10
+      B: 18
+      C: 16
+      D: 46
+      E: 12
+      F: 16
+    freeze: A5
+    cells:
+      - {ref: A1, block: 0, style: title} # the heading block: the calendar's title
+      - {ref: A2, block: 1, style: note} # the paragraph block: edition, weekly target, start date
+      - {ref: A4, block: 2, style: grid} # the table block: header row 4, one row per week (5-8)
+      - {ref: A10, text: "Sudah tayang", style: header}
+      - {ref: B10, formula: "COUNT(F5:F8)", type: number, style: body} # filled publish dates
+      - {ref: A11, text: "Target per minggu", style: header}
+      - {ref: B11, var: posts_per_week, type: number, style: body}
+      - {ref: A13, block: 3, style: body} # the list block: the checklist, one item per row
+      - {ref: A18, block: 4, style: footer}
+      - {ref: A20, block: 5, style: notice} # the kit's mandatory disclaimer
+
+  - name: Bank Ide
+    columns:
+      A: 70
+    rows:
+      - {ref: 3, height: 22}
+    cells:
+      - {ref: A1, block: 0, style: title}
+      - {ref: A3, text: "Ide cadangan untuk {{var.edition_month}}", style: header}
+      - {ref: A4, text: "Tulis satu ide per baris. Pindahkan ke tab Kalender saat siap direkam.", style: note}
+      - {ref: A20, block: 5, style: notice}

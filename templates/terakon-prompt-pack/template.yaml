@@ -1,0 +1,85 @@
+# Terakon prompt pack -- a paid F3 workbook sold as digital kind `prompt_pack` (Track B TB6, spec B6).
+#
+# EXAMPLE CONTENT — not approved product copy. Terakon's kit (brands/terakon.yaml) is a `draft`
+# PLACEHOLDER, so every prompt below is Claude-authored example copy (Track B TB-D9) that experts
+# and the founder replace at the operational gate. Every render under the draft kit carries the
+# kit's `kit uji coba` disclaimer through the `disclaimer` block below, which the sidecar places.
+#
+# The pack is a TABLE OF PROMPT TEXT: no links, no tool names, no personal data. A bracketed
+# [KATA] is a slot the buyer fills in by hand; it is plain text, not a template placeholder.
+# `niche` is the variant axis: one render per niche, each its own input sha.
+id: terakon-prompt-pack
+version: 1
+title: "Terakon Prompt Pack"
+kind: xlsx
+renderer: xlsx
+layout: layout.yaml
+
+# Declared because the schema requires it; the workbook renderer records it and ignores it.
+page:
+  size: A4
+  orientation: landscape
+  margins:
+    top: 12
+    right: 12
+    bottom: 12
+    left: 12
+
+blocks:
+  - type: heading
+    level: 1
+    text: "{{var.pack_title}}"
+  - type: paragraph
+    text: "Untuk kanal bertema {{var.niche}} · edisi {{var.edition_date}} · ganti setiap [KATA DALAM KURUNG] sebelum dipakai."
+  - type: table
+    columns: ["No", "Tahap", "Prompt", "Catatan pakai"]
+    rows:
+      - ["1", "Riset ide", "Buat 20 ide judul video pendek untuk kanal bertema {{var.niche}} yang menjawab pertanyaan pemula tentang [TOPIK]. Kelompokkan menurut tingkat kesulitan.", "Pilih tiga ide saja untuk minggu ini."]
+      - ["2", "Riset ide", "Tuliskan 10 pertanyaan yang paling sering diajukan penonton pemula tentang [TOPIK] di niche {{var.niche}}, lengkap dengan alasan mengapa pertanyaan itu penting bagi mereka.", "Cocokkan dengan komentar asli penonton Anda."]
+      - ["3", "Naskah", "Susun naskah video 60 detik tentang [TOPIK] dengan struktur: pembuka satu kalimat, tiga poin inti, dan penutup yang mengajak penonton berkomentar.", "Baca keras-keras sebelum merekam."]
+      - ["4", "Naskah", "Ubah naskah berikut menjadi bahasa percakapan sehari-hari tanpa mengubah faktanya: [TEMPEL NASKAH].", "Periksa ulang angka dan nama."]
+      - ["5", "Judul", "Berikan 10 variasi judul untuk video tentang [TOPIK] yang jujur terhadap isi video dan tidak melebih-lebihkan hasil.", "Hindari judul yang menjanjikan hasil."]
+      - ["6", "Judul", "Tulis tiga teks sampul pendek, maksimal enam kata, untuk video tentang [TOPIK] di kanal {{var.niche}}.", "Pastikan terbaca di layar ponsel."]
+      - ["7", "Deskripsi", "Tulis deskripsi video tentang [TOPIK] dalam tiga paragraf pendek, lalu tambahkan lima tagar yang relevan dengan niche {{var.niche}}.", "Tambahkan pengungkapan AI bila platform memintanya."]
+      - ["8", "Carousel", "Pecah topik [TOPIK] menjadi tujuh slide carousel: satu slide judul, lima slide isi dengan satu gagasan per slide, dan satu slide ringkasan.", "Satu gagasan untuk setiap slide."]
+      - ["9", "Evaluasi", "Dari catatan angka berikut [TEMPEL ANGKA], sebutkan tiga pola yang terlihat dan satu percobaan kecil untuk minggu depan. Jangan menyimpulkan lebih dari yang didukung angka.", "Bandingkan per bulan, bukan per hari."]
+      - ["10", "Evaluasi", "Tinjau naskah berikut [TEMPEL NASKAH] dan tandai kalimat yang terdengar seperti janji hasil, klaim yang belum diperiksa, atau data pribadi yang perlu dihapus.", "Jalankan sebelum setiap unggahan."]
+  - type: list
+    ordered: true
+    items:
+      - "Salin satu prompt ke alat AI pilihan Anda."
+      - "Ganti setiap [KATA DALAM KURUNG] dengan detail kanal Anda."
+      - "Periksa fakta, angka, dan nama sebelum dipakai; hasil AI bisa keliru."
+      - "Jangan menempelkan data pribadi penonton ke dalam prompt."
+  - type: footer
+    text: "Dibuat dengan Terakon Prompt Pack"
+  - type: disclaimer
+    text: "{{kit.disclaimers}}"
+
+variables:
+  - key: pack_title
+    type: string
+    required: true
+    default: "Paket Prompt Kanal Niche"
+    description: "The workbook's title, written into the first sheet's header cell."
+  - key: niche
+    type: enum
+    enum: ["Resep Rumahan", "Ulasan Gawai", "Sejarah Singkat"]
+    required: true
+    default: "Resep Rumahan"
+    description: "The channel niche the prompts are pitched at (the variant axis)."
+  - key: edition_date
+    type: date
+    required: false
+    default: "2026-10-01"
+    description: "The pack's edition date; formatted for the render's locale."
+
+assets:
+  fonts:
+    heading: "asset:font-inter"
+    body: "asset:font-inter"
+
+outputs: [xlsx]
+
+brand:
+  kits: ["terakon"]

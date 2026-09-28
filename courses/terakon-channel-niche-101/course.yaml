@@ -1,0 +1,126 @@
+# Terakon course -- a paid F5 course in the Terakon line (Track B TB6, spec B6).
+#
+# EXAMPLE CONTENT — not approved product copy. Terakon's kit (brands/terakon.yaml) is a `draft`
+# PLACEHOLDER, so the three modules and their Markdown sources are Claude-authored example copy
+# (Track B TB-D9) that experts and the founder replace at the operational gate. Every lesson's
+# reading AND slides place `{{kit.disclaimers}}`, so each rendered lesson carries `kit uji coba`.
+#
+# House style: courses/terakidz-komunikasi-dasar. A course is DATA and its sources are MARKDOWN
+# in the closed vocabulary pinned by deploys/tests/test_contracts_courses.py (`---` separates
+# slides; no tables, links, images, HTML or code). No lesson names a video: video is F6, and a
+# lesson video refuses the render by name until a licensed footage asset exists, which would
+# stop the B6 line's end-to-end run. Published through the `digital` course publisher.
+id: terakon-channel-niche-101
+version: 1
+title: "Terakon: Kanal Niche 101"
+level: starter
+locale: id_ID
+kind: course
+
+renderer: html
+
+sources:
+  m1-niche: "m1-niche.md"
+  m1-niche-slides: "m1-niche-slides.md"
+  m2-ritme: "m2-ritme.md"
+  m2-ritme-slides: "m2-ritme-slides.md"
+  m3-angka: "m3-angka.md"
+  m3-angka-slides: "m3-angka-slides.md"
+
+modules:
+  - id: m1-niche
+    title: "Memilih niche"
+    summary: >-
+      Cara memilih niche yang sanggup Anda isi setiap minggu, bukan sekadar yang sedang ramai.
+    lessons:
+      - id: l1-niche
+        title: "Niche yang bisa dijalani"
+        summary: "Tiga pertanyaan untuk menguji sebuah niche sebelum membuat kanal."
+        reading: m1-niche
+        slides: m1-niche-slides
+        quiz:
+          pass_score: 70
+          questions:
+            - id: q1-ukuran
+              prompt: "Tanda paling berguna bahwa sebuah niche bisa Anda jalani adalah..."
+              options:
+                - "Anda bisa menulis 30 judul tanpa kehabisan bahan"
+                - "Niche itu sedang paling ramai minggu ini"
+                - "Teman Anda juga membuat kanal dengan niche yang sama"
+              answer: "Anda bisa menulis 30 judul tanpa kehabisan bahan"
+              explanation: >-
+                Kanal bertahan karena konsistensi. Persediaan ide yang panjang lebih menentukan
+                daripada ramainya sebuah topik sesaat.
+
+  - id: m2-ritme
+    title: "Ritme produksi"
+    summary: >-
+      Menyusun alur kerja mingguan yang kecil dan bisa diulang, dengan satu konten cadangan.
+    lessons:
+      - id: l2-ritme
+        title: "Satu minggu, satu alur"
+        summary: "Kumpulkan pekerjaan sejenis di hari yang sama dan simpan satu cadangan."
+        reading: m2-ritme
+        slides: m2-ritme-slides
+
+  - id: m3-angka
+    title: "Membaca angka"
+    summary: >-
+      Membaca angka kanal per bulan, mencatat pola, dan mencoba satu perubahan kecil.
+    lessons:
+      - id: l3-angka
+        title: "Angka tanpa panik"
+        summary: "Tiga angka yang layak dicatat dan satu percobaan kecil setiap bulan."
+        reading: m3-angka
+        slides: m3-angka-slides
+        quiz:
+          pass_score: 70
+          questions:
+            - id: q2-bandingkan
+              prompt: "Angka kanal sebaiknya dibandingkan..."
+              options:
+                - "Per bulan, untuk melihat pola"
+                - "Setiap jam, agar cepat bereaksi"
+                - "Dengan kanal terbesar di niche yang sama"
+              answer: "Per bulan, untuk melihat pola"
+              explanation: >-
+                Angka harian naik turun karena banyak hal di luar kendali. Perbandingan bulanan
+                memperlihatkan pola yang bisa ditindaklanjuti.
+            - id: q3-jaminan
+              prompt: "Apa sikap yang tepat terhadap janji pertumbuhan kanal yang pasti?"
+              options:
+                - "Tidak ada jaminan; yang bisa dikendalikan adalah kebiasaan"
+                - "Ikuti rumus yang paling sering dibagikan"
+                - "Unggah sebanyak mungkin dalam seminggu"
+              answer: "Tidak ada jaminan; yang bisa dikendalikan adalah kebiasaan"
+              explanation: >-
+                Pertumbuhan kanal tidak bisa dijanjikan. Mencatat, membandingkan, dan mencoba
+                satu perubahan kecil adalah hal yang ada dalam kendali Anda.
+
+variables:
+  - key: niche
+    type: enum
+    enum: ["Resep Rumahan", "Ulasan Gawai", "Sejarah Singkat"]
+    required: true
+    default: "Resep Rumahan"
+    description: "The example niche the lessons use (a variant axis)."
+  - key: weekly_uploads
+    type: int
+    required: true
+    default: 3
+    description: "The weekly upload target the production lesson proposes."
+  - key: session_date
+    type: date
+    required: false
+    default: "2026-10-05"
+    description: "The date printed on the first deck; formatted for the render's locale."
+
+assets:
+  fonts:
+    heading: "asset:font-inter"
+    body: "asset:font-inter"
+
+outputs: [html]
+
+brand:
+  kits: ["terakon"]

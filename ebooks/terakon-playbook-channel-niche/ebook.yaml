@@ -1,0 +1,142 @@
+# Terakon playbook -- a paid F4 e-book in the Terakon line (Track B TB6, spec B6).
+#
+# EXAMPLE CONTENT — not approved product copy. Terakon's kit (brands/terakon.yaml) is a `draft`
+# PLACEHOLDER, so the chapters are Claude-authored example prose (Track B TB-D9) that experts and
+# the founder replace at the operational gate. The first and last chapters place
+# `{{kit.disclaimers}}`, so both formats rendered under the draft kit carry `kit uji coba`.
+#
+# Sold through K2's `factory_ebook_digital` adapter as digital kind `book`: `digital.kind` has no
+# `playbook` code (K1 pinned the enum), and a playbook is a book.
+#
+# House style: ebooks/terakidz-example. `book.md` beside this file is DERIVED from it (the
+# canonical rendering pinned by deploys/tests/test_contracts_ebooks.py `render_markdown`, and by
+# deploys/tests/test_terakon_line.py for this book): edit this file, then regenerate book.md.
+#
+# The cover logo `asset:image-terakon-cover-placeholder` is a key into the consumer's
+# licence-checked asset library; the renderer draws a labelled placeholder and fetches nothing.
+# It is NOT yet registered with licence evidence -- the runbook
+# (ops/runbooks/teracorp-b6-terakon-line.md) owns that gate, and the K2 harness registers a
+# synthetic verified asset under this key in the test DB only.
+id: terakon-playbook-channel-niche
+version: 1
+title: "Playbook Kanal Niche"
+subtitle: "Dari Satu Ide ke Kebiasaan Unggah yang Konsisten"
+author: "Tim Terakon"
+locale: id_ID
+
+page:
+  size: A5
+  orientation: portrait
+  margins:
+    top: 16
+    right: 14
+    bottom: 16
+    left: 14
+
+cover:
+  logo: "asset:image-terakon-cover-placeholder"
+  palette: primary
+
+chapters:
+  - id: memilih-niche
+    title: "Memilih Niche yang Bisa Dijalani"
+    blocks:
+      - type: paragraph
+        text: >-
+          Niche yang baik bukan yang paling ramai, tetapi yang sanggup Anda isi setiap minggu
+          selama setahun. Playbook ini memakai contoh kanal bertema {{var.niche}}, tetapi
+          langkahnya berlaku untuk niche apa pun yang Anda pilih.
+      - type: list
+        items:
+          - "Anda bisa menulis 30 judul untuk niche ini tanpa merasa kehabisan bahan."
+          - "Penontonnya punya pertanyaan yang berulang, bukan sekadar mencari hiburan sesaat."
+          - "Anda nyaman membahasnya tanpa harus berpura-pura menjadi ahli."
+      - type: disclaimer
+        text: "{{kit.disclaimers}}"
+
+  - id: ritme-produksi
+    title: "Ritme Produksi Mingguan"
+    blocks:
+      - type: heading
+        level: 2
+        text: "Satu Minggu, Satu Alur"
+      - type: paragraph
+        text: >-
+          Mulai dari {{var.start_date}} dengan target {{var.weekly_uploads}} unggahan per
+          minggu. Target itu sengaja kecil: kanal yang konsisten selama tiga bulan lebih berguna
+          daripada kanal yang sangat aktif selama dua minggu lalu berhenti.
+      - type: table
+        columns: ["Hari", "Pekerjaan", "Durasi"]
+        rows:
+          - ["Senin", "Riset dan pilih judul", "45 menit"]
+          - ["Selasa", "Tulis naskah", "60 menit"]
+          - ["Rabu", "Rekam dan sunting", "90 menit"]
+          - ["Jumat", "Unggah dan balas komentar", "30 menit"]
+      - type: list
+        ordered: true
+        items:
+          - "Kumpulkan pekerjaan sejenis di hari yang sama."
+          - "Simpan satu konten cadangan untuk minggu yang sibuk."
+          - "Tinjau alur ini setiap akhir bulan dan ubah satu hal saja."
+
+  - id: membaca-angka
+    title: "Membaca Angka Tanpa Panik"
+    blocks:
+      - type: paragraph
+        text: >-
+          Angka tontonan naik dan turun karena banyak hal di luar kendali Anda. Tidak ada rumus
+          yang menjamin sebuah kanal tumbuh, jadi yang bisa Anda kendalikan adalah kebiasaan:
+          mencatat, membandingkan per bulan, dan mencoba satu perubahan kecil setiap kali.
+      - type: list
+        items:
+          - "Durasi tonton rata-rata: apakah penonton bertahan sampai poin kedua?"
+          - "Komentar: pertanyaan apa yang muncul lebih dari sekali?"
+          - "Penonton kembali: apakah orang yang sama datang lagi minggu berikutnya?"
+
+  - id: langkah-berikutnya
+    title: "Langkah Berikutnya"
+    blocks:
+      - type: paragraph
+        text: >-
+          Tuliskan niche Anda, target {{var.weekly_uploads}} unggahan per minggu, dan tanggal
+          tinjauan pertama Anda di halaman ini. Setelah satu bulan, bandingkan catatan Anda
+          dengan rencana awal, lalu putuskan satu hal yang akan Anda ubah.
+      - type: footer
+        text: "Playbook Kanal Niche — contoh untuk kanal {{var.niche}}"
+      - type: disclaimer
+        text: "{{kit.disclaimers}}"
+
+variables:
+  - key: niche
+    type: enum
+    enum: ["Resep Rumahan", "Ulasan Gawai", "Sejarah Singkat"]
+    required: true
+    default: "Resep Rumahan"
+    description: "The example niche the chapters use (a variant axis)."
+  - key: weekly_uploads
+    type: int
+    required: true
+    default: 3
+    description: "How many uploads a week the production rhythm proposes."
+  - key: start_date
+    type: date
+    required: false
+    default: "2026-10-05"
+    description: "The date the rhythm starts; formatted for the render's locale."
+
+assets:
+  fonts:
+    heading: "asset:font-inter"
+    body: "asset:font-inter"
+  images:
+    logo: "asset:image-terakon-cover-placeholder"
+
+# Both formats (spec D2): the PDF through Typst, the EPUB through Pandoc. A renderer missing from
+# the consuming image refuses with its own named error.
+outputs: [pdf, epub]
+renderers:
+  pdf: typst
+  epub: pandoc
+
+brand:
+  kits: ["terakon"]

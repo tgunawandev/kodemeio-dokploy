@@ -1,0 +1,84 @@
+# Terakon monthly content calendar -- a paid F3 workbook in the Terakon line (Track B TB6, spec B6).
+#
+# EXAMPLE CONTENT — not approved product copy. Terakon's kit (brands/terakon.yaml) is a `draft`
+# PLACEHOLDER, so every string below is Claude-authored example copy (Track B TB-D9) that experts
+# and the founder replace at the operational gate. Every render under the draft kit carries the
+# kit's `kit uji coba` disclaimer through the `disclaimer` block below, which the sidecar places.
+#
+# House style: templates/terakon-planner (the xlsx proof). The layout sidecar `layout.yaml` is
+# DATA the renderer interprets (sheets -> cells, closed style and formula vocabularies), never
+# code. `edition_month` is the variant axis: one render per month, each its own input sha.
+id: terakon-content-calendar
+version: 1
+title: "Terakon Content Calendar"
+kind: xlsx
+renderer: xlsx
+layout: layout.yaml
+
+# Declared because the schema requires it; the workbook renderer records it and ignores it.
+page:
+  size: A4
+  orientation: landscape
+  margins:
+    top: 12
+    right: 12
+    bottom: 12
+    left: 12
+
+blocks:
+  - type: heading
+    level: 1
+    text: "{{var.calendar_title}}"
+  - type: paragraph
+    text: "Edisi {{var.edition_month}} · target {{var.posts_per_week}} unggahan per minggu · mulai {{var.start_date}}"
+  - type: table
+    columns: ["Minggu", "Pilar konten", "Format", "Judul kerja", "Status", "Tanggal tayang"]
+    rows:
+      - ["1", "Edukasi", "Video pendek", "Tiga kesalahan pemula di niche ini", "Ide", ""]
+      - ["2", "Di balik layar", "Carousel", "Cara kami menyiapkan satu konten", "Ide", ""]
+      - ["3", "Tanya jawab", "Video pendek", "Menjawab satu pertanyaan penonton", "Ide", ""]
+      - ["4", "Rangkuman", "Video panjang", "Catatan bulan ini dan rencana bulan depan", "Ide", ""]
+  - type: list
+    ordered: false
+    items:
+      - "Pilih satu pilar utama untuk setiap minggu."
+      - "Isi kolom Judul kerja sebelum mulai merekam."
+      - "Isi Tanggal tayang setelah konten benar-benar terbit."
+      - "Tinjau angka di akhir bulan, bukan setiap hari."
+  - type: footer
+    text: "Dibuat dengan Terakon Content Calendar"
+  - type: disclaimer
+    text: "{{kit.disclaimers}}"
+
+variables:
+  - key: calendar_title
+    type: string
+    required: true
+    default: "Kalender Konten Bulanan"
+    description: "The workbook's title, written into the first sheet's header cell."
+  - key: edition_month
+    type: enum
+    enum: ["Oktober 2026", "November 2026", "Desember 2026"]
+    required: true
+    default: "Oktober 2026"
+    description: "The month this edition plans (the variant axis)."
+  - key: posts_per_week
+    type: int
+    required: true
+    default: 3
+    description: "How many uploads a week the calendar plans for."
+  - key: start_date
+    type: date
+    required: false
+    default: "2026-10-01"
+    description: "First day of the edition; formatted for the render's locale."
+
+assets:
+  fonts:
+    heading: "asset:font-inter"
+    body: "asset:font-inter"
+
+outputs: [xlsx]
+
+brand:
+  kits: ["terakon"]

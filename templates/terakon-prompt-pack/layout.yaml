@@ -1,0 +1,31 @@
+# Terakon prompt pack -- the layout sidecar named by template.yaml (`layout`).
+#
+# EXAMPLE CONTENT — not approved product copy (Track B TB6; see template.yaml's header).
+#
+# DATA, NOT CODE (spec D2 amendment, 2026-09-27): the renderer interprets this file, it never
+# executes it. The shape and the closed vocabularies are documented in
+# templates/terakon-planner/layout.yaml. Every block of template.yaml is placed below, the
+# disclaimer block on both sheets, so the kit's `kit uji coba` notice is in every rendered
+# workbook whichever sheet a buyer opens first.
+sheets:
+  - name: Prompt
+    columns:
+      A: 6
+      B: 14
+      C: 90
+      D: 36
+    freeze: A5
+    cells:
+      - {ref: A1, block: 0, style: title} # the heading block: the pack's title
+      - {ref: A2, block: 1, style: note} # the paragraph block: niche, edition, how to fill slots
+      - {ref: A4, block: 2, style: grid} # the table block: header row 4, prompts in rows 5-14
+      - {ref: A16, block: 5, style: notice} # the kit's mandatory disclaimer
+
+  - name: Cara Pakai
+    columns:
+      A: 80
+    cells:
+      - {ref: A1, text: "Cara pakai {{var.pack_title}}", style: title}
+      - {ref: A3, block: 3, style: body} # the list block: four steps, one per row
+      - {ref: A8, block: 4, style: footer}
+      - {ref: A10, block: 5, style: notice}
