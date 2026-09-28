@@ -81,7 +81,11 @@ bin/product-line-acceptance terakidz-box --db odoo_test_tb_<name> --recreate
 Pass criteria: L1–L4 and L10 (spec §3.3), L5–L8 not applicable (the line sells nothing
 digitally), L9 not applicable (no launch), plus the `physical` checks in the result:
 
-- the QR images registered as `owned` with the committed evidence and sha256 (`own_work_assets`);
+- the QR images registered as `owned` with the committed evidence and sha256 (`own_work_assets`).
+  This needs the harness's bundle assembly to carry `own_work_assets`
+  (`physical_assets.collect_own_work_assets`); until it does, the insert's images come only from
+  the kit step's synthetic overlay and the `insert_images_have_own_work_evidence` check **fails
+  closed**, so the run does not pass;
 - the box is a storable product; the order is created by the order-intake principal through the
   MCP gateway's prepare/execute (draft, auto-approved), and a replay creates no second order;
 - the confirm waits for a human, the principal cannot approve its own, a distinct approver does;
