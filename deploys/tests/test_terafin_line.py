@@ -666,3 +666,39 @@ def test_every_commentable_file_says_example_content():
         paths += [directory / "template.yaml", directory / template(template_id)["layout"]]
     for path in paths:
         assert EXAMPLE_MARKER in _header(path), path
+
+
+# --- the runbook (operational gates + what K2 must run) ---------------------------------------
+
+
+def test_the_runbook_names_the_operational_gates_and_the_k2_run():
+    text = RUNBOOK.read_text()
+    for needle in (
+        "finance educator",
+        "OJK",
+        "BI",
+        "expert_logins",
+        "kit uji coba",
+        EDUCATION_DISCLAIMER,
+        "bin/teracorp-product-line terafin --db odoo_test_tb_b11",
+        "experts: synthetic-overlay",
+        "buyer@example.test",
+    ):
+        # Markdown wraps long lines, so compare with whitespace normalised.
+        assert _normalise_text(needle) in _normalise_text(text), needle
+
+
+def test_the_runbook_lists_the_placeholder_logo_key_and_every_brief():
+    text = RUNBOOK.read_text()
+    # The logo key has no committed bytes and no licence evidence yet: an operational gate, and
+    # K2 must register a synthetic asset for it in the test DB.
+    assert book()["cover"]["logo"] in text
+    for brief in line()["launch"]:
+        assert brief["brief_key"] in text, brief["brief_key"]
+
+
+def test_the_runbook_requires_the_advice_refusal_for_each_kind():
+    text = RUNBOOK.read_text()
+    assert f"forbidden phrase '{ADVICE_PHRASE}'" in text
+    for kind in ("a template", "the e-book", "the course", "F8 launch piece"):
+        assert kind in text, kind
