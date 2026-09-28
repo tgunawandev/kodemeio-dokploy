@@ -77,7 +77,7 @@ def summaries() -> dict[str, dict]:
         },
         "g4": {
             "schema_version": 1,
-            "period": "2026-09",
+            "period": "2026-08",
             "currency": "IDR",
             "entities": [
                 {
@@ -262,6 +262,54 @@ def test_evidence_reference_rejects_customer_names_and_nonopaque_labels(tmp_path
     path.write_text(json.dumps(summary), encoding="utf-8")
     with pytest.raises(RHYTHM.InputError, match="opaque label"):
         RHYTHM.build_packet(data, base_dir=tmp_path)
+
+
+def _set_g4_period(tmp_path: Path, data: dict, period: str) -> None:
+    g4_path = tmp_path / data["components"]["g4"]["path"]
+    summary = json.loads(g4_path.read_text(encoding="utf-8"))
+    summary["period"] = period
+    g4_path.write_text(json.dumps(summary), encoding="utf-8")
+
+
+@pytest.mark.parametrize("as_of_date", ["2026-09-01", "2026-09-15", "2026-09-20", "2026-09-25", "2026-09-30"])
+def test_g4_latest_closed_month_is_fresh_all_month(tmp_path: Path, as_of_date: str) -> None:
+    data = manifest(tmp_path, as_of_date=as_of_date)
+    _set_g4_period(tmp_path, data, "2026-08")
+    result = RHYTHM.build_packet(data, base_dir=tmp_path)["inputs"]["g4"]
+    assert result["freshness_status"] == "fresh"
+    # Age is measured from the day after the period closes, not from the month's first day.
+    assert result["age_days"] == (RHYTHM.date.fromisoformat(as_of_date) - RHYTHM.date(2026, 9, 1)).days
+
+
+def test_g4_age_is_anchored_at_period_end_for_older_closed_months(tmp_path: Path) -> None:
+    data = manifest(tmp_path, as_of_date="2026-10-10")
+    _set_g4_period(tmp_path, data, "2026-08")
+    result = RHYTHM.build_packet(data, base_dir=tmp_path)["inputs"]["g4"]
+    assert result["age_days"] == 39
+    assert result["freshness_status"] == "fresh"
+    data = manifest(tmp_path, as_of_date="2026-10-20")
+    _set_g4_period(tmp_path, data, "2026-08")
+    result = RHYTHM.build_packet(data, base_dir=tmp_path)["inputs"]["g4"]
+    assert result["age_days"] == 49
+    assert result["freshness_status"] == "stale"
+
+
+def test_g4_unclosed_current_month_is_partial_not_fresh(tmp_path: Path) -> None:
+    data = manifest(tmp_path, as_of_date="2026-09-28")
+    _set_g4_period(tmp_path, data, "2026-09")
+    result = RHYTHM.build_packet(data, base_dir=tmp_path)["inputs"]["g4"]
+    assert result["freshness_status"] == "partial"
+    assert result["age_days"] is None
+
+
+def test_g4_december_period_rolls_into_next_year(tmp_path: Path) -> None:
+    data = manifest(tmp_path, as_of_date="2027-01-25")
+    _set_g4_period(tmp_path, data, "2026-12")
+    for name in ("g2", "g3"):
+        del data["components"][name]
+    result = RHYTHM.build_packet(data, base_dir=tmp_path)["inputs"]["g4"]
+    assert result["freshness_status"] == "fresh"
+    assert result["age_days"] == 24
 
 
 def test_provenance_note_is_a_fixed_nonfreeform_label(tmp_path: Path) -> None:

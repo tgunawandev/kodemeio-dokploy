@@ -27,7 +27,9 @@ in the summary packet.
 1. Export sanitized G2 product scorecard, G3 founder-hours, and G4 budget reconciliation summaries
    from their local tools, then assemble them with the OPS1 packet CLI. Use explicit files only.
 2. Check each summary's freshness, gaps, and untrusted status. Follow up on source evidence in the
-   source system; the assembler cannot authenticate evidence or prove invoice completeness.
+   source system; the assembler cannot authenticate evidence or prove invoice completeness. G4 is
+   `fresh` for the latest closed month (age counted from the day after the month ends), `partial`
+   for the still-open current month, and `stale` once an older month exceeds its declared age.
 3. The founder records actual decisions and follow-ups in the normal work tracker. Note absent data
    as missing; do not infer a pivot, kill, continuation, or priority from the packet.
 4. Retain a dated founder record for each completed week. Four consecutive records, reviewed by the

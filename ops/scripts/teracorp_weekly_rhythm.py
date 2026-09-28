@@ -396,6 +396,23 @@ def _manifest(payload: Any) -> tuple[date, dict[str, Any]]:
     return as_of, components
 
 
+def _g4_freshness(period_start: date, as_of: date, max_age_days: int) -> tuple[str, int | None]:
+    """Classify a monthly G4 reconciliation relative to the packet date.
+
+    A month cannot be reconciled until it closes, so age is measured from the day after the period
+    ends. The latest closed month is always ``fresh``; the still-open current month is ``partial``.
+    """
+    period, current = (period_start.year, period_start.month), (as_of.year, as_of.month)
+    if period > current:
+        return "future", None
+    if period == current:
+        return "partial", None
+    closes_on = date(period_start.year + period_start.month // 12, period_start.month % 12 + 1, 1)
+    age_days = (as_of - closes_on).days
+    latest_closed = (closes_on.year, closes_on.month) == current
+    return ("fresh" if latest_closed or age_days <= max_age_days else "stale"), age_days
+
+
 def build_packet(payload: Any, *, base_dir: Path) -> dict[str, Any]:
     """Build a descriptive packet; every supplied summary remains caller-provided and untrusted."""
     as_of, components = _manifest(payload)
@@ -410,8 +427,8 @@ def build_packet(payload: Any, *, base_dir: Path) -> dict[str, Any]:
         path = path_value if path_value.is_absolute() else base_dir / path_value
         summary = _read_json(path, f"{name} summary")
         reference_date = validators[name](summary)
-        if name == "g4" and reference_date.strftime("%Y-%m") > as_of.strftime("%Y-%m"):
-            freshness, age_days = "future", None
+        if name == "g4":
+            freshness, age_days = _g4_freshness(reference_date, as_of, component["max_age_days"])
         else:
             age_days = (as_of - reference_date).days
             freshness = "future" if age_days < 0 else "stale" if age_days > component["max_age_days"] else "fresh"
