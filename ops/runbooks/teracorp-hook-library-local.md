@@ -28,7 +28,11 @@ windows are refused.
 Retirement is not inferred. If a founder supplies an explicit `retire`/`retain` decision, include
 the exact approved threshold fields, at least two fresh verified real windows for retirement, and
 same-brand verified evidence references for the measurement, threshold approval, and founder
-approval. The tool validates the supplied record but does not modify the hook lifecycle. Local
+approval. Window freshness for a decision is judged at its `decided_on` date, so past decisions stay
+valid as `as_of_date` advances; current staleness is reported in `coverage`. A hook recorded as
+`lifecycle: retired` is refused unless a validated `retire` decision for that hook version exists,
+and a `retain` decision on a retired hook is refused. The tool validates the supplied record but
+does not modify the hook lifecycle. Local
 checks validate evidence structure/linkage only: they do not authenticate the founder, verify the
 source system, or prove that the supplied digest is independently trustworthy. Never use synthetic
 data for a retirement decision.

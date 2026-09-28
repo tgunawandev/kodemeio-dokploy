@@ -341,8 +341,53 @@ def test_missing_windows_fail_closed_for_retirement():
 def test_stale_windows_fail_closed_for_retirement():
     payload = base_payload()
     payload["as_of_date"] = "2026-11-01"
-    payload["retirement_decisions"] = [retirement_decision()]
+    decision = retirement_decision()
+    # Windows ended 2026-09-14/21; 41+ days before the decision they no longer support it.
+    decision["decided_on"] = "2026-11-01"
+    payload["retirement_decisions"] = [decision]
     with pytest.raises(InputError, match="fresh performance windows"):
+        validate_library(payload)
+
+
+@pytest.mark.parametrize("as_of_date", ["2026-11-15", "2027-09-28"])
+def test_historical_decision_stays_valid_as_library_as_of_advances(as_of_date):
+    payload = base_payload()
+    payload["as_of_date"] = as_of_date
+    payload["hooks"][0]["lifecycle"] = "retired"
+    payload["retirement_decisions"] = [retirement_decision()]
+    result = validate_library(payload)
+    assert result["retirement_decisions"][0]["decision"] == "retire"
+    assert result["retirement_decisions"][0]["decided_on"] == "2026-09-25"
+    # Library-level staleness is reported separately in coverage instead of refusing the ledger.
+    assert result["coverage"][0]["state"] == "stale"
+    assert result["coverage"][0]["fresh_window_count"] == 0
+
+
+def test_retired_lifecycle_requires_a_validated_retire_decision():
+    payload = base_payload()
+    payload["hooks"][0]["lifecycle"] = "retired"
+    with pytest.raises(InputError, match="retired.*requires a validated retire decision"):
+        validate_library(payload)
+
+
+def test_retired_lifecycle_with_validated_retire_decision_is_accepted():
+    payload = base_payload()
+    payload["hooks"][0]["lifecycle"] = "retired"
+    payload["retirement_decisions"] = [retirement_decision()]
+    result = validate_library(payload)
+    assert result["hooks"][0]["lifecycle"] == "retired"
+
+
+def test_retain_decision_on_retired_hook_is_refused():
+    payload = base_payload()
+    payload["hooks"][0]["lifecycle"] = "retired"
+    decision = retirement_decision()
+    decision["decision"] = "retain"
+    payload["retirement_decisions"] = [decision]
+    for window in payload["performance_windows"]:
+        window["engagements"] = 25
+        window["conversions"] = 20
+    with pytest.raises(InputError, match="retain decision.*retired"):
         validate_library(payload)
 
 

@@ -273,6 +273,8 @@ def validate_library(payload: Any) -> dict[str, Any]:
         decided_on = _date(item["decided_on"], f"{where}.decided_on")
         if decided_on > as_of:
             raise InputError(f"{where}.decided_on is after as_of_date")
+        if decision == "retain" and hook["lifecycle"] == "retired":
+            raise InputError(f"{where} retain decision contradicts a retired hook lifecycle")
         approver = _id(item["approved_by"], f"{where}.approved_by")
         approval_ref_id = _id(item["approval_evidence_ref"], f"{where}.approval_evidence_ref")
         approval_ref = evidence.get(approval_ref_id)
@@ -332,8 +334,9 @@ def validate_library(payload: Any) -> dict[str, Any]:
             if row["window_end"] <= decided_on
             and row["observed_on"] <= decided_on
             and evidence[row["evidence_ref_id"]]["observed_on"] <= decided_on
+            # Freshness is judged at the decision date only, so a decision that was valid when made stays
+            # valid as the library as_of advances; current staleness is reported in coverage instead.
             and 0 <= (decided_on - row["window_end"]).days <= MAX_AGE_DAYS
-            and (as_of - row["window_end"]).days <= MAX_AGE_DAYS
         ]
         if len(fresh) < minimum_windows:
             raise InputError(f"{where} lacks enough fresh performance windows available by decision date")
@@ -370,6 +373,10 @@ def validate_library(payload: Any) -> dict[str, Any]:
             }
         )
 
+    retired_by_decision = {(row["hook_id"], row["version"]) for row in decisions if row["decision"] == "retire"}
+    for key, hook in hooks.items():
+        if hook["lifecycle"] == "retired" and key not in retired_by_decision:
+            raise InputError("a retired hook lifecycle requires a validated retire decision on or before as_of_date")
     hook_rows = [{**row, "created_on": row["created_on"].isoformat()} for row in hooks.values()]
     hook_rows.sort(key=lambda row: (row["brand"], row["hook_id"], row["version"]))
     coverage = []
