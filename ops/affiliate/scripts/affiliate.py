@@ -26,6 +26,9 @@ MAX_JSON_INTEGER_DIGITS = 16
 MAX_AMOUNT_MINOR = 1_000_000_000_000
 MAX_TOTAL_MINOR = 1_000_000_000_000
 PLACEHOLDER_PREFIXES = ("todo", "replace", "tbd")
+# Attribution policy: last-click, one paid order per click (a new click is required for a new order).
+MAX_COMMISSIONS_PER_CLICK = 1
+ORDER_ECONOMIC_FIELDS = ("click_event_id", "order_amount_minor", "commission_minor", "currency")
 
 
 class InputError(ValueError):
@@ -208,6 +211,13 @@ def _semantic_issues(payload: dict[str, Any]) -> list[str]:
     with suppress(InputError):
         unique_events = _deduplicated_events(events)
     event_map = {event.get("event_id"): event for event in unique_events}
+    counted_commissions: list[dict[str, Any]] = []
+    try:
+        counted_commissions, _ = _deduplicated_commissions(unique_events, advertiser.get("advertiser_id"))
+    except InputError:
+        issues.append("events:duplicate_order_ref_conflict")
+    counted_ids = {id(event) for event in counted_commissions}
+    orders_per_click: dict[Any, int] = {}
     for index, event in enumerate(unique_events):
         if event.get("synthetic") is not True:
             issues.append(f"events[{index}]:synthetic_only")
@@ -236,6 +246,11 @@ def _semantic_issues(payload: dict[str, Any]) -> list[str]:
                 if event_date and (not link_expiry or event_date > link_expiry):
                     issues.append(f"events[{index}]:after_link_expiry")
         elif event.get("event_type") == "commission":
+            if id(event) in counted_ids:
+                seen_orders = orders_per_click.get(event.get("click_event_id"), 0)
+                orders_per_click[event.get("click_event_id")] = seen_orders + 1
+                if seen_orders >= MAX_COMMISSIONS_PER_CLICK:
+                    issues.append(f"events[{index}]:multiple_commissions_per_click")
             click = event_map.get(event.get("click_event_id"))
             if not click or click.get("event_type") != "click":
                 issues.append(f"events[{index}]:commission_click_missing")
@@ -257,8 +272,8 @@ def _semantic_issues(payload: dict[str, Any]) -> list[str]:
                     issues.append(f"events[{index}]:commission_amount_mismatch")
     commission_total = sum(
         event.get("commission_minor", 0)
-        for event in unique_events
-        if event.get("event_type") == "commission" and type(event.get("commission_minor")) is int
+        for event in counted_commissions
+        if type(event.get("commission_minor")) is int
     )
     if commission_total > MAX_TOTAL_MINOR:
         issues.append("events:aggregate_commission_amount_out_of_range")
@@ -331,6 +346,37 @@ def _deduplicated_events(events: Any) -> list[dict[str, Any]]:
     return unique
 
 
+def _deduplicated_commissions(
+    unique_events: list[dict[str, Any]], advertiser_id: Any
+) -> tuple[list[dict[str, Any]], int]:
+    """Count one commission per (advertiser, order_ref).
+
+    A retried or duplicated conversion postback carries a new event_id but the same order
+    reference; it is counted once when its economics are identical and fails closed otherwise.
+    """
+    seen: dict[tuple[Any, Any], str] = {}
+    counted: list[dict[str, Any]] = []
+    duplicates = 0
+    for event in unique_events:
+        if event.get("event_type") != "commission":
+            continue
+        key = (advertiser_id, event.get("order_ref"))
+        economics = json.dumps(
+            {field: event.get(field) for field in ORDER_ECONOMIC_FIELDS},
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+        )
+        if key in seen:
+            if seen[key] != economics:
+                raise InputError("duplicate_order_ref_conflict")
+            duplicates += 1
+            continue
+        seen[key] = economics
+        counted.append(event)
+    return counted, duplicates
+
+
 def reconcile(payload: Any) -> dict[str, Any]:
     """Produce idempotent synthetic click/commission totals; never initiate payment."""
     report = evaluate(payload)
@@ -340,7 +386,13 @@ def reconcile(payload: Any) -> dict[str, Any]:
                 issue.rsplit(":", 1)[-1]
                 for issue in report["issues"]
                 if issue.endswith(
-                    ("duplicate_event_conflict", "commission_amount_mismatch", "commission_click_missing")
+                    (
+                        "duplicate_event_conflict",
+                        "duplicate_order_ref_conflict",
+                        "multiple_commissions_per_click",
+                        "commission_amount_mismatch",
+                        "commission_click_missing",
+                    )
                 )
             ),
             "candidate_blocked",
@@ -349,7 +401,7 @@ def reconcile(payload: Any) -> dict[str, Any]:
     events = payload["events"]
     unique = _deduplicated_events(events)
     click_ids = {event["event_id"] for event in unique if event["event_type"] == "click"}
-    commissions = [event for event in unique if event["event_type"] == "commission"]
+    commissions, duplicate_orders = _deduplicated_commissions(unique, payload["advertiser"]["advertiser_id"])
     if any(event.get("click_event_id") not in click_ids for event in commissions):
         raise InputError("commission_click_missing")
     digest = hashlib.sha256(
@@ -364,6 +416,7 @@ def reconcile(payload: Any) -> dict[str, Any]:
         "commission_total_minor": sum(event["commission_minor"] for event in commissions),
         "currency": payload["advertiser"]["commission_terms"]["currency"],
         "duplicate_event_count": len(events) - len(unique),
+        "duplicate_order_count": duplicate_orders,
         "source_events_sha256": digest,
         "payments_created": False,
         "verified": False,

@@ -81,15 +81,18 @@
       "properties": {
         "event_id": {"$ref": "#/$defs/id"}, "event_type": {"const": "click"}, "synthetic": {"const": true},
         "occurred_at": {"type": "string", "format": "date-time"}, "link_id": {"$ref": "#/$defs/id"},
-        "attribution": {"$ref": "#/$defs/attribution"}, "attribution_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+        "attribution": {"$ref": "#/$defs/attribution"}, "attribution_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "visitor_hash": {"type": "string", "pattern": "^[a-f0-9]{32}$", "description": "Keyed, daily-rotated hash of a truncated network prefix and coarse agent class; never a raw IP or user agent."},
+        "ua_class": {"enum": ["bot", "mobile", "desktop", "unknown"]}
       }
     },
     "commission_event": {
       "type": "object", "additionalProperties": false,
-      "required": ["event_id", "event_type", "synthetic", "occurred_at", "click_event_id", "order_amount_minor", "commission_minor", "currency"],
+      "required": ["event_id", "event_type", "synthetic", "occurred_at", "click_event_id", "order_ref", "order_amount_minor", "commission_minor", "currency"],
       "properties": {
         "event_id": {"$ref": "#/$defs/id"}, "event_type": {"const": "commission"}, "synthetic": {"const": true},
         "occurred_at": {"type": "string", "format": "date-time"}, "click_event_id": {"$ref": "#/$defs/id"},
+        "order_ref": {"$ref": "#/$defs/id", "description": "Opaque advertiser order/conversion reference; never a customer identifier. One commission per (advertiser, order_ref)."},
         "order_amount_minor": {"type": "integer", "minimum": 1, "maximum": 1000000000000}, "commission_minor": {"type": "integer", "minimum": 0, "maximum": 1000000000000},
         "currency": {"type": "string", "pattern": "^[A-Z]{3}$"}
       }

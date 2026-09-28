@@ -65,7 +65,12 @@ uv run pytest ops/affiliate/tests -q
 Validation prints a small status and stable issue codes; it does not echo untrusted input values.
 Reconciliation accepts only `synthetic: true` events. Repeating an identical event ID and identical
 content is idempotent and counted as a duplicate. Reusing an event ID with different content fails
-closed. Commission minor units must equal the declared percentage calculation with half-up integer
+closed. Commissions are counted once per `(advertiser_id, order_ref)`: a retried conversion
+postback with a new event ID but identical order economics (click, order amount, commission,
+currency) is counted once and reported in `duplicate_order_count`; the same `order_ref` with
+different economics fails closed as `duplicate_order_ref_conflict`. The attribution policy is
+last-click with at most one counted order per click (`multiple_commissions_per_click` blocks).
+Commission minor units must equal the declared percentage calculation with half-up integer
 rounding; this is a synthetic arithmetic check only. Output includes a digest of the deduplicated
 events and `payments_created: false`. No report should be imported as a payable or accounting
 record.

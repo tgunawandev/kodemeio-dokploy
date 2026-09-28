@@ -265,6 +265,7 @@ def test_amount_bounds_and_aggregate_total_fail_closed():
             {
                 **copy.deepcopy(event),
                 "event_id": f"commission-{index:04d}",
+                "order_ref": f"order-{index:04d}",
                 "click_event_id": document["events"][0]["event_id"],
                 "commission_minor": affiliate.MAX_AMOUNT_MINOR,
             }
@@ -293,3 +294,44 @@ def test_backdated_snapshot_is_always_explicitly_unauthenticated():
     assert report["approval_authenticated"] is False
     assert report["consent_authenticated"] is False
     assert report["as_of_authenticated"] is False
+
+
+def test_retried_postback_with_new_event_id_is_counted_once_by_order_ref():
+    """Regression (review High): a cloned commission with a new event_id doubled the total."""
+    document = payload()
+    retry = copy.deepcopy(document["events"][1])
+    retry["event_id"] = "synthetic-commission-retry"
+    retry["occurred_at"] = "2026-09-21T12:05:00Z"
+    document["events"].append(retry)
+    assert evaluate(document)["status"] == "candidate-ready-unverified"
+    result = reconcile(document)
+    assert result["commission_count"] == 1
+    assert result["commission_total_minor"] == 500
+    assert result["duplicate_order_count"] == 1
+
+
+def test_same_order_ref_with_different_economics_fails_closed():
+    document = payload()
+    conflict = copy.deepcopy(document["events"][1])
+    conflict["event_id"] = "synthetic-commission-conflict"
+    conflict["order_amount_minor"] = 20000
+    conflict["commission_minor"] = 1000
+    document["events"].append(conflict)
+    assert "events:duplicate_order_ref_conflict" in evaluate(document)["issues"]
+    with pytest.raises(InputError, match="duplicate_order_ref_conflict"):
+        reconcile(document)
+
+
+def test_second_distinct_order_on_the_same_click_is_refused_by_attribution_policy():
+    document = payload()
+    second = copy.deepcopy(document["events"][1])
+    second["event_id"] = "synthetic-commission-002"
+    second["order_ref"] = "synthetic-order-002"
+    document["events"].append(second)
+    assert "events[2]:multiple_commissions_per_click" in evaluate(document)["issues"]
+
+
+def test_commission_event_requires_order_ref():
+    document = payload()
+    del document["events"][1]["order_ref"]
+    assert evaluate(document)["status"] == "blocked"

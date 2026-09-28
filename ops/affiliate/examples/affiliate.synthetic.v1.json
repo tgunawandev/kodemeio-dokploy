@@ -50,6 +50,7 @@
       "synthetic": true,
       "occurred_at": "2026-09-21T12:00:00Z",
       "click_event_id": "synthetic-click-001",
+      "order_ref": "synthetic-order-001",
       "order_amount_minor": 10000,
       "commission_minor": 500,
       "currency": "IDR"
