@@ -15,7 +15,7 @@ Rolls out Midtrans QRIS/VA payments for Terakidz orders on `erp.kodeme.io`
   `src/private/integrations/payment_midtrans_guard/CLAUDE.md` — read it before
   touching the guard's models; this runbook only summarizes the parts an
   operator needs.
-- Local setup facts (from the Task 6 slice rig, `bin/vertical_slice_setup.py`):
+- Local setup facts (from the Task 6 slice rig, the kodemeio-odoo `bin/` slice-setup harness):
   the rig's own notes live under `kodemeio-docs/.superpowers/sdd/` (**gitignored**,
   see above) — the operatively relevant facts are: the rig runs against a
   disposable local DB with a **fake** Midtrans server, and nothing there is a

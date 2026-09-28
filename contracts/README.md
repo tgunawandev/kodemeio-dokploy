@@ -47,7 +47,9 @@ Owners: this repo holds the schemas; each service repo implements them.
   valid iff `brands/<code>.yaml` exists. Every `brand` field (work_order.v1, brand_kit.v1, agent
   profile.v1, the ops hook-library contracts) pins only the slug `^[a-z][a-z0-9-]{1,31}$`, and
   `deploys/tests/test_brand_registry.py` cross-checks every committed reference, so a new brand
-  is one kit file, never a schema or code edit. `brands/terakidz.yaml` is
+  is one kit file, never a schema or code edit. The schemas alone no longer close these
+  values: a consumer that validates only against a schema must also consult the registry
+  (`brands/`, `entitlements/apps.v1.json`) or it will accept an unregistered code. `brands/terakidz.yaml` is
   `active`; `brands/terakon.yaml` is a `draft` test fixture only (no real product yet).
 - `templates/template.v1.schema.json` is a factory template (template factory, F3):
   a committed `templates/<id>/template.yaml` plus the layout sidecar it names (`.html` for

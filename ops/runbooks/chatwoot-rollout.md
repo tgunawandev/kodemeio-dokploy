@@ -30,7 +30,7 @@ placeholders because the thing they describe does not exist yet:
 - `config/tenants.yaml`'s real `account_id`/`inbox_id`/`bot_id` (assigned by
   Chatwoot when the account/inbox/bot are created — step 4 below)
 - `TERAKIDZ_COMPANY_REF` (production Odoo's Terakidz company id, not
-  `vertical_slice`'s test-only one)
+  the local slice database's test-only one)
 
 Do not attempt a real deploy until every placeholder above has a real value
 and this note is deleted from the next person's copy of this runbook.
@@ -43,8 +43,8 @@ and this note is deleted from the next person's copy of this runbook.
    confirm this is still current before relying on it): install
    `sale_payment_request_api` (depends on `api_sale` + `payment_midtrans_guard`)
    on the production Terakidz database, and configure the SAME MCP profile
-   `field_policy` settings `bin/vertical_slice_setup.py` writes on
-   `vertical_slice`. Those are ALLOW-lists, not deny-lists (final review M7
+   `field_policy` settings the kodemeio-odoo local slice-setup harness
+   (`bin/`) writes on its local slice database. Those are ALLOW-lists, not deny-lists (final review M7
    corrected this paragraph: the implementation is stricter than the
    deny-list it used to describe, and an operator re-creating it by hand from
    the weaker shape would widen it). `kido-chat` gets exactly:
@@ -332,7 +332,7 @@ MCP-key or profile change:**
 
 1. Every credential that must read them **names them explicitly**. In this stack
    that is exactly one: the `kido-chat` profile, whose `sale-orders` allow-list
-   the slice setup writes (`bin/vertical-slice-setup` on `vertical_slice`;
+   the slice setup writes (kodemeio-odoo `bin/` slice-setup harness, local slice DB;
    `KIDO_CHAT_FIELD_POLICY`). Confirm by re-running it — it prints
    `KIDO_CHAT_FIELD_POLICY_SET=allow-list on ['partners', 'products', 'sale-orders']`
    — or by reading the profile's Field Policy in the MCP Gateway UI.
