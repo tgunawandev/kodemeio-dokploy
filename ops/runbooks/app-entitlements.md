@@ -129,7 +129,7 @@ rows. A dead row always names its cause in `last_error` (`http_401` means a wron
 | Checkout `422 order_refused` | Confirmation was refused (for example the R2 entity is not active) | Resolve the seller gate. |
 | Event `dead`, `http_401` | Odoo and Supabase hold different entitlement secrets | Re-provision both from 1Password, then Re-queue. |
 | Paid, but no event | The order was not opened by a checkout, or the refund came first | Check that the order has an App Checkout; check the Events menu. |
-| Refund of one line while a renewal exists | Fail-closed: the consumer ends the whole plan row | Any later paid line re-activates it (a fresh `active`). To restore the remaining window sooner, unreconcile and re-reconcile the renewal's payment in Odoo: that opens a new generation. |
+| Refund of one line while a renewal exists | Fail-closed: the consumer ends the whole plan row | Any later paid line re-activates it (a fresh `active`). To grant access sooner, unreconcile and re-reconcile the renewal's payment in Odoo. That opens a new generation, which grants a fresh period starting now. It does not restore the old window. |
 
 ## Rollback
 
