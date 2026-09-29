@@ -13,13 +13,13 @@ jobs:
   repository:
     runs-on: ubuntu-latest
     env:
-      # Read-only token for the sibling checkout below. The founder must add
-      # the CONTRACTS_READ_TOKEN secret with contents:read on
-      # tgunawandev/kodemeio-dsh too (it already covers kodemeio-dokploy for
-      # kodemeio-hatchet's CI). Until then this job FAILS loudly on purpose:
-      # test_friday_broker_repos refuses to skip when CI=true and
-      # CI_GATES_REQUIRED_SIBLINGS names kodemeio-dsh.
-      HAS_CONTRACTS_READ_TOKEN: ${{ secrets.CONTRACTS_READ_TOKEN != '' }}
+      # Read-only deploy key for the sibling checkout below: the private half of
+      # a read-only deploy key registered on tgunawandev/kodemeio-dsh (GitHub
+      # cannot mint personal tokens by API; a per-repo deploy key is narrower).
+      # Without it this job FAILS loudly on purpose: test_friday_broker_repos
+      # refuses to skip when CI=true and CI_GATES_REQUIRED_SIBLINGS names
+      # kodemeio-dsh.
+      HAS_DSH_READ_DEPLOY_KEY: ${{ secrets.DSH_READ_DEPLOY_KEY != '' }}
     defaults:
       run:
         # Sibling layout, as on a workstation: this repo and kodemeio-dsh sit
@@ -38,10 +38,10 @@ jobs:
       # ../kodemeio-dsh/.env.example to check friday.yaml repos against
       # DSH_BROKER_REPOS.
       - uses: actions/checkout@v4
-        if: env.HAS_CONTRACTS_READ_TOKEN == 'true'
+        if: env.HAS_DSH_READ_DEPLOY_KEY == 'true'
         with:
           repository: tgunawandev/kodemeio-dsh
-          token: ${{ secrets.CONTRACTS_READ_TOKEN }}
+          ssh-key: ${{ secrets.DSH_READ_DEPLOY_KEY }}
           persist-credentials: false
           path: kodemeio-dsh
 
