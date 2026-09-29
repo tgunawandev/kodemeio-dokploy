@@ -8,6 +8,8 @@ project: kod
 environment: staging
 server: kod-prod-02
 source_overrides:
+  repo: kodemeio-next
+  branch: feat/next-spa-migration
   compose_path: compose/docker-compose.eam.yml
 dns:
   zone: kodeme.io
@@ -20,4 +22,4 @@ domain:
 env_file: ../../env/staging/.env.kod-react-eam
 env_overrides:
   VITE_EAM_APP_NAME: KOD EAM
-  VITE_EAM_API_BASE_URL: https://kod-odoo-full-stg.kodeme.io/eam/api
+  VITE_EAM_API_BASE_URL: https://kod-odoo-full-stg.kodeme.io/asset/api

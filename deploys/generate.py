@@ -25,6 +25,8 @@ INSTANCES_DIR = DEPLOY_DIR / "instances"
 ENV_DIR = DEPLOY_DIR / "env"
 DOMAINS_DIR = DEPLOY_DIR / "domains"
 _MOVED_STAGES = frozenset({"dual", "redirect", "permanent", "cleaned"})
+NEXT_SPA_STAGING_APPS = frozenset({"dms", "eam", "erp", "hrm", "saas", "shop", "tpm"})
+NEXT_SPA_STAGING_BRANCH = "feat/next-spa-migration"
 
 HEADER = "# GENERATED FROM tenants/{code}.yaml — DO NOT EDIT\n"
 
@@ -224,7 +226,10 @@ def gen_react_pwa(
     # host without a path prefix. Per-app legacy PWAs embed /{app}/api.
     odoo_host = odoo_public_host(tenant, odoo_entry, env_name, dns_suffix)
     host = react_public_host(tenant, app, env_name, dns_suffix)
-    api_base_url = f"https://{odoo_host}" if app == "erp" else f"https://{odoo_host}/{app}/api"
+    # The Next EAM client targets the Odoo asset addon; leave the legacy
+    # production manifest unchanged while only staging moves to this client.
+    api_path = "asset" if app == "eam" and env_name == "staging" else app
+    api_base_url = f"https://{odoo_host}" if app == "erp" else f"https://{odoo_host}/{api_path}/api"
 
     yaml_filename = f"{code}-react-{app}.yaml"
     env_filename = f".env.{code}-react-{app}"
@@ -244,6 +249,11 @@ def gen_react_pwa(
     instance.update(
         {
             "source_overrides": {
+                **(
+                    {"repo": "kodemeio-next", "branch": NEXT_SPA_STAGING_BRANCH}
+                    if env_name == "staging" and app in NEXT_SPA_STAGING_APPS
+                    else {}
+                ),
                 "compose_path": f"compose/docker-compose.{app}.yml",
             },
             "dns": {

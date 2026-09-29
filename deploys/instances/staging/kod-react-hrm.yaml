@@ -8,6 +8,8 @@ project: kod
 environment: staging
 server: kod-prod-02
 source_overrides:
+  repo: kodemeio-next
+  branch: feat/next-spa-migration
   compose_path: compose/docker-compose.hrm.yml
 dns:
   zone: kodeme.io

@@ -8,6 +8,8 @@ project: mac
 environment: staging
 server: tpp-prod-07
 source_overrides:
+  repo: kodemeio-next
+  branch: feat/next-spa-migration
   compose_path: compose/docker-compose.hrm.yml
 dns:
   zone: idtpp.com
