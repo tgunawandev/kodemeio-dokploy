@@ -65,6 +65,23 @@ schedules:
   - {name: backup-mac,      cron: "20 5 * * *", command: "jobrun backup-mac",      service: kctl, shell: sh, timezone: Asia/Jakarta}
   - {name: backup-mac-hrms, cron: "30 5 * * *", command: "jobrun backup-mac-hrms", service: kctl, shell: sh, timezone: Asia/Jakarta}
 
+  # Offsite copy of the Hetzner S3 backups to Backblaze B2 (tpp-prod-backup,
+  # mac-prod-backup), for when Hetzner itself is down. Logic and reasoning:
+  # kodemeio-skills docker/lib/b2.sh.
+  #
+  # Mirrors run every 2h, tpp on even hours and mac on odd, so the two never
+  # share the container. Both skip 06:00-08:59: rclone can hold ~600 MB, and
+  # the 06:50/07:00/08:00 reports need the toolbox's 1G to themselves.
+  # A mirror caps itself at 600s and resumes on the next run, so the initial
+  # ~136 GB seed spreads over several runs instead of being killed by jobrun.
+  #
+  # The b2-fresh-* alarms are what make a silent mirror visible. They sit with
+  # the other backup alarms, before the reports, for the same reason.
+  - {name: b2-mirror-tpp, cron: "45 0,2,4,10,12,14,16,18,20,22 * * *",  command: "jobrun b2-mirror-tpp", service: kctl, shell: sh, timezone: Asia/Jakarta}
+  - {name: b2-mirror-mac, cron: "45 1,3,5,9,11,13,15,17,19,21,23 * * *", command: "jobrun b2-mirror-mac", service: kctl, shell: sh, timezone: Asia/Jakarta}
+  - {name: b2-fresh-tpp,  cron: "40 5 * * *", command: "jobrun b2-fresh-tpp", service: kctl, shell: sh, timezone: Asia/Jakarta}
+  - {name: b2-fresh-mac,  cron: "45 5 * * *", command: "jobrun b2-fresh-mac", service: kctl, shell: sh, timezone: Asia/Jakarta}
+
   # Business reports. `catchup: true` from the xyOps events is dropped: Dokploy
   # has no equivalent, and the watchdog plus a deliberate `schedules run`
   # re-fire beats automatically mailing a stale report hours late.
