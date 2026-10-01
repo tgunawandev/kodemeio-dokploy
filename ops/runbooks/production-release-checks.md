@@ -1,4 +1,4 @@
-# Teracorp release checks
+# Production release checks
 
 The 2026-10-01 production-readiness implementation restores `validate.yml` and
 `secret-scan.yml` locally after commit `70f2cb5` disabled every workflow. That
@@ -42,3 +42,8 @@ The secret scan uses read-only permissions and disables PR comments; findings
 remain in the job result/summary. This matches the action's
 [documented comment control](https://github.com/gitleaks/gitleaks-action/tree/v2#environment-variables)
 without giving the release check a PR-write token.
+
+On 2026-10-01, repository Actions was enabled after reviewing the two active
+validation-only workflows. Both support manual dispatch. The existing read-only
+sibling credential was present and its remote checkout succeeded. Required-check
+protection still needs separate verification.
