@@ -1,4 +1,4 @@
-"""The Terakod opportunity ledger (Track B, B8) and its selection record.
+"""The Terakode opportunity ledger (Track B, B8) and its selection record.
 
 The ledger is synthetic example evidence: it must validate with the FC2 CLI as a
 still-unverified candidate, every source must be a `.test` domain, no owner
@@ -87,7 +87,7 @@ def test_selection_names_a_ledger_candidate_and_is_not_authenticated() -> None:
     assert fields["selected_opportunity_ref"] in refs
     assert fields["owner_review_authenticated"] == "false"
     assert fields["decision"] == "TB-D2"
-    assert fields["selected_product"] == "Terakon Studio"
+    assert fields["selected_product"] == "Terakona Studio"
 
 
 def test_selection_record_is_marked_example_content() -> None:

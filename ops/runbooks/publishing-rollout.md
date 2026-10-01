@@ -14,8 +14,8 @@ publishes to a social platform. Postiz is deliberately a later transport.
 
    - `Terakidz / TikTok / publisher credentials`
    - `Terakidz / YouTube / publisher credentials`
-   - `Terakon / TikTok / publisher credentials` (placeholder until its brand kit is founder-approved)
-   - `Terakon / YouTube / publisher credentials` (placeholder until its brand kit is founder-approved)
+   - `Terakona / TikTok / publisher credentials` (placeholder until its brand kit is founder-approved)
+   - `Terakona / YouTube / publisher credentials` (placeholder until its brand kit is founder-approved)
 
 3. Confirm the account's publisher registry entry and capabilities. The current local modes are:
 

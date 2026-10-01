@@ -1,7 +1,7 @@
-# Terafin "Literasi Keuangan 101" — the paid F5 course of the Terafin line (Track B,
+# Terafina "Literasi Keuangan 101" — the paid F5 course of the Terafina line (Track B,
 # B11/TB11).
 #
-# EXAMPLE CONTENT — not approved product copy. Terafin has no approved brand or voice yet:
+# EXAMPLE CONTENT — not approved product copy. Terafina has no approved brand or voice yet:
 # brands/terafin.yaml is a `draft` PLACEHOLDER kit, so every reading and every deck places the
 # kit's disclaimers (`kit uji coba` plus the education line). Finance educators (named experts)
 # and the founder replace this copy at the operational gate
@@ -18,8 +18,8 @@
 # name a source KEY below, each a `.md` file beside this one. No video and no image: the terafin
 # kit registers neither, and a course never introduces an unlicensed asset.
 id: terafin-literasi-keuangan-101
-version: 1
-title: "Terafin: Literasi Keuangan 101"
+version: 2
+title: "Terafina: Literasi Keuangan 101"
 level: starter
 locale: id_ID
 kind: course
@@ -198,6 +198,6 @@ assets:
 
 outputs: [html]
 
-# Terafin copy only: finance education in the Terafin (placeholder) voice.
+# Terafina copy only: finance education in the Terafina (placeholder) voice.
 brand:
   kits: ["terafin"]

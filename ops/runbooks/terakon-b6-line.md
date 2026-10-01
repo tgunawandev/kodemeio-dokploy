@@ -1,6 +1,6 @@
-# Runbook — Terakon product line B6 (content part), founder-gated
+# Runbook — Terakona product line B6 (content part), founder-gated
 
-Takes the Terakon line from **built-local** (committed sources, contract-tested, and — once the K2
+Takes the Terakona line from **built-local** (committed sources, contract-tested, and — once the K2
 product-line harness lands — run end to end on a disposable test DB) to **sold on kodeme.io**: real brand, real copy,
 real prices, licence-clean assets, a seller of record and live payments.
 
@@ -33,7 +33,7 @@ whose required disclaimer contains `kit uji coba`. Every source places `{{kit.di
 workbook's sidecar places the disclaimer block; the playbook in its first and last chapter; every
 course reading and deck), so `factory.check.brand_rules` **refuses** any render under the placeholder
 kit that lacks the trial-kit notice. That refusal is the guard: an accidental release cannot pass for
-real Terakon product.
+real Terakona product.
 
 Read-only proof (any time): `uv run pytest deploys/tests/test_terakon_line.py deploys/tests/test_contracts_product_lines.py -q`.
 
@@ -63,14 +63,14 @@ Record the result JSON path (`logs/track-b/terakon-<utc>.json`) and counts in th
 
 ---
 
-## G1 — A real Terakon brand kit (M)
+## G1 — A real Terakona brand kit (M)
 
 The committed `brands/terakon.yaml` is a test fixture (`status: draft`, every value `PLACEHOLDER`,
 `expert_logins: []`). Before anything is sold:
 
-1. Commission and approve the Terakon brief (voice, audience, palette, fonts with licence evidence).
+1. Commission and approve the Terakona brief (voice, audience, palette, fonts with licence evidence).
 2. Replace every `PLACEHOLDER` value; set `status: active`; name real `reviewers.expert_logins`.
-3. Replace the `kit uji coba` disclaimer with the approved Terakon disclaimer(s). The dokploy test
+3. Replace the `kit uji coba` disclaimer with the approved Terakona disclaimer(s). The dokploy test
    `test_placeholder_kits.py` refuses an `active` kit that still carries `PLACEHOLDER`, and pins
    `terakidz` as the only active kit today — update that pin **in the same commit** as the kit.
 4. Decide the forbidden phrases. The draft forbids only `dijamin untung` and `bebas risiko`; the
@@ -121,9 +121,9 @@ file, commit, and re-run the harness locally before touching the instance.
 ## G6 — Seller of record and live payments (M)
 
 - **R2 seller of record**: R2 is still open on the program roadmap. Decide the entity (Odoo
-  company) that sells Terakon digital products and its tax treatment, per
+  company) that sells Terakona digital products and its tax treatment, per
   `ops/runbooks/digital-delivery-rollout.md` M0 ("Decide the instance and seller of record"). R6
-  refuses a cross-company checkout, so every Terakon product must live in that one company.
+  refuses a cross-company checkout, so every Terakona product must live in that one company.
 - **Live PAY1**: switch the Midtrans provider from the local fake to production keys per
   `ops/runbooks/midtrans-rollout.md`. The harness only ever uses the PAY1 fake and signer.
 

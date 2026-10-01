@@ -1,22 +1,22 @@
-# Terakon brand kit — DRAFT test fixture only (2026-09-26 slice).
+# Terakona brand kit — DRAFT test fixture only (2026-09-26 slice).
 #
-# Terakon has no shipped product or repo today (per spec decision D4/founder
-# gate 2: "confirm the draft Terakon kit is only a test fixture until TKN1").
+# Terakona has no shipped product or repo today (per spec decision D4/founder
+# gate 2: "confirm the draft Terakona kit is only a test fixture until TKN1").
 # EVERY value below is a placeholder invented for this slice, chosen only to
 # be visibly different from terakidz's palette/fonts so acceptance test A3
 # ("two brand kits render distinct output from one template") has a second,
 # real, schema-valid kit to render against. Nothing here should be treated as
 # approved brand content — status stays `draft` until a founder-approved
-# Terakon brief exists.
+# Terakona brief exists.
 code: terakon
-version: 1
+version: 2
 status: draft
 brand: terakon
 locale: id_ID
 
 voice:
   summary: >
-    PLACEHOLDER — no approved Terakon voice exists yet. Draft tone: direct,
+    PLACEHOLDER — no approved Terakona voice exists yet. Draft tone: direct,
     confident, professional (business/finance-adjacent), distinct from
     Terakidz's warm/soft-pastel parent-facing voice.
   do:
@@ -26,19 +26,19 @@ voice:
 
 audience: >
   PLACEHOLDER — target audience not yet defined; draft only, to be replaced
-  once TKN1 scopes the Terakon product.
+  once TKN1 scopes the Terakona product.
 
 rules:
   forbidden_phrases:
     - "dijamin untung"
     - "bebas risiko"
   required_disclaimers:
-    - "Terakon adalah kit uji coba (draft) dan belum merupakan produk yang dipasarkan."
+    - "Terakona adalah kit uji coba (draft) dan belum merupakan produk yang dipasarkan."
   ai_disclosure: >
     PLACEHOLDER — draft kit; no generated content should be published under
     this brand while status is draft.
   affiliate_hosts: []
-  affiliate_disclosure: "Terakon tidak memiliki tautan afiliasi berbayar pada halaman ini."
+  affiliate_disclosure: "Terakona tidak memiliki tautan afiliasi berbayar pada halaman ini."
 
 colors:
   primary: "#2563eb"            # PLACEHOLDER — deliberately different hue family from terakidz's green
@@ -62,7 +62,7 @@ fonts:
   body: "asset:font-inter"
 
 contact:
-  # PLACEHOLDER — no real Terakon WhatsApp number exists; draft fixture only
+  # PLACEHOLDER — no real Terakona WhatsApp number exists; draft fixture only
   whatsapp: "+6281200000000"
 
 reviewers:

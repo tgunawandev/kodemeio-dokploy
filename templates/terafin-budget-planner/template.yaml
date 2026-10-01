@@ -1,6 +1,6 @@
-# Terafin monthly budget planner — a free F3 workbook of the Terafin line (Track B, B11/TB11).
+# Terafina monthly budget planner — a free F3 workbook of the Terafina line (Track B, B11/TB11).
 #
-# EXAMPLE CONTENT — not approved product copy. Terafin has no approved brand or voice yet:
+# EXAMPLE CONTENT — not approved product copy. Terafina has no approved brand or voice yet:
 # brands/terafin.yaml is a `draft` PLACEHOLDER kit, so everything rendered from this template
 # carries the kit's `kit uji coba` disclaimer and its education disclaimer. Finance educators
 # (named experts) and the founder replace this copy at the operational gate
@@ -14,8 +14,8 @@
 # The layout sidecar is `layout.yaml` (pinned by the schema for `renderer: xlsx`). It is DATA the
 # renderer INTERPRETS -- sheets -> cells, a closed style and formula vocabulary -- never code.
 id: terafin-budget-planner
-version: 1
-title: "Terafin Lembar Anggaran Bulanan"
+version: 2
+title: "Terafina Lembar Anggaran Bulanan"
 kind: xlsx
 renderer: xlsx
 layout: layout.yaml
@@ -57,7 +57,7 @@ blocks:
       - "Bandingkan Rencana dan Realisasi setiap pekan; selisih adalah bahan evaluasi, bukan kegagalan."
       - "Sesuaikan pos dengan kondisi keluarga Anda sendiri; tidak ada angka yang berlaku untuk semua."
   - type: footer
-    text: "Dibuat dengan Lembar Anggaran Terafin (contoh)"
+    text: "Dibuat dengan Lembar Anggaran Terafina (contoh)"
   - type: disclaimer
     text: "{{kit.disclaimers}}"
 
@@ -98,7 +98,7 @@ assets:
 
 outputs: [xlsx]
 
-# Terafin copy only: the text is finance education in the Terafin (placeholder) voice, so no
+# Terafina copy only: the text is finance education in the Terafina (placeholder) voice, so no
 # other kit is approved to render it.
 brand:
   kits: ["terafin"]

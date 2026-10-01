@@ -1,6 +1,6 @@
 # Dasar Keuangan Keluarga
 *Panduan Edukasi Mengelola Uang Rumah Tangga Langkah demi Langkah*
-Tim Terafin
+Tim Terafina
 
 > Logo: asset:image-terafin-book-logo
 
@@ -66,6 +66,6 @@ Berhati-hatilah terhadap tawaran yang menjanjikan hasil tinggi dalam waktu singk
 
 Mulailah dari {{var.start_date}}: satu bulan mencatat, satu bulan menyusun anggaran, lalu satu kebiasaan baru setiap bulan. Keputusan keuangan tetap milik keluarga Anda, dan untuk keputusan besar, bicarakan dengan tenaga profesional yang berizin.
 
-*Dibaca dari Dasar Keuangan Keluarga — edisi contoh Terafin*
+*Dibaca dari Dasar Keuangan Keluarga — edisi contoh Terafina*
 
 > {{kit.disclaimers}}

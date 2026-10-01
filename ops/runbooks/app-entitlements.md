@@ -1,6 +1,6 @@
 # App entitlements (ENT): one payment path for every paid app
 
-This runbook takes a paid app (for example Terakidz, Terafin or Terakon Studio) from "built
+This runbook takes a paid app (for example Terakidz, Terafina or Terakona Studio) from "built
 locally" to "receives entitlements in production". Founder decision TB-D1: **Odoo PAY1
 (Midtrans) is the only payment path**. An app never talks to Midtrans. It opens a signed
 checkout in Odoo and receives signed `active`/`revoked` events back.

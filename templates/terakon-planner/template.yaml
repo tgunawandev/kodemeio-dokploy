@@ -1,6 +1,6 @@
-# Terakon weekly planner — the template factory's XLSX proof (F3/TPL1, spec D10).
+# Terakona weekly planner — the template factory's XLSX proof (F3/TPL1, spec D10).
 #
-# EXAMPLE CONTENT. Terakon has no shipped product (brands/terakon.yaml is itself a `draft`
+# EXAMPLE CONTENT. Terakona has no shipped product (brands/terakon.yaml is itself a `draft`
 # fixture), so every string below is a placeholder whose only job is to give the factory a
 # real, schema-valid workbook template: named sheets, a weekly grid, header cells fed from
 # variables, and a kit-driven palette/font. Real planner content is a founder/brand decision.
@@ -10,8 +10,8 @@
 # a closed formula vocabulary) and never executes it -- spec D2 amendment, 2026-09-27. A
 # `.py` sidecar is refused by the contract, not just discouraged.
 id: terakon-planner
-version: 1
-title: "Terakon Weekly Planner"
+version: 2
+title: "Terakona Weekly Planner"
 kind: xlsx
 renderer: xlsx
 layout: layout.yaml
@@ -47,7 +47,7 @@ blocks:
       - "Catat satu keputusan yang menunggu masukan."
       - "Tutup minggu dengan meninjau slot yang belum terisi."
   - type: footer
-    text: "Dibuat dengan Terakon Planner"
+    text: "Dibuat dengan Terakona Planner"
   - type: disclaimer
     text: "{{kit.disclaimers}}"
 

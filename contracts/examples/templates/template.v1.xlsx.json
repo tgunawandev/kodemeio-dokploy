@@ -1,7 +1,7 @@
 {
   "id": "terakon-planner",
-  "version": 1,
-  "title": "Terakon Weekly Planner",
+  "version": 2,
+  "title": "Terakona Weekly Planner",
   "kind": "xlsx",
   "renderer": "xlsx",
   "layout": "layout.yaml",
@@ -73,7 +73,7 @@
     },
     {
       "type": "footer",
-      "text": "Dibuat dengan Terakon Planner"
+      "text": "Dibuat dengan Terakona Planner"
     },
     {
       "type": "disclaimer",

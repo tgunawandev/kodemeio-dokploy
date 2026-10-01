@@ -1,7 +1,7 @@
-# Terafin weekly cash-flow worksheet — a free F3 printable of the Terafin line (Track B,
+# Terafina weekly cash-flow worksheet — a free F3 printable of the Terafina line (Track B,
 # B11/TB11).
 #
-# EXAMPLE CONTENT — not approved product copy. Terafin has no approved brand or voice yet:
+# EXAMPLE CONTENT — not approved product copy. Terafina has no approved brand or voice yet:
 # brands/terafin.yaml is a `draft` PLACEHOLDER kit, so everything rendered from this template
 # carries the kit's `kit uji coba` disclaimer and its education disclaimer. Finance educators
 # (named experts) and the founder replace this copy at the operational gate
@@ -14,8 +14,8 @@
 # No image block: the terafin kit registers no image asset, and a template never introduces an
 # unlicensed one. Placeholders are template.v1's five namespaces (var/theme/page/option/kit).
 id: terafin-cashflow-worksheet
-version: 1
-title: "Terafin Lembar Arus Kas Mingguan"
+version: 2
+title: "Terafina Lembar Arus Kas Mingguan"
 kind: pdf
 renderer: wkhtml
 layout: layout.html
@@ -67,7 +67,7 @@ blocks:
   - type: disclaimer
     text: "{{kit.disclaimers}}"
   - type: footer
-    text: "Dicetak dari Lembar Arus Kas Terafin (contoh) — {{var.period_start}}"
+    text: "Dicetak dari Lembar Arus Kas Terafina (contoh) — {{var.period_start}}"
 
 variables:
   - key: worksheet_title
@@ -94,7 +94,7 @@ assets:
 
 outputs: [pdf]
 
-# Terafin copy only: the text is finance education in the Terafin (placeholder) voice, so no
+# Terafina copy only: the text is finance education in the Terafina (placeholder) voice, so no
 # other kit is approved to render it.
 brand:
   kits: ["terafin"]

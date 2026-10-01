@@ -1,9 +1,9 @@
-# PLACEHOLDER — Terakod brand kit, DRAFT only (2026-09-28 Track B, slice K1).
+# PLACEHOLDER — Terakode brand kit, DRAFT only (2026-09-28 Track B, slice K1).
 #
-# Terakod has no approved brand, voice or product yet. EVERY invented value below is marked
+# Terakode has no approved brand, voice or product yet. EVERY invented value below is marked
 # `# PLACEHOLDER` and exists only so the factories can render software / small-business example
 # content under a real, schema-valid kit. Nothing here is approved brand content: status stays
-# `draft` until a founder-approved Terakod brief exists and named reviewers are recorded as
+# `draft` until a founder-approved Terakode brief exists and named reviewers are recorded as
 # experts (an operational gate — `expert_logins` stays empty here).
 #
 # The guard lives in this file as DATA, never in the kernel: the required `kit uji coba`
@@ -11,14 +11,14 @@
 # required disclaimer, so everything rendered under this kit visibly says it is a trial brand.
 # Checked by deploys/tests/test_placeholder_kits.py.
 code: terakod
-version: 1
+version: 2
 status: draft
 brand: terakod
 locale: id_ID
 
 voice:
   summary: >
-    PLACEHOLDER — no approved Terakod voice exists yet. Draft tone: practical, plain-spoken
+    PLACEHOLDER — no approved Terakode voice exists yet. Draft tone: practical, plain-spoken
     software help for Indonesian small and medium businesses; concrete steps, no hype, no
     jargon without an explanation.
   do:
@@ -30,7 +30,7 @@ voice:
 
 audience: >
   PLACEHOLDER — draft audience: owners and operators of Indonesian small and medium businesses
-  adopting software for daily operations. To be replaced once a founder-approved Terakod brief
+  adopting software for daily operations. To be replaced once a founder-approved Terakode brief
   exists.
 
 rules:
@@ -40,12 +40,12 @@ rules:
     - "omzet pasti naik"
     - "bebas bug"
   required_disclaimers:
-    - "Terakod adalah kit uji coba (draft) dan belum merupakan produk yang dipasarkan."
+    - "Terakode adalah kit uji coba (draft) dan belum merupakan produk yang dipasarkan."
   ai_disclosure: >
     PLACEHOLDER — draft kit; no generated content should be published under this brand while
     status is draft.
   affiliate_hosts: []
-  affiliate_disclosure: "Terakod tidak memiliki tautan afiliasi berbayar pada halaman ini."
+  affiliate_disclosure: "Terakode tidak memiliki tautan afiliasi berbayar pada halaman ini."
 
 colors:
   primary: "#1f2937"            # PLACEHOLDER — graphite, distinct from the other kits
@@ -69,7 +69,7 @@ fonts:
   body: "asset:font-inter"
 
 contact:
-  # PLACEHOLDER — no real Terakod WhatsApp number exists; synthetic all-zero form.
+  # PLACEHOLDER — no real Terakode WhatsApp number exists; synthetic all-zero form.
   whatsapp: "+6281200000000"
 
 reviewers:

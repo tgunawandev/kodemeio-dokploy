@@ -1,6 +1,6 @@
-# Terakon playbook -- a paid F4 e-book in the Terakon line (Track B TB6, spec B6).
+# Terakona playbook -- a paid F4 e-book in the Terakona line (Track B TB6, spec B6).
 #
-# EXAMPLE CONTENT — not approved product copy. Terakon's kit (brands/terakon.yaml) is a `draft`
+# EXAMPLE CONTENT — not approved product copy. Terakona's kit (brands/terakon.yaml) is a `draft`
 # PLACEHOLDER, so the chapters are Claude-authored example prose (Track B TB-D9) that experts and
 # the founder replace at the operational gate. The first and last chapters place
 # `{{kit.disclaimers}}`, so both formats rendered under the draft kit carry `kit uji coba`.
@@ -18,10 +18,10 @@
 # (ops/runbooks/terakon-b6-line.md) owns that gate, and the K2 harness registers a
 # synthetic verified asset under this key in the test DB only.
 id: terakon-playbook-channel-niche
-version: 1
+version: 2
 title: "Playbook Kanal Niche"
 subtitle: "Dari Satu Ide ke Kebiasaan Unggah yang Konsisten"
-author: "Tim Terakon"
+author: "Tim Terakona"
 locale: id_ID
 
 page:

@@ -1,6 +1,6 @@
-# Terakon prompt pack -- a paid F3 workbook sold as digital kind `prompt_pack` (Track B TB6, spec B6).
+# Terakona prompt pack -- a paid F3 workbook sold as digital kind `prompt_pack` (Track B TB6, spec B6).
 #
-# EXAMPLE CONTENT — not approved product copy. Terakon's kit (brands/terakon.yaml) is a `draft`
+# EXAMPLE CONTENT — not approved product copy. Terakona's kit (brands/terakon.yaml) is a `draft`
 # PLACEHOLDER, so every prompt below is Claude-authored example copy (Track B TB-D9) that experts
 # and the founder replace at the operational gate. Every render under the draft kit carries the
 # kit's `kit uji coba` disclaimer through the `disclaimer` block below, which the sidecar places.
@@ -9,8 +9,8 @@
 # [KATA] is a slot the buyer fills in by hand; it is plain text, not a template placeholder.
 # `niche` is the variant axis: one render per niche, each its own input sha.
 id: terakon-prompt-pack
-version: 1
-title: "Terakon Prompt Pack"
+version: 2
+title: "Terakona Prompt Pack"
 kind: xlsx
 renderer: xlsx
 layout: layout.yaml
@@ -52,7 +52,7 @@ blocks:
       - "Periksa fakta, angka, dan nama sebelum dipakai; hasil AI bisa keliru."
       - "Jangan menempelkan data pribadi penonton ke dalam prompt."
   - type: footer
-    text: "Dibuat dengan Terakon Prompt Pack"
+    text: "Dibuat dengan Terakona Prompt Pack"
   - type: disclaimer
     text: "{{kit.disclaimers}}"
 

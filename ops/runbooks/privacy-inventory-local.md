@@ -83,9 +83,9 @@ and reviewed separately before use; never point this harness at production data.
 
 Real inventories use opaque product IDs; the founder's register maps them to: B1 Terakidz free
 content/printables, B2 Terakidz task boxes + QR app, B3 Terakidz learning app, B4 Terakidz
-school/teacher, B5 Terakon niche channels, B6 Terakon templates/courses/membership, B7 Terakon
-Studio SaaS, B8 Terakod opportunity ledger / localized SaaS, B9 Terakod platform kit, B10 Terakod
-Odoo CE trading package, B11 Terafin education content, B12 Terafin tracking app. Do not copy CW1's
+school/teacher, B5 Terakona niche channels, B6 Terakona templates/courses/membership, B7 Terakona
+Studio SaaS, B8 Terakode opportunity ledger / localized SaaS, B9 Terakode platform kit, B10 Terakode
+Odoo CE trading package, B11 Terafina education content, B12 Terafina tracking app. Do not copy CW1's
 engineering data map (`chatwoot-privacy.md`) into another product without establishing it applies.
 
 ## Operational gates (not done by this tooling)

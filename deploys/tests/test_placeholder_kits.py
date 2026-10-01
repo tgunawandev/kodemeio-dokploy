@@ -1,6 +1,6 @@
 """Placeholder brand kits (Track B, slice K1; spec section 3.1).
 
-Terakon, Terafin and Terakod have no approved brand yet, so their kits are `status: draft`
+Terakona, Terafina and Terakode have no approved brand yet, so their kits are `status: draft`
 PLACEHOLDERS. The guard lives in DATA, never in the kernel: every draft kit must carry a required
 disclaimer containing `kit uji coba` ("trial kit"), and `factory.check.brand_rules` already refuses
 any artefact that omits a required disclaimer. So everything rendered under a placeholder kit
@@ -13,7 +13,7 @@ Checked for EVERY committed kit (`brands/*.yaml`), so a kit added later meets th
 * an `active` kit never carries the `PLACEHOLDER` marker;
 * every kit validates, names its fonts as declared assets, never forbids its own mandatory copy
   and meets WCAG AA on its colour pairs;
-* the Terafin kit carries the "no advice" law as data (forbidden phrases plus the education
+* the Terafina kit carries the "no advice" law as data (forbidden phrases plus the education
   disclaimer).
 
 Kept in its own module so it never touches the contract test modules other slices edit.
@@ -209,7 +209,7 @@ def test_new_kit_colour_pairs_meet_wcag_aa(name):
         assert ratio >= 4.5, f"{name} {base}/{fg} contrast {ratio:.2f} < 4.5"
 
 
-# --- Terafin: the "no advice" law as data --------------------------------------
+# --- Terafina: the "no advice" law as data --------------------------------------
 
 
 def test_terafin_forbids_the_advice_phrases():

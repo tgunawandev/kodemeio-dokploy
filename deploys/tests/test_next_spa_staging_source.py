@@ -2,9 +2,7 @@
 
 import pytest
 import yaml
-
 from generate import NEXT_SPA_STAGING_APPS, NEXT_SPA_STAGING_BRANCH, gen_react_pwa
-
 
 TENANT = {"code": "kod", "name": "Kodemeio", "domain": "kodeme.io"}
 ODOO = {"short": "full"}
@@ -37,7 +35,4 @@ def test_retired_staging_app_keeps_legacy_source() -> None:
 def test_eam_staging_uses_asset_addon_path() -> None:
     _, content, _, env = gen_react_pwa(TENANT, ODOO, "eam", "staging")
     assert yaml.safe_load(content)["env_overrides"]["VITE_EAM_API_BASE_URL"].endswith("/asset/api")
-    assert any(
-        line.startswith("VITE_EAM_API_BASE_URL=") and line.endswith("/asset/api")
-        for line in env.splitlines()
-    )
+    assert any(line.startswith("VITE_EAM_API_BASE_URL=") and line.endswith("/asset/api") for line in env.splitlines())

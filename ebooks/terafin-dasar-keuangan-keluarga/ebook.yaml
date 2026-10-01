@@ -1,7 +1,7 @@
-# Terafin "Dasar Keuangan Keluarga" — the paid F4 e-book of the Terafin line (Track B,
+# Terafina "Dasar Keuangan Keluarga" — the paid F4 e-book of the Terafina line (Track B,
 # B11/TB11).
 #
-# EXAMPLE CONTENT — not approved product copy. Terafin has no approved brand or voice yet:
+# EXAMPLE CONTENT — not approved product copy. Terafina has no approved brand or voice yet:
 # brands/terafin.yaml is a `draft` PLACEHOLDER kit, so both formats carry the kit's `kit uji
 # coba` disclaimer and its education disclaimer. Finance educators (named experts) and the
 # founder replace this copy at the operational gate (ops/runbooks/terafin-b11-line.md).
@@ -20,10 +20,10 @@
 # fetched); the K2 harness registers a synthetic asset row for it in the test DB only, and a
 # real, licensed logo is an operational gate in the runbook.
 id: terafin-dasar-keuangan-keluarga
-version: 1
+version: 2
 title: "Dasar Keuangan Keluarga"
 subtitle: "Panduan Edukasi Mengelola Uang Rumah Tangga Langkah demi Langkah"
-author: "Tim Terafin"
+author: "Tim Terafina"
 locale: id_ID
 
 page:
@@ -144,7 +144,7 @@ chapters:
           lalu satu kebiasaan baru setiap bulan. Keputusan keuangan tetap milik keluarga Anda,
           dan untuk keputusan besar, bicarakan dengan tenaga profesional yang berizin.
       - type: footer
-        text: "Dibaca dari Dasar Keuangan Keluarga — edisi contoh Terafin"
+        text: "Dibaca dari Dasar Keuangan Keluarga — edisi contoh Terafina"
       - type: disclaimer
         text: "{{kit.disclaimers}}"
 
@@ -184,6 +184,6 @@ renderers:
   pdf: typst
   epub: pandoc
 
-# Terafin copy only: finance education in the Terafin (placeholder) voice.
+# Terafina copy only: finance education in the Terafina (placeholder) voice.
 brand:
   kits: ["terafin"]

@@ -1,7 +1,7 @@
-# PLACEHOLDER — Terakon niche channel kit "niche-a" (home recipes), DRAFT only
+# PLACEHOLDER — Terakona niche channel kit "niche-a" (home recipes), DRAFT only
 # (2026-09-28 Track B, slice TB5; spec B5).
 #
-# A sub-brand kit for ONE example niche channel of the Terakon channel portfolio
+# A sub-brand kit for ONE example niche channel of the Terakona channel portfolio
 # (channels/terakon/niche-a.yaml). No niche has been chosen, approved or launched: EVERY
 # invented value below is marked `# PLACEHOLDER` and exists only so the F8 factory can render
 # brand-switched example pieces per channel and the portfolio evaluator can attribute F0f
@@ -9,7 +9,7 @@
 # disclaimer rides every artefact. Choosing a real niche and approving its kit is an
 # operational gate (ops/runbooks/terakon-b5-channel-portfolio.md).
 code: terakon-niche-a
-version: 1
+version: 2
 status: draft
 brand: terakon
 locale: id_ID
@@ -33,7 +33,7 @@ rules:
     - "bebas risiko"       # PLACEHOLDER
     - "menyembuhkan"       # PLACEHOLDER — no health claims on a recipe channel
   required_disclaimers:
-    - "Kanal Resep Rumahan (Terakon) adalah kit uji coba (draft) dan belum merupakan kanal yang dipasarkan."
+    - "Kanal Resep Rumahan (Terakona) adalah kit uji coba (draft) dan belum merupakan kanal yang dipasarkan."
   ai_disclosure: >
     PLACEHOLDER — Konten kanal resep ini disusun dengan bantuan AI dan diperiksa manusia.
   affiliate_hosts: []

@@ -1,4 +1,4 @@
-# Terakon weekly planner -- the layout sidecar named by template.yaml (`layout`).
+# Terakona weekly planner -- the layout sidecar named by template.yaml (`layout`).
 #
 # DATA, NOT CODE (spec D2 amendment, 2026-09-27). The workbook sidecar is INTERPRETED by the
 # renderer and never executed: there is no `exec` in the render path, so a merged template can

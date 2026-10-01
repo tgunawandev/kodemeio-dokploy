@@ -1,9 +1,9 @@
-# PLACEHOLDER — Terafin brand kit, DRAFT only (2026-09-28 Track B, slice K1).
+# PLACEHOLDER — Terafina brand kit, DRAFT only (2026-09-28 Track B, slice K1).
 #
-# Terafin has no approved brand, voice or product yet. EVERY invented value below is marked
+# Terafina has no approved brand, voice or product yet. EVERY invented value below is marked
 # `# PLACEHOLDER` and exists only so the factories can render financial-EDUCATION example
 # content (Track B B11) under a real, schema-valid kit. Nothing here is approved brand content:
-# status stays `draft` until a founder-approved Terafin brief exists and named finance educators
+# status stays `draft` until a founder-approved Terafina brief exists and named finance educators
 # are recorded as experts (an operational gate — `expert_logins` stays empty here).
 #
 # Two guards live in this file as DATA, never in the kernel:
@@ -15,14 +15,14 @@
 #      required education disclaimer.
 # Checked by deploys/tests/test_placeholder_kits.py.
 code: terafin
-version: 1
+version: 2
 status: draft
 brand: terafin
 locale: id_ID
 
 voice:
   summary: >
-    PLACEHOLDER — no approved Terafin voice exists yet. Draft tone: calm, plain-language
+    PLACEHOLDER — no approved Terafina voice exists yet. Draft tone: calm, plain-language
     financial literacy for Indonesian households and small-business owners; explains concepts,
     never tells the reader what to buy, sell or hold.
   do:
@@ -36,7 +36,7 @@ voice:
 audience: >
   PLACEHOLDER — draft audience: Indonesian households and micro/small business owners learning
   budgeting, saving and basic financial concepts. To be replaced once a founder-approved
-  Terafin brief exists.
+  Terafina brief exists.
 
 rules:
   # Claim-shaped phrases only (matched case-insensitively by brand_rules).
@@ -55,12 +55,12 @@ rules:
     - "jual sekarang"
   required_disclaimers:
     - "Konten edukasi, bukan nasihat keuangan atau ajakan berinvestasi."
-    - "Terafin adalah kit uji coba (draft) dan belum merupakan produk yang dipasarkan."
+    - "Terafina adalah kit uji coba (draft) dan belum merupakan produk yang dipasarkan."
   ai_disclosure: >
     PLACEHOLDER — draft kit; no generated content should be published under this brand while
     status is draft.
   affiliate_hosts: []
-  affiliate_disclosure: "Terafin tidak memiliki tautan afiliasi berbayar pada halaman ini."
+  affiliate_disclosure: "Terafina tidak memiliki tautan afiliasi berbayar pada halaman ini."
 
 colors:
   primary: "#0f766e"            # PLACEHOLDER — teal, distinct from terakidz green / terakon blue
@@ -84,7 +84,7 @@ fonts:
   body: "asset:font-inter"
 
 contact:
-  # PLACEHOLDER — no real Terafin WhatsApp number exists; synthetic all-zero form.
+  # PLACEHOLDER — no real Terafina WhatsApp number exists; synthetic all-zero form.
   whatsapp: "+6281200000000"
 
 reviewers:

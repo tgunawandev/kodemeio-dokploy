@@ -1,6 +1,6 @@
-# Runbook: Terakon niche channel portfolio (B5), founder-gated
+# Runbook: Terakona niche channel portfolio (B5), founder-gated
 
-This runbook takes the Terakon channel portfolio from **built-local** to **operating**.
+This runbook takes the Terakona channel portfolio from **built-local** to **operating**.
 Built-local means committed channel data, contract-tested, with an offline evaluator. Operating
 means real niches, approved sub-brand kits, platform accounts, live performance evidence and
 founder-owned stop decisions.

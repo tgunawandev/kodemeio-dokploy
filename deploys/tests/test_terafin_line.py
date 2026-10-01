@@ -1,4 +1,4 @@
-"""Terafin product line B11 (Track B, slice TB11): financial EDUCATION content under the
+"""Terafina product line B11 (Track B, slice TB11): financial EDUCATION content under the
 placeholder `terafin` kit -- and strictly no financial advice.
 
 What this module proves, on the dokploy side (the Odoo e2e is the K2 harness; see the runbook
@@ -280,7 +280,7 @@ def course_texts(source: dict, values: dict, rules: dict) -> list[str]:
 # (the brief copy source is K2's; see the runbook). Fixed strings, no PII, no URL.
 F8_PIECES = {
     "terafin-planner-launch": (
-        "Anggaran bulanan tidak harus rumit. Lembar Anggaran Terafin membantu keluarga mencatat "
+        "Anggaran bulanan tidak harus rumit. Lembar Anggaran Terafina membantu keluarga mencatat "
         "rencana dan realisasi pengeluaran setiap pekan, gratis."
     ),
     "terafin-ebook-launch": (

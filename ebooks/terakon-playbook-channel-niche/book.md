@@ -1,6 +1,6 @@
 # Playbook Kanal Niche
 *Dari Satu Ide ke Kebiasaan Unggah yang Konsisten*
-Tim Terakon
+Tim Terakona
 
 > Logo: asset:image-terakon-cover-placeholder
 

@@ -39,7 +39,7 @@ manager creates one; (2) **a brand kit that is not usable** — a kit whose font
 |---|---|---|
 | Which Odoo instance | `./odoo.sh kod prod` (erp.kodeme.io) is the default here; `kod-desk` for the desk instance | one `-p` profile per instance |
 | Which channels are in scope FIRST | the committed four are `tiktok`, `youtube`, `instagram`, `facebook` — all four have a module on the estate (`content_tiktok`, `content_youtube`, `content_meta`) | the spec's founder gate 2; a channel not in the file is refused by name |
-| Which brands | **Terakidz only, today.** Terakon/Terafin/Terakod are placeholders (fact 4) | see M2 |
+| Which brands | **Terakidz only, today.** Terakona/Terafina/Terakode are placeholders (fact 4) | see M2 |
 | Which copy-writing engine | LiteLLM through the framework `LITELLM` transport; requires an estate-managed account key, price line and budget | the spec's founder gate 2 |
 
 **Founder decisions to record here (fill in and commit):**
@@ -131,8 +131,8 @@ Order matters: a piece whose kit font is not a verified asset cannot be derived 
    The kit's `reviewers.expert_logins` must name at least one person who is not the submitter:
    **submitting refuses, by name, with no independent expert.**
 
-3. 🔴 **Terakon, Terafin and Terakod are PLACEHOLDERS.** Terakon is a draft fixture and Terafin
-   and Terakod have no kit file at all. A `social` order carrying a placeholder kit will
+3. 🔴 **Terakona, Terafina and Terakode are PLACEHOLDERS.** Terakona is a draft fixture and Terafina
+   and Terakode have no kit file at all. A `social` order carrying a placeholder kit will
    materialise and then fail its checks the moment the kit's rules bite — which is correct, but
    it is not a way to ship content. **Turn on a brand only when its kit carries a real voice, a
    real do/don't list, its forbidden phrases, its required disclaimer and its AI-disclosure

@@ -62,6 +62,12 @@ jobs:
           CI_GATES_REQUIRED_SIBLINGS: kodemeio-dsh
         run: uv run pytest deploys/tests -q
 
+      - name: App link QR tests
+        run: uv run --with qrcode==8.2 --with pillow --with zxing-cpp pytest ops/app_links/tests -q
+
+      - name: Operations tooling tests
+        run: uv run pytest ops/scripts/tests -q
+
       - name: Python lint
         run: uv run ruff check deploys ops/scripts
 

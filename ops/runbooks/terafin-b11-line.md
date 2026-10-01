@@ -1,6 +1,6 @@
-# Runbook — Terafin product line B11 (financial education, no advice), founder-gated
+# Runbook — Terafina product line B11 (financial education, no advice), founder-gated
 
-Takes the Terafin line from **built-local** (committed sources, contract-tested, run end to end on a
+Takes the Terafina line from **built-local** (committed sources, contract-tested, run end to end on a
 disposable test DB by the product-line harness) to **sold on kodeme.io**: a real brand, copy written
 and signed off by finance educators, a legal boundary opinion, real prices, licence-clean assets, a
 seller of record and live payments.
@@ -12,11 +12,11 @@ happens without `--yes`.
 
 Slice of record: Track B design, 2026-09-28 (B11, §3.1–3.3,
 TB-D8/TB-D9) and Track B plan, 2026-09-28 (slice TB11). Roadmap row: **B11**. The
-Terafin tracking app is B12 (slices TB12 + ENT), not this runbook.
+Terafina tracking app is B12 (slices TB12 + ENT), not this runbook.
 
 ## The law this line lives under: education, never advice
 
-Terafin content **explains**; it never **recommends**. Concretely, no Terafin artefact:
+Terafina content **explains**; it never **recommends**. Concretely, no Terafina artefact:
 
 - names a financial instrument, issuer, provider or product;
 - tells the reader to buy, sell, hold or join anything;
@@ -47,7 +47,7 @@ The line enforces this as data, with no kernel change:
 
 The free items are delivered through the TB-D8 path K2 records: a zero-price product through R6 if
 K2's verify-first check V1 holds (a 0-total invoice reaches `paid` and fires the `digital_sale`
-hook), else a public download on the F2 site. No F2 site is built for Terafin in built-local.
+hook), else a public download on the F2 site. No F2 site is built for Terafina in built-local.
 
 Launch: three F8 briefs, all `creator_handoff` through F10 (nothing publishes directly):
 
@@ -74,8 +74,8 @@ harmless while the kit is draft, but G1 must replace it with a real, reader-faci
 🔴 **Every string in these sources is `EXAMPLE CONTENT`** (TB-D9). The kit is a `draft` PLACEHOLDER
 whose required disclaimer contains `kit uji coba`. Every source places `{{kit.disclaimers}}`: each
 template, each workbook sheet, the first and last chapters of the e-book, and every course reading
-and slide deck. So `brand_rules` refuses any Terafin render that lacks the education or trial-kit
-notice, and an accidental release cannot pass for real Terafin product.
+and slide deck. So `brand_rules` refuses any Terafina render that lacks the education or trial-kit
+notice, and an accidental release cannot pass for real Terafina product.
 
 Read-only proof (any time): `uv run pytest deploys/tests/test_terafin_line.py deploys/tests/test_contracts_product_lines.py -q`.
 
@@ -131,17 +131,17 @@ Record the result JSON path (`logs/track-b/terafin-<utc>.json`) and counts in th
 
 ---
 
-## G1 — A real Terafin brand kit (M)
+## G1 — A real Terafina brand kit (M)
 
 The committed `brands/terafin.yaml` is a test fixture: `status: draft`, every invented value is
 `PLACEHOLDER`, and `expert_logins: []`. Before anything is sold:
 
-1. Commission and approve the Terafin brief: voice, audience, palette, and fonts with licence
+1. Commission and approve the Terafina brief: voice, audience, palette, and fonts with licence
    evidence.
 2. Replace every `PLACEHOLDER` value and set `status: active`.
 3. Name real `reviewers.expert_logins`. These are **finance educators** (see G2), never
    salespeople of any financial product.
-4. Replace the `kit uji coba` disclaimer with the approved Terafin wording. **Keep** the education
+4. Replace the `kit uji coba` disclaimer with the approved Terafina wording. **Keep** the education
    disclaimer, or counsel's replacement for it (G3).
 5. Keep and extend the forbidden phrases, and fold in TB11's authoring lint (instrument names,
    return vocabulary, buy/sell calls from `test_terafin_line.py`). Keep bare `dijamin` allowed
@@ -170,12 +170,12 @@ The committed `brands/terafin.yaml` is a test fixture: `status: draft`, every in
 
 ## G3 — L2 counsel: the OJK/BI boundary (L)
 
-Before any Terafin artefact is sold or published, get a written opinion from Indonesian counsel on
+Before any Terafina artefact is sold or published, get a written opinion from Indonesian counsel on
 the boundary between **financial education** and regulated activity, covering OJK (financial
 services, including investment advice and marketing of financial products) and BI (payment
 systems). The opinion should answer:
 
-1. Does any sold Terafin artefact, as written, amount to investment advice, a financial-product
+1. Does any sold Terafina artefact, as written, amount to investment advice, a financial-product
    offer, or the marketing of one? Which wording would?
 2. Is the education disclaimer sufficient, and in which placement? Or what replaces it?
 3. What must the educator's declaration of independence contain?
@@ -217,15 +217,15 @@ and re-run the harness locally before touching the instance.
 For the two free templates, confirm the TB-D8 outcome K2 recorded:
 
 - **(a)** zero-price through R6 (the grant is tracked); or
-- **(b)** a public download on an F2 Terafin site with lead capture. That needs a Terafin site,
+- **(b)** a public download on an F2 Terafina site with lead capture. That needs a Terafina site,
   which is a separate founder decision.
 
 ## G7 — Seller of record and live payments (M)
 
 - **R2 seller of record.** R2 is still open on the program roadmap. Decide the entity (Odoo
-  company) that sells Terafin education products and its tax treatment, per
+  company) that sells Terafina education products and its tax treatment, per
   `ops/runbooks/digital-delivery-rollout.md` M0. R6 refuses a cross-company checkout, so every
-  Terafin product must live in that one company.
+  Terafina product must live in that one company.
 - **Live PAY1.** Switch the Midtrans provider from the local fake to production keys, per
   `ops/runbooks/midtrans-rollout.md`. The harness only ever uses the PAY1 fake and signer.
 
