@@ -159,6 +159,26 @@ hermes:
           allowed_users:
             - xz85cyd7xjy55m9yp15jkgqa1c  # tri.gunawan
 
+    # SENTINEL advisory rollout: independent read-only Odoo credentials.
+    - name: sentinel
+      edition: business
+      persona: sentinel-observer
+      source_branch: sentinel-rollout-20261004
+      upstream_ref: v2026.9.24
+      project: tpp
+      dashboard:
+        enabled: false
+      inbound:
+        telegram:
+          enabled: false
+        mattermost:
+          enabled: true
+          url: https://mm.idtpp.com
+          reply_mode: thread
+          require_mention: true
+          allowed_channels: [odeu787dj7r7fj3x4d9e43se6y]
+          allowed_users: [xz85cyd7xjy55m9yp15jkgqa1c]
+
 # Filestore (attachment) backups.
 #
 # One entry per Odoo instance that holds attachments. As of 2026-09-07 that

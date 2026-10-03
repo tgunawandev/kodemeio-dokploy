@@ -1,0 +1,23 @@
+# GENERATED FROM tenants/tpp.yaml — DO NOT EDIT
+kind: instance
+extends: ../../bases/hermes.yaml
+source:
+  branch: sentinel-rollout-20261004
+instance:
+  name: tpp-infra-hermes-sentinel
+  description: Hermes Agent (Pakerti) — Mattermost inbound (mm.idtpp.com), MCP outbound
+project: tpp
+server: tpp-prod-04
+env_file: ../../env/production/.env.tpp-infra-hermes-sentinel
+env_overrides:
+  HERMES_EDITION: business
+  HERMES_UPSTREAM_REF: v2026.9.24
+  HERMES_CONTAINER_PREFIX: tpp-infra-hermes-sentinel
+  HERMES_PERSONA: sentinel-observer
+  HERMES_CPU_LIMIT: '2.0'
+  HERMES_MEM_LIMIT: 2G
+  HERMES_MEM_RESERVATION: 512M
+
+# bases/hermes.yaml's backup block targets 'kodemeio-s3-backups' which
+# exists on dokploy.kodeme.io but NOT on dokploy.idtpp.com. Backup phase
+# fails cosmetically during `deploy apply`; the actual deploy still succeeds.

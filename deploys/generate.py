@@ -105,6 +105,7 @@ HERMES_DEFAULT_UPSTREAM_REF = "v2026.5.16"
 #: cheap. If a persona is added there, add it here.
 HERMES_PERSONAS: dict[str, dict[str, object]] = {
     "jarvis": {"edition": "business", "tenanted": False},
+    "sentinel-observer": {"edition": "business", "tenanted": False},
     "friday": {"edition": "superuser", "tenanted": False},
     "edith": {"edition": "business", "tenanted": False},
     "vision": {"edition": "business", "tenanted": False},
@@ -1217,10 +1218,17 @@ def gen_hermes(
     yaml_filename = f"{instance_name}.yaml"
     env_example_filename = f".env.{instance_name}.example"
 
+    source_branch = hermes.get("source_branch")
+    if source_branch is not None:
+        if (not isinstance(source_branch, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._/-]{0,127}", source_branch)
+                or ".." in source_branch or source_branch.endswith(("/", ".", ".lock")) or "//" in source_branch):
+            raise ValueError(f"tenants/{code}.yaml: hermes.source_branch must be a safe git branch")
+
     # Build manifest dict (yaml_dump preserves order)
     instance: dict = {
         "kind": "instance",
         "extends": "../../bases/hermes.yaml",
+        **({"source": {"branch": source_branch}} if source_branch else {}),
         "instance": {
             "name": instance_name,
             "description": description,
