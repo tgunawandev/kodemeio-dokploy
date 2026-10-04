@@ -6,6 +6,10 @@ Two persistent operator terminals are deployed in `apps/production` on
 `kodemeio-omp:f8ba70d`, pinned OMP 18.6.0/Bun 1.3.14. Both native healthchecks
 and direct DeepSeek V4.1 Flash Max two-read inference tests passed on 2026-10-04.
 
+Current coding profiles use `contracts/coding_agents/profile.v2.schema.json`,
+with explicit model/effort and schema version 2. Legacy v1 profiles remain
+compatible without required effort fields.
+
 FRIDAY develops; VERONICA independently plans, verifies and reviews. Each has
 separate state/code volumes, non-root UID 10001, a read-only root, no published
 ports, no Docker socket and a private coding network. The 768 MiB/one CPU limit

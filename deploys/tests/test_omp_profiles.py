@@ -15,7 +15,7 @@ def profile(name):
 
 
 def validator():
-    schema = json.loads((DIRECTORY / "profile.v1.schema.json").read_text())
+    schema = json.loads((DIRECTORY / "profile.v2.schema.json").read_text())
     jsonschema.Draft202012Validator.check_schema(schema)
     return jsonschema.Draft202012Validator(schema)
 
@@ -69,3 +69,26 @@ def test_veronica_model_and_effort_cannot_be_replaced_by_developer_mapping():
     record["default_thinking_level"] = "max"
     with pytest.raises(jsonschema.ValidationError):
         validator().validate(record)
+
+
+def test_legacy_v1_profile_remains_valid_without_effort_fields():
+    record = profile("friday")
+    for key in (
+        "schema_version",
+        "default_thinking_level",
+        "small_thinking_level",
+        "optional_worker_thinking_level",
+        "optional_worker_api_effort",
+    ):
+        record.pop(key)
+    record["default_model"] = "openai-codex/gpt-6-sol"
+    schema = json.loads((DIRECTORY / "profile.v1.schema.json").read_text())
+    jsonschema.Draft202012Validator(schema).validate(record)
+
+
+def test_v2_requires_explicit_version_and_effort():
+    for key in ("schema_version", "default_thinking_level", "optional_worker_api_effort"):
+        record = profile("friday")
+        record.pop(key)
+        with pytest.raises(jsonschema.ValidationError):
+            validator().validate(record)

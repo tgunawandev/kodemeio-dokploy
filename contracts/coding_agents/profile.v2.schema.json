@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://kodeme.io/contracts/coding_agents/profile.v1.schema.json",
-  "title": "Independent OMP coding persona v1",
+  "$id": "https://kodeme.io/contracts/coding_agents/profile.v2.schema.json",
+  "title": "Independent OMP coding persona v2",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -18,7 +18,12 @@
     "publication",
     "max_parallel_workers",
     "wall_clock_minutes",
-    "activation"
+    "activation",
+    "default_thinking_level",
+    "small_thinking_level",
+    "optional_worker_thinking_level",
+    "optional_worker_api_effort",
+    "schema_version"
   ],
   "properties": {
     "profile": {
@@ -51,7 +56,6 @@
     },
     "default_model": {
       "enum": [
-        "openai-codex/gpt-6-sol",
         "openai-codex/gpt-6.1-sol",
         "openai-codex/gpt-6-luna"
       ]
@@ -109,6 +113,9 @@
     },
     "optional_worker_api_effort": {
       "const": "max"
+    },
+    "schema_version": {
+      "const": 2
     }
   },
   "allOf": [
@@ -132,6 +139,12 @@
           },
           "publication": {
             "const": "operator-only-draft-pr"
+          },
+          "default_model": {
+            "const": "openai-codex/gpt-6-luna"
+          },
+          "default_thinking_level": {
+            "const": "max"
           }
         }
       }
@@ -158,6 +171,12 @@
           },
           "publication": {
             "const": "none"
+          },
+          "default_model": {
+            "const": "openai-codex/gpt-6.1-sol"
+          },
+          "default_thinking_level": {
+            "const": "high"
           }
         }
       }

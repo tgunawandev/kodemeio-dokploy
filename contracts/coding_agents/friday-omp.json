@@ -18,5 +18,6 @@
   "default_thinking_level": "max",
   "small_thinking_level": "max",
   "optional_worker_thinking_level": "xhigh",
-  "optional_worker_api_effort": "max"
+  "optional_worker_api_effort": "max",
+  "schema_version": 2
 }
