@@ -5,6 +5,7 @@ instance:
   description: "OMP coding terminals: independent FRIDAY developer and VERONICA planner/reviewer"
 project: apps
 environment: production
+auto_deploy: false
 server: kod-prod-02
 source:
   type: github
