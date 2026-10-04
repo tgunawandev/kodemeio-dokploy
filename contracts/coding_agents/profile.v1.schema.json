@@ -19,7 +19,7 @@
     "publication": {"enum": ["operator-only-draft-pr", "none"]},
     "max_parallel_workers": {"type": "integer", "minimum": 1, "maximum": 2},
     "wall_clock_minutes": {"type": "integer", "minimum": 5, "maximum": 45},
-    "activation": {"enum": ["local-available-credentials-pending", "authenticated-local", "remote-validated"]}
+    "activation": {"enum": ["local-available-credentials-pending", "authenticated-local", "remote-validated", "remote-deepseek-codex-pending"]}
   },
   "allOf": [
     {"if": {"properties": {"profile": {"const": "friday-omp"}}}, "then": {"properties": {"principal": {"const": "agent:friday-omp"}, "roles": {"const": ["developer"]}, "publication": {"const": "operator-only-draft-pr"}}}},

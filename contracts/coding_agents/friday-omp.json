@@ -12,5 +12,5 @@
   "publication": "operator-only-draft-pr",
   "max_parallel_workers": 2,
   "wall_clock_minutes": 45,
-  "activation": "local-available-credentials-pending"
+  "activation": "remote-deepseek-codex-pending"
 }

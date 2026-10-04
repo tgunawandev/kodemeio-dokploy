@@ -1,0 +1,25 @@
+kind: instance
+type: infrastructure
+instance:
+  name: kod-infra-omp
+  description: "OMP coding terminals: independent FRIDAY developer and VERONICA planner/reviewer"
+project: apps
+environment: production
+server: kod-prod-02
+source:
+  type: github
+  owner: tgunawandev
+  repo: kodemeio-omp
+  branch: main
+  compose_path: docker-compose.prod.yml
+env_file: ../../env/production/.env.kod-infra-omp
+env_overrides:
+  OMP_CONTAINER_PREFIX: kod-infra-omp
+  OMP_PRESET: deepseek
+  OMP_MEMORY_LIMIT: 768m
+  OMP_CPU_LIMIT: '1'
+  TZ: Asia/Jakarta
+healthcheck:
+  timeout: 300
+# No public domain/ports: operator uses host SSH and tmux. Native container
+# healthchecks prove terminal liveness; provider acceptance is a separate smoke.
