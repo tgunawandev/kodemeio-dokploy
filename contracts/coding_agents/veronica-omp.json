@@ -2,8 +2,12 @@
   "profile": "veronica-omp",
   "harness": "kodemeio-omp",
   "principal": "agent:veronica-omp",
-  "roles": ["planner", "reviewer", "verifier"],
-  "default_model": "openai-codex/gpt-6-sol",
+  "roles": [
+    "planner",
+    "reviewer",
+    "verifier"
+  ],
+  "default_model": "openai-codex/gpt-6.1-sol",
   "small_model": "openai-codex/gpt-6-luna",
   "optional_worker_model": "deepseek/deepseek-flash",
   "provider_transport": "direct",
@@ -12,5 +16,9 @@
   "publication": "none",
   "max_parallel_workers": 2,
   "wall_clock_minutes": 45,
-  "activation": "remote-deepseek-codex-pending"
+  "activation": "remote-deepseek-codex-pending",
+  "default_thinking_level": "high",
+  "small_thinking_level": "max",
+  "optional_worker_thinking_level": "xhigh",
+  "optional_worker_api_effort": "max"
 }

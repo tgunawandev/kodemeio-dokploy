@@ -4,25 +4,178 @@
   "title": "Independent OMP coding persona v1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["profile", "harness", "principal", "roles", "default_model", "small_model", "optional_worker_model", "provider_transport", "automatic_paid_fallback", "production_access", "publication", "max_parallel_workers", "wall_clock_minutes", "activation"],
+  "required": [
+    "profile",
+    "harness",
+    "principal",
+    "roles",
+    "default_model",
+    "small_model",
+    "optional_worker_model",
+    "provider_transport",
+    "automatic_paid_fallback",
+    "production_access",
+    "publication",
+    "max_parallel_workers",
+    "wall_clock_minutes",
+    "activation",
+    "default_thinking_level",
+    "small_thinking_level",
+    "optional_worker_thinking_level",
+    "optional_worker_api_effort"
+  ],
   "properties": {
-    "profile": {"enum": ["friday-omp", "veronica-omp"]},
-    "harness": {"const": "kodemeio-omp"},
-    "principal": {"enum": ["agent:friday-omp", "agent:veronica-omp"]},
-    "roles": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"enum": ["developer", "planner", "reviewer", "verifier"]}},
-    "default_model": {"const": "openai-codex/gpt-6-sol"},
-    "small_model": {"const": "openai-codex/gpt-6-luna"},
-    "optional_worker_model": {"const": "deepseek/deepseek-flash"},
-    "provider_transport": {"const": "direct"},
-    "automatic_paid_fallback": {"const": false},
-    "production_access": {"const": false},
-    "publication": {"enum": ["operator-only-draft-pr", "none"]},
-    "max_parallel_workers": {"type": "integer", "minimum": 1, "maximum": 2},
-    "wall_clock_minutes": {"type": "integer", "minimum": 5, "maximum": 45},
-    "activation": {"enum": ["local-available-credentials-pending", "authenticated-local", "remote-validated", "remote-deepseek-codex-pending"]}
+    "profile": {
+      "enum": [
+        "friday-omp",
+        "veronica-omp"
+      ]
+    },
+    "harness": {
+      "const": "kodemeio-omp"
+    },
+    "principal": {
+      "enum": [
+        "agent:friday-omp",
+        "agent:veronica-omp"
+      ]
+    },
+    "roles": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "developer",
+          "planner",
+          "reviewer",
+          "verifier"
+        ]
+      }
+    },
+    "default_model": {
+      "enum": [
+        "openai-codex/gpt-6.1-sol",
+        "openai-codex/gpt-6-luna"
+      ]
+    },
+    "small_model": {
+      "const": "openai-codex/gpt-6-luna"
+    },
+    "optional_worker_model": {
+      "const": "deepseek/deepseek-flash"
+    },
+    "provider_transport": {
+      "const": "direct"
+    },
+    "automatic_paid_fallback": {
+      "const": false
+    },
+    "production_access": {
+      "const": false
+    },
+    "publication": {
+      "enum": [
+        "operator-only-draft-pr",
+        "none"
+      ]
+    },
+    "max_parallel_workers": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2
+    },
+    "wall_clock_minutes": {
+      "type": "integer",
+      "minimum": 5,
+      "maximum": 45
+    },
+    "activation": {
+      "enum": [
+        "local-available-credentials-pending",
+        "authenticated-local",
+        "remote-validated",
+        "remote-deepseek-codex-pending"
+      ]
+    },
+    "default_thinking_level": {
+      "enum": [
+        "high",
+        "max"
+      ]
+    },
+    "small_thinking_level": {
+      "const": "max"
+    },
+    "optional_worker_thinking_level": {
+      "const": "xhigh"
+    },
+    "optional_worker_api_effort": {
+      "const": "max"
+    }
   },
   "allOf": [
-    {"if": {"properties": {"profile": {"const": "friday-omp"}}}, "then": {"properties": {"principal": {"const": "agent:friday-omp"}, "roles": {"const": ["developer"]}, "publication": {"const": "operator-only-draft-pr"}}}},
-    {"if": {"properties": {"profile": {"const": "veronica-omp"}}}, "then": {"properties": {"principal": {"const": "agent:veronica-omp"}, "roles": {"const": ["planner", "reviewer", "verifier"]}, "publication": {"const": "none"}}}}
+    {
+      "if": {
+        "properties": {
+          "profile": {
+            "const": "friday-omp"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "principal": {
+            "const": "agent:friday-omp"
+          },
+          "roles": {
+            "const": [
+              "developer"
+            ]
+          },
+          "publication": {
+            "const": "operator-only-draft-pr"
+          },
+          "default_model": {
+            "const": "openai-codex/gpt-6-luna"
+          },
+          "default_thinking_level": {
+            "const": "max"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "profile": {
+            "const": "veronica-omp"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "principal": {
+            "const": "agent:veronica-omp"
+          },
+          "roles": {
+            "const": [
+              "planner",
+              "reviewer",
+              "verifier"
+            ]
+          },
+          "publication": {
+            "const": "none"
+          },
+          "default_model": {
+            "const": "openai-codex/gpt-6.1-sol"
+          },
+          "default_thinking_level": {
+            "const": "high"
+          }
+        }
+      }
+    }
   ]
 }

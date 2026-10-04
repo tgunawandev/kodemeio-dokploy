@@ -2,9 +2,9 @@
 
 Two persistent operator terminals are deployed in `apps/production` on
 `kod-prod-02` (88.198.151.167), stack `kod-infra-omp`, compose
-`OaeHlGC5BvVH6R3W-rh9q`. Deployed source: `44ffe50`, image
-`kodemeio-omp:44ffe50`, pinned OMP 18.6.0/Bun 1.3.14. Both native healthchecks
-and direct DeepSeek V4.1 Flash two-read inference tests passed on 2026-10-04.
+`OaeHlGC5BvVH6R3W-rh9q`. Deployed source: `f8ba70d`, image
+`kodemeio-omp:f8ba70d`, pinned OMP 18.6.0/Bun 1.3.14. Both native healthchecks
+and direct DeepSeek V4.1 Flash Max two-read inference tests passed on 2026-10-04.
 
 FRIDAY develops; VERONICA independently plans, verifies and reviews. Each has
 separate state/code volumes, non-root UID 10001, a read-only root, no published
@@ -22,9 +22,13 @@ but excludes ignored local envs and never gives agents GitHub/SSH credentials.
 Target framework dependencies must still be installed in the code workspace.
 
 The deployed preset is `deepseek`, using the canonical `deepseek-flash` V4.1 ID.
-Codex Sol/Luna remain configured but require native OAuth separately for each
+VERONICA is configured for GPT Sol 6.1 High; FRIDAY for GPT Luna 6 Max.
+The founder confirmed Luna 6 Max after checking that Luna 6.1 is absent from the pinned catalog and the current official
+model list; no alias is invented. DeepSeek uses OMP xhigh, mapped to API max.
+Codex models remain configured but require native OAuth separately for each
 persona. Use the remote helper's `login` and `models` actions and verify both
-models before changing the preset. Profiles explicitly record
+models before changing the preset. `OMP_FRIDAY_PRESET` and `OMP_VERONICA_PRESET`
+override the shared preset independently after each account is verified. Profiles explicitly record
 `remote-deepseek-codex-pending`; no paid fallback is automatic.
 
 ## Deployment and verification

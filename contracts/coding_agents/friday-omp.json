@@ -2,8 +2,10 @@
   "profile": "friday-omp",
   "harness": "kodemeio-omp",
   "principal": "agent:friday-omp",
-  "roles": ["developer"],
-  "default_model": "openai-codex/gpt-6-sol",
+  "roles": [
+    "developer"
+  ],
+  "default_model": "openai-codex/gpt-6-luna",
   "small_model": "openai-codex/gpt-6-luna",
   "optional_worker_model": "deepseek/deepseek-flash",
   "provider_transport": "direct",
@@ -12,5 +14,9 @@
   "publication": "operator-only-draft-pr",
   "max_parallel_workers": 2,
   "wall_clock_minutes": 45,
-  "activation": "remote-deepseek-codex-pending"
+  "activation": "remote-deepseek-codex-pending",
+  "default_thinking_level": "max",
+  "small_thinking_level": "max",
+  "optional_worker_thinking_level": "xhigh",
+  "optional_worker_api_effort": "max"
 }
