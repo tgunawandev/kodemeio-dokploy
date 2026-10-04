@@ -69,7 +69,8 @@ until the OMP adapter and independent review canary pass. GitHub publication,
 merge and deployment remain operator/broker responsibilities.
 
 DSH and llmlite local clones are now under the sibling `kodemeio-archived` folder;
-workspace compatibility symlinks preserve historical readers. Existing gateway,
+both original workspace entries are removed. Legacy source checks resolve
+these archives directly, while CI keeps its explicit sibling checkout. Existing gateway,
 DSH runner and shared design/DSH Authentik outpost were not stopped. VISION, KIDO
 and factories require migration before gateway shutdown or read-only GitHub
 archival. No legacy superuser/Odoo credentials are forwarded into OMP.

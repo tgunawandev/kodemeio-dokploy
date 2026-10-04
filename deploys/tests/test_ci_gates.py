@@ -52,6 +52,7 @@ from pathlib import Path
 
 import pytest
 import yaml
+from sibling_repos import sibling_repo
 
 TESTS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TESTS_DIR.parents[1]
@@ -172,7 +173,7 @@ def pr_triggered_workflows(workflows_dir: Path) -> list[tuple[Path, dict]]:
 
 
 def _sibling_dir(repo_name: str) -> Path:
-    return WORKSPACE_ROOT / repo_name
+    return sibling_repo(WORKSPACE_ROOT, repo_name)
 
 
 def _sibling_workflows_dir(repo_name: str) -> Path | None:

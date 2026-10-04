@@ -32,6 +32,7 @@ from urllib.parse import urlsplit
 import pytest
 import test_ci_gates
 import yaml
+from sibling_repos import sibling_repo
 
 TESTS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TESTS_DIR.parents[1]
@@ -45,8 +46,8 @@ HERMES = "kodemeio-hermes"
 HERMES_PROFILE = WORKSPACE_ROOT / HERMES / "config" / "personas" / "vision" / "gateway-profile.json"
 HERMES_VALIDATOR = WORKSPACE_ROOT / HERMES / "scripts" / "vision_policy_validate.py"
 LITELLM = "kodemeio-llmlite"
-LITELLM_KEYS = WORKSPACE_ROOT / LITELLM / "config" / "keys.yaml"
-LITELLM_PROD = WORKSPACE_ROOT / LITELLM / "config" / "config.prod.yaml"
+LITELLM_KEYS = sibling_repo(WORKSPACE_ROOT, LITELLM) / "config" / "keys.yaml"
+LITELLM_PROD = sibling_repo(WORKSPACE_ROOT, LITELLM) / "config" / "config.prod.yaml"
 
 
 def _require(repo: str, path: Path) -> None:

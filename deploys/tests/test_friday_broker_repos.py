@@ -11,8 +11,8 @@ the example is the reviewed source of truth operators copy from, so drift
 between it and friday.yaml is caught at review time. The live value can
 still differ and must be set from the example at deploy time.
 
-kodemeio-dsh is a sibling checkout (``<workspace>/kodemeio-dsh/``, i.e. this
-repo's parent directory), the same layout and the same
+kodemeio-dsh is a sibling checkout in CI or an archived local clone under
+``<workspace>/../kodemeio-archived/kodemeio-dsh/``. Readers use the same
 ``CI_GATES_REQUIRED_SIBLINGS`` rule as ``test_ci_gates.py``:
 
     - sibling present -> assert the subset relation.
@@ -32,12 +32,13 @@ from pathlib import Path
 
 import pytest
 import yaml
+from sibling_repos import sibling_repo
 
 TESTS_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TESTS_DIR.parents[1]
 WORKSPACE_ROOT = REPO_ROOT.parent
 FRIDAY_PROFILE = REPO_ROOT / "contracts" / "agents" / "friday.yaml"
-DSH_ENV_EXAMPLE = WORKSPACE_ROOT / "kodemeio-dsh" / ".env.example"
+DSH_ENV_EXAMPLE = sibling_repo(WORKSPACE_ROOT, "kodemeio-dsh") / ".env.example"
 
 CI = os.environ.get("CI", "").strip().lower() == "true"
 REQUIRED_IN_CI = {name.strip() for name in os.environ.get("CI_GATES_REQUIRED_SIBLINGS", "").split(",") if name.strip()}
