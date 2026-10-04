@@ -351,7 +351,20 @@ def test_invalid_agent_llm_governance_config_refuses(model):
 
 def test_sentinel_observer_keeps_its_isolated_source_branch():
     import yaml
-    hermes = {"server": "tpp-prod-04", "inbound": INBOUND, "agents": [{"name": "sentinel", "edition": "business", "persona": "sentinel-observer", "source_branch": "sentinel-rollout-20261004", "upstream_ref": "v2026.9.24"}]}
+
+    hermes = {
+        "server": "tpp-prod-04",
+        "inbound": INBOUND,
+        "agents": [
+            {
+                "name": "sentinel",
+                "edition": "business",
+                "persona": "sentinel-observer",
+                "source_branch": "sentinel-rollout-20261004",
+                "upstream_ref": "v2026.9.24",
+            }
+        ],
+    }
     result = gen_hermes_agents(TENANT, hermes)
     doc = yaml.safe_load(result[0][1])
     assert doc["source"] == {"branch": "sentinel-rollout-20261004"}
@@ -360,6 +373,10 @@ def test_sentinel_observer_keeps_its_isolated_source_branch():
 
 
 def test_invalid_hermes_source_branch_is_refused():
-    hermes = {"server": "tpp-prod-04", "inbound": INBOUND, "agents": [{"name": "sentinel", "source_branch": "../../main"}]}
+    hermes = {
+        "server": "tpp-prod-04",
+        "inbound": INBOUND,
+        "agents": [{"name": "sentinel", "source_branch": "../../main"}],
+    }
     with pytest.raises(ValueError, match="safe git branch"):
         gen_hermes_agents(TENANT, hermes)

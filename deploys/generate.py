@@ -1219,10 +1219,14 @@ def gen_hermes(
     env_example_filename = f".env.{instance_name}.example"
 
     source_branch = hermes.get("source_branch")
-    if source_branch is not None:
-        if (not isinstance(source_branch, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._/-]{0,127}", source_branch)
-                or ".." in source_branch or source_branch.endswith(("/", ".", ".lock")) or "//" in source_branch):
-            raise ValueError(f"tenants/{code}.yaml: hermes.source_branch must be a safe git branch")
+    if source_branch is not None and (
+        not isinstance(source_branch, str)
+        or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._/-]{0,127}", source_branch)
+        or ".." in source_branch
+        or source_branch.endswith(("/", ".", ".lock"))
+        or "//" in source_branch
+    ):
+        raise ValueError(f"tenants/{code}.yaml: hermes.source_branch must be a safe git branch")
 
     # Build manifest dict (yaml_dump preserves order)
     instance: dict = {
