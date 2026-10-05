@@ -62,6 +62,11 @@ enable missing integration flags to make a gate appear satisfied.
 
 ## Preparation and deployment
 
+Historical old-host procedure. For the active OVH compose, use
+[omp-ovh-migration.md](omp-ovh-migration.md) and `ops/scripts/omp_ovh_guard.py`;
+the old compose below is missing and the legacy guard rejects the OVH manifest.
+
+
 1. Freeze source and digest. Confirm OMP `main` is protected, required GitHub
    Actions `validate` succeeded at that SHA, and the independent source review
    still applies. Review the deployment configuration/evidence at their exact

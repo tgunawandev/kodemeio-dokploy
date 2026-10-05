@@ -94,6 +94,6 @@ def assert_staged(live, manifest, previous):
         "volume_project": PROJECT,
         "image": IMAGE,
         "source_sha": SOURCE,
-        "resource_budget_verified": True,
+        "resource_budget_verified": True,  # Declared limits only; host capacity is a separate check.
         "environment_preserved": True,
     }

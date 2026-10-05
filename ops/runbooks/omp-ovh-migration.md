@@ -1,8 +1,13 @@
 # OMP migration to kod-ovh-01
 
-Status: prepared, not deployed. The founder requested this host move; the data
-selection remains pending. No empty replacement terminals may be started until
-the founder selects a fresh start or supplies a recoverable backup location.
+Status: deployed fresh on 2026-10-05 after the founder instructed "go ahead,
+deploy it. merge the PR." following the backup/fresh-start explanation.
+[Cutover evidence](../evidence/omp-ovh-cutover-2026-10-05.json) records the merged
+configuration, completed deployment, exact artifact and bounded live reads.
+Old workspaces/state/history remain unrecovered; no legacy resource was deleted.
+Both terminals were healthy with zero restarts/OOM events. The initial
+[preparation receipt](../evidence/omp-ovh-migration-plan-2026-10-05.json) remains
+historical and is not rewritten into a deployment-success claim.
 
 The destination is registered in the Kodemeio Dokploy instance as
 `W-sYqWjxLu9cAhp41pwpA`, `kod-ovh-01`, `57.131.162.248`. Capacity was measured as
@@ -44,7 +49,7 @@ remains `compose-program-optical-panel-vswhbh`, preserving the known four-volume
 namespace on the new host. Metadata app name and Docker volume namespace are
 separate here; never substitute the generated new app name into that command.
 
-## Complete the cutover
+## Cutover procedure (completed for the recorded fresh start)
 
 1. Record the founder's data choice privately. **Restore** requires readable
    archives, digest checks, safe extraction into scratch, then restoration to
@@ -62,6 +67,14 @@ separate here; never substitute the generated new app name into that command.
 3. Validate and preview the desired manifest through `./dokploy.sh kodemeio`.
    Setup only stages configuration. Apply the explicit typed custom command to
    work around the documented 0.18.5 advanced-settings propagation problem.
+   The explicit update is:
+
+   ```bash
+   ./dokploy.sh kodemeio compose update QNgRohOENxsbnmFdGhJoC \
+     --command 'compose -p compose-program-optical-panel-vswhbh -f docker-compose.prod.yml up -d --no-build --pull never --remove-orphans' \
+     --no-auto-deploy --yes
+   ```
+
    Fetch the new compose privately and call `omp_ovh_guard.assert_staged` with
    the saved operator source snapshot. It must pass after staging and again
    immediately before queueing deployment. `omp_rollout_guard` is a historical
