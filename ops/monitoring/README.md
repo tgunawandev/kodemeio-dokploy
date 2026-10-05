@@ -2,6 +2,13 @@
 
 Declarative monitoring configuration for the Kodemeio platform. All configs are version-controlled and applied via `kctl-*` CLIs.
 
+> **2026-10-05 verification update:** the Kodemeio Dokploy inventory currently
+> contains no Gatus or GlitchTip service; a real read of the configured GlitchTip
+> API timed out. The dated claims below are not fresh live acceptance evidence.
+> Inventory the independent monitor host before deploying a replacement. The
+> installed local incident pilot and cloud activation gates are documented in
+> [incident-triage-rollout.md](../runbooks/incident-triage-rollout.md).
+
 > ## What actually runs today (2026-09-27)
 >
 > **No Grafana/Prometheus stack runs on this estate** — nothing in the table
@@ -147,3 +154,11 @@ All 6 domains are verified via DNS resolution checks.
 - Review alert noise monthly: tune thresholds or mute flapping endpoints
 - Rotate Telegram bot token and webhook URLs via 1Password (`kctl-op`)
 - Dashboard JSON should be exported after manual edits: `kctl-grafana dashboard export <uid> -o ops/monitoring/grafana/dashboards/platform-overview.json`
+
+
+## IDTPP activation (2026-10-05)
+
+`gatus.idtpp.com` is running on tpp-prod-06. Existing `glitchtip.idtpp.com` v4.1
+on tpp-prod-01 is reused. See [the verified production configuration](idtpp/README.md)
+for health checks, scoped evidence intake, login-file location and version parity limits.
+This does not establish the older Kodemeio estate deployment claims above.

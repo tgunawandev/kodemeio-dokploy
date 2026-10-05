@@ -1,0 +1,159 @@
+{
+  "tpp-desk": {
+    "repo": "kodemeio-odoo",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-desk"
+    ]
+  },
+  "tpp-erp": {
+    "repo": "kodemeio-odoo",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-erp"
+    ]
+  },
+  "tpp-authentik": {
+    "repo": "kodemeio-authentik",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-authentik"
+    ]
+  },
+  "tpp-glitchtip": {
+    "repo": "kodemeio-dokploy",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-glitchtip"
+    ]
+  },
+  "tpp-mattermost": {
+    "repo": "kodemeio-mattermost",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-mattermost"
+    ]
+  },
+  "veronica-cloud-canary": {
+    "repo": "kodemeio-next",
+    "environment": "production",
+    "synthetic": true,
+    "gatus_endpoints": [],
+    "ticket": {
+      "origin": "https://desk.idtpp.com",
+      "id": 530
+    },
+    "glitchtip": {
+      "url": "https://glitchtip.idtpp.com",
+      "org": "idtpp",
+      "project": "veronica-cloud-canary",
+      "token_env": "INCIDENT_GLITCHTIP_READ_TOKEN",
+      "issue_api": "legacy",
+      "project_id": 9
+    }
+  },
+  "mac-odoo-erp": {
+    "repo": "kodemeio-odoo",
+    "environment": "production",
+    "gatus_endpoints": [],
+    "glitchtip": {
+      "url": "https://glitchtip.idtpp.com",
+      "org": "idtpp",
+      "project": "mac-odoo-erp",
+      "project_id": 1,
+      "issue_api": "legacy",
+      "token_env": "INCIDENT_GLITCHTIP_READ_TOKEN"
+    }
+  },
+  "mac-odoo-hrms": {
+    "repo": "kodemeio-odoo",
+    "environment": "production",
+    "gatus_endpoints": [],
+    "glitchtip": {
+      "url": "https://glitchtip.idtpp.com",
+      "org": "idtpp",
+      "project": "mac-odoo-hrms",
+      "project_id": 2,
+      "issue_api": "legacy",
+      "token_env": "INCIDENT_GLITCHTIP_READ_TOKEN"
+    }
+  },
+  "mac-odoo-erp-stg": {
+    "repo": "kodemeio-odoo",
+    "environment": "staging",
+    "gatus_endpoints": [],
+    "glitchtip": {
+      "url": "https://glitchtip.idtpp.com",
+      "org": "idtpp",
+      "project": "mac-odoo-erp-stg",
+      "project_id": 3,
+      "issue_api": "legacy",
+      "token_env": "INCIDENT_GLITCHTIP_READ_TOKEN"
+    }
+  },
+  "mac-odoo-hrms-stg": {
+    "repo": "kodemeio-odoo",
+    "environment": "staging",
+    "gatus_endpoints": [],
+    "glitchtip": {
+      "url": "https://glitchtip.idtpp.com",
+      "org": "idtpp",
+      "project": "mac-odoo-hrms-stg",
+      "project_id": 4,
+      "issue_api": "legacy",
+      "token_env": "INCIDENT_GLITCHTIP_READ_TOKEN"
+    }
+  },
+  "tpp-odoo-erp": {
+    "repo": "kodemeio-odoo",
+    "environment": "production",
+    "gatus_endpoints": [],
+    "glitchtip": {
+      "url": "https://glitchtip.idtpp.com",
+      "org": "idtpp",
+      "project": "tpp-odoo-erp",
+      "project_id": 5,
+      "issue_api": "legacy",
+      "token_env": "INCIDENT_GLITCHTIP_READ_TOKEN"
+    }
+  },
+  "tpp-odoo-hrms": {
+    "repo": "kodemeio-odoo",
+    "environment": "production",
+    "gatus_endpoints": [],
+    "glitchtip": {
+      "url": "https://glitchtip.idtpp.com",
+      "org": "idtpp",
+      "project": "tpp-odoo-hrms",
+      "project_id": 6,
+      "issue_api": "legacy",
+      "token_env": "INCIDENT_GLITCHTIP_READ_TOKEN"
+    }
+  },
+  "tpp-odoo-erp-stg": {
+    "repo": "kodemeio-odoo",
+    "environment": "staging",
+    "gatus_endpoints": [],
+    "glitchtip": {
+      "url": "https://glitchtip.idtpp.com",
+      "org": "idtpp",
+      "project": "tpp-odoo-erp-stg",
+      "project_id": 7,
+      "issue_api": "legacy",
+      "token_env": "INCIDENT_GLITCHTIP_READ_TOKEN"
+    }
+  },
+  "tpp-odoo-hrms-stg": {
+    "repo": "kodemeio-odoo",
+    "environment": "staging",
+    "gatus_endpoints": [],
+    "glitchtip": {
+      "url": "https://glitchtip.idtpp.com",
+      "org": "idtpp",
+      "project": "tpp-odoo-hrms-stg",
+      "project_id": 8,
+      "issue_api": "legacy",
+      "token_env": "INCIDENT_GLITCHTIP_READ_TOKEN"
+    }
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "date": "2026-10-05",
+  "scope": "Operator-authorized IDTPP production monitoring activation",
+  "gatus": {
+    "origin": "https://gatus.idtpp.com",
+    "server": "tpp-prod-06",
+    "compose_id": "RuWNNe3JCuQ8c_SDgjY-8",
+    "version": "5.37.0",
+    "health_http": 200,
+    "unauthenticated_status_api_http": 401,
+    "authenticated_status_api_http": 200,
+    "healthy_endpoints": 5
+  },
+  "glitchtip": {
+    "origin": "https://glitchtip.idtpp.com",
+    "server": "tpp-prod-01",
+    "compose_id": "p1m6OF1PtiVaYyYiriHjY",
+    "existing_version": "4.1",
+    "health_http": 200,
+    "database_preserved": true,
+    "scoped_existing_projects": 8,
+    "synthetic_project_id": 9
+  },
+  "collector": {
+    "image": "sha256:2d8da50510f415cdd8a3c83593fee7964d0af580242220a15ec226863bc0f9b7",
+    "same_image_tested_locally": true,
+    "implementation_commit": "00627a9b30cad544cb84a5a40de535a66ce6744f",
+    "production_api": "legacy with verified numeric project ID and slug",
+    "synthetic_incident": "INC-d369f850454f68458598e48c",
+    "synthetic_release": "synthetic-prod-activation-20261005",
+    "native_webhook_and_stack_trace_verified": true,
+    "pending": 0,
+    "quarantined": 0,
+    "fresh_heartbeat_verified": true,
+    "automatic_agent_dispatch": false
+  },
+  "desk": {
+    "origin": "https://desk.idtpp.com",
+    "rollout_ticket_id": 530,
+    "approval_ui_and_meeting_failure_ticket_id": 536,
+    "company_id": 1,
+    "team_id": 3,
+    "automatic_ticket_creation": false,
+    "fix_environment": "staging",
+    "production_application_deployment": "Explicit human acceptance after independent review"
+  },
+  "limitations": [
+    "Local GlitchTip 6.2.6 and existing production v4.1 intentionally differ; no database upgrade was authorized.",
+    "Real staging business-app SDK/source-map acceptance and live Hatchet dispatch remain pending.",
+    "No unattended model dispatch, unattended Desk identity or external dead-man alarm is claimed.",
+    "Monitoring activation does not fix the meeting execution defect or deploy the redesigned approval UI."
+  ]
+}

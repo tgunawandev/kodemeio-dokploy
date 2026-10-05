@@ -1,0 +1,157 @@
+# The same pinned collector image can run local evidence-only or Hatchet jobs.
+# All published ports bind loopback. No production secrets/networks/volumes.
+name: kod-local-incident-pilot
+
+x-collector: &collector
+  image: kodemeio-incident-triage:local
+  restart: unless-stopped
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  tmpfs: [/tmp]
+  volumes:
+    - incident-state:/state
+    - ./services.local.json:/config/services.json:ro
+  deploy:
+    resources:
+      limits: {memory: 256M, cpus: '0.5'}
+
+services:
+  incident-ingress:
+    <<: *collector
+    build:
+      context: ../../../../kodemeio-hatchet/workers/incident_triage
+      dockerfile: deploy/Dockerfile
+    environment:
+      INCIDENT_STATE: /state/incidents.db
+      INCIDENT_SERVICES: /config/services.json
+      INCIDENT_GATUS_TOKEN: ${INCIDENT_GATUS_TOKEN:?required}
+      INCIDENT_GLITCHTIP_TOKEN: ${INCIDENT_GLITCHTIP_TOKEN:?required}
+      INCIDENT_READ_TOKEN: ${INCIDENT_READ_TOKEN:?required}
+    ports: ['127.0.0.1:8788:8080']
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  incident-collector:
+    <<: *collector
+    command: [python, -m, incident_triage, loop]
+    environment:
+      INCIDENT_STATE: /state/incidents.db
+      INCIDENT_SERVICES: /config/services.json
+      INCIDENT_GLITCHTIP_READ_TOKEN: ${INCIDENT_GLITCHTIP_READ_TOKEN:?required}
+    depends_on:
+      incident-ingress: {condition: service_healthy}
+      glitchtip: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, python, -m, incident_triage, health]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  gatus:
+    image: ghcr.io/twin/gatus:v5.37.0
+    restart: unless-stopped
+    ports: ['127.0.0.1:8786:8080']
+    environment:
+      INCIDENT_GATUS_TOKEN: ${INCIDENT_GATUS_TOKEN:?required}
+    volumes:
+      - ./gatus.local.json:/config/config.yaml:ro
+      - gatus-data:/data
+    depends_on:
+      incident-ingress: {condition: service_healthy}
+    deploy:
+      resources:
+        limits: {memory: 128M, cpus: '0.25'}
+
+  pilot-target:
+    image: python:3.13.7-slim-bookworm
+    command: [python, /pilot_target.py]
+    volumes: ['./pilot_target.py:/pilot_target.py:ro']
+    ports: ['127.0.0.1:8787:8000']
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/live')"]
+      interval: 15s
+      timeout: 15s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits: {memory: 64M, cpus: '0.25'}
+
+  glitchtip:
+    image: glitchtip/glitchtip:6.2.6@sha256:a3d8eb1b36c1e1603d55ab32711ea3dd8115874742a781a57391a62a16e0dff6
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://incident:${PILOT_DB_PASSWORD:?required}@glitchtip-db:5432/incident
+      SECRET_KEY: ${PILOT_DJANGO_SECRET:?required}
+      PILOT_OPERATOR_PASSWORD: ${PILOT_OPERATOR_PASSWORD:?required}
+      INCIDENT_GLITCHTIP_READ_TOKEN: ${INCIDENT_GLITCHTIP_READ_TOKEN:?required}
+      INCIDENT_GLITCHTIP_TOKEN: ${INCIDENT_GLITCHTIP_TOKEN:?required}
+      PORT: '8000'
+      SERVER_ROLE: all_in_one
+      VALKEY_URL: ''
+      GLITCHTIP_DOMAIN: http://glitchtip:8000
+      GLITCHTIP_ENABLE_UPTIME: 'False'
+      GLITCHTIP_ENABLE_MCP: 'False'
+      GLITCHTIP_ALLOW_PRIVATE_IPS: 'True'  # isolated synthetic webhook receiver
+      ENABLE_USER_REGISTRATION: 'False'
+      ENABLE_ORGANIZATION_CREATION: 'False'
+      EMAIL_BACKEND: django.core.mail.backends.dummy.EmailBackend
+      GLITCHTIP_RETENTION_DAYS: '7'
+      ALLOWED_HOSTS: glitchtip,localhost,127.0.0.1
+      MEDIA_ROOT: /data
+    volumes: [glitchtip-files:/data]
+    ports: ['127.0.0.1:8789:8000']
+    depends_on:
+      glitchtip-db: {condition: service_healthy}
+      glitchtip-files-init: {condition: service_completed_successfully}
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/_health/')"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 90s
+    deploy:
+      resources:
+        limits: {memory: 768M, cpus: '1'}
+
+  glitchtip-files-init:
+    image: glitchtip/glitchtip:6.2.6@sha256:a3d8eb1b36c1e1603d55ab32711ea3dd8115874742a781a57391a62a16e0dff6
+    user: '0:0'
+    command: [python, -c, "import os; os.chmod('/data',0o700); os.chown('/data',5000,5000)"]
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [CHOWN, FOWNER]  # repeat setup can chmod the existing uid-5000 volume
+    security_opt: [no-new-privileges:true]
+    network_mode: none
+    volumes: [glitchtip-files:/data]
+
+  glitchtip-db:
+    image: postgres:16.10-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: incident
+      POSTGRES_DB: incident
+      POSTGRES_PASSWORD: ${PILOT_DB_PASSWORD:?required}
+    volumes: [glitchtip-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U incident -d incident']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    deploy:
+      resources:
+        limits: {memory: 256M, cpus: '0.5'}
+
+volumes:
+  incident-state:
+  gatus-data:
+  glitchtip-data:
+  glitchtip-files:

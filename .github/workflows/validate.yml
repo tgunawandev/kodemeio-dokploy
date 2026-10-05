@@ -69,11 +69,14 @@ jobs:
       - name: Operations tooling tests
         run: uv run pytest ops/scripts/tests -q
 
+      - name: Monitoring scope, pilot and Desk bridge tests
+        run: uv run pytest ops/monitoring/incidents/tests -q
+
       - name: Python lint
-        run: uv run ruff check deploys ops/scripts
+        run: uv run ruff check deploys ops/scripts ops/monitoring/incidents
 
       - name: Python formatting
-        run: uv run ruff format --check deploys ops/scripts
+        run: uv run ruff format --check deploys ops/scripts ops/monitoring/incidents
 
       - name: Generator dry-run
         run: uv run python deploys/generate.py --dry-run

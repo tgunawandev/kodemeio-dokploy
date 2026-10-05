@@ -1,0 +1,97 @@
+{
+  "date": "2026-10-05",
+  "scope": "isolated local synthetic pilot plus operator-submitted Desk reports; uncommitted implementation",
+  "local_project": "kod-local-incident-pilot",
+  "versions": {
+    "gatus": "5.37.0",
+    "glitchtip": "6.2.6",
+    "glitchtip_digest": "sha256:a3d8eb1b36c1e1603d55ab32711ea3dd8115874742a781a57391a62a16e0dff6",
+    "omp": "18.6.0",
+    "bun": "1.3.14",
+    "hatchet_sdk": "1.41.1"
+  },
+  "accepted_local_checks": {
+    "gatus_real_failure_and_recovery": true,
+    "glitchtip_real_ingestion_and_automatic_webhook": true,
+    "selected_stack_trace_export": true,
+    "repeated_delivery_deduplication": true,
+    "stale_generation_refusal": true,
+    "bounded_redacted_evidence_tests": true,
+    "daily_ids_only_digest": true,
+    "veronica_deepseek_triage_report": true,
+    "triage_checkout_remained_clean": true,
+    "friday_veronica_tool_parity_and_yolo": true,
+    "hatchet_sdk_task_registration_without_network": true,
+    "next_browser_server_edge_sdk_fixture": true,
+    "desk_ticket_creation": true,
+    "desk_internal_note_publication": true,
+    "desk_note_replay_same_id": true,
+    "sqlite_online_backup_restore": true,
+    "postgres_dump_restore": true,
+    "persistent_media_recreation": true,
+    "repeat_install_idempotency": true,
+    "fresh_collected_bundle_desk_link": true
+  },
+  "test_counts": {
+    "omp": 36,
+    "incident_worker": 19,
+    "deployment_configuration": 9,
+    "sentry_configuration": 11,
+    "existing_deployment_suite_passed": 1288,
+    "existing_deployment_suite_skipped": 2
+  },
+  "triage_inspected_head": "9fca99ff68de9be2fa5685589c8c14b786c1abd1",
+  "latest_gatus_recovery_generation": 16,
+  "latest_synthetic_glitchtip_incident": "INC-f2b6bcbe9af98706959ad5f0",
+  "limitations": [
+    "Real browser/server/edge Next SDK fixture delivery passed; source-map upload and deployed business-app telemetry remain unverified.",
+    "All incident/model reports are informal triage, not exact-commit code-review approval.",
+    "Pattern redaction is best-effort; evidence and report selection require operator inspection.",
+    "Issue sweeps use at most 20 pages of 50 records and fail explicitly if incomplete; summary pagination is available.",
+    "Live Hatchet execution, cloud monitoring deployment and contained unattended OMP dispatch are not accepted.",
+    "Cloud terminals retain their existing release; integration changes are not committed or deployed. No production service/code deployment was applied.",
+    "Desk uses operator credentials outside OMP. Scoped unattended Desk service identity and automatic model dispatch are not implemented.",
+    "No remote CI execution is claimed."
+  ],
+  "automatic_agent_dispatch": false,
+  "formal_code_review_approval": false,
+  "desk": {
+    "origin": "https://desk.idtpp.com",
+    "rollout_ticket_id": 530,
+    "vision_startup_ticket_id": 531,
+    "outpost_dependency_ticket_id": 532,
+    "company_id": 1,
+    "new_ticket_team_id": 3,
+    "publication": "operator_driven",
+    "fix_environment": "staging",
+    "production_deployment": "explicit_human_acceptance_after_independent_review"
+  },
+  "production_services_changed": false,
+  "production_desk_tickets_written": true,
+  "next_sdk_fixture": {
+    "synthetic": true,
+    "runtime": "Next.js with repository-pinned dependencies",
+    "release": "next-sdk-canary@9fca99ff68de-5563890ad347-cbb8e8e61f14",
+    "inspected_head": "9fca99ff68de9be2fa5685589c8c14b786c1abd1",
+    "source_dirty": true,
+    "fixture_and_dependency_sha256": "5563890ad347eb14b4a5b69a5152fad2786fdf52a831bc19b51c35661e68906e",
+    "run_id": "cbb8e8e61f14",
+    "environment": "local",
+    "browser": true,
+    "server": true,
+    "edge": true,
+    "incident_ids": [
+      "INC-b4d6121911263dfb3ced0d45",
+      "INC-a8bc5b9700c2ddb4596499ea",
+      "INC-7e694a3da69e89fa9672c9fc"
+    ],
+    "production_touched": false,
+    "source_map_upload_verified": false,
+    "business_application_deployment_verified": false
+  },
+  "observed_final_queue": {
+    "pending": 0,
+    "quarantined": 0,
+    "agent_dispatch": false
+  }
+}

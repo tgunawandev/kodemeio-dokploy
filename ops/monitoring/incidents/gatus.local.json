@@ -1,0 +1,17 @@
+{
+  "storage": {"type": "sqlite", "path": "/data/data.db"},
+  "alerting": {
+    "custom": {
+      "url": "http://incident-ingress:8080/webhooks/gatus",
+      "method": "POST",
+      "headers": {"Content-Type": "application/json", "Authorization": "Bearer ${INCIDENT_GATUS_TOKEN}"},
+      "body": "{\"endpoint\":\"[ENDPOINT_NAME]\",\"state\":\"[ALERT_TRIGGERED_OR_RESOLVED]\"}",
+      "default-alert": {"enabled": true, "failure-threshold": 3, "success-threshold": 2, "send-on-resolved": true}
+    }
+  },
+  "endpoints": [{
+    "name": "kodemeio-web-local", "group": "pilot", "url": "http://pilot-target:8000/health",
+    "interval": "5s", "conditions": ["[STATUS] == 200", "[BODY].status == ok"],
+    "alerts": [{"type": "custom"}]
+  }]
+}

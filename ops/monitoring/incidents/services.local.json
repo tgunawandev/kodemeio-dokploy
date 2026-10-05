@@ -1,0 +1,30 @@
+{
+  "kodemeio-web-local": {
+    "ticket": {"origin": "https://desk.idtpp.com", "id": 530},
+    "repo": "kodemeio-next",
+    "environment": "local",
+    "gatus_endpoints": ["kodemeio-web-local"],
+    "release": "synthetic-pilot",
+    "synthetic": true,
+    "glitchtip": {
+      "url": "http://glitchtip:8000",
+      "org": "incident-pilot",
+      "project": "kodemeio-web-local",
+      "token_env": "INCIDENT_GLITCHTIP_READ_TOKEN"
+    }
+  },
+  "next-sdk-local": {
+    "ticket": {"origin": "https://desk.idtpp.com", "id": 530},
+    "repo": "kodemeio-next",
+    "environment": "local",
+    "gatus_endpoints": [],
+    "synthetic": true,
+    "telemetry_probe": true,
+    "glitchtip": {
+      "url": "http://glitchtip:8000",
+      "org": "incident-pilot",
+      "project": "next-sdk-local",
+      "token_env": "INCIDENT_GLITCHTIP_READ_TOKEN"
+    }
+  }
+}

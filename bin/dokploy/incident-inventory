@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Read-only incident infrastructure inventory, including unmanaged containers.
+# Usage: ./dokploy.sh incident-inventory <platform> [--json]
+set -euo pipefail
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/_boot.sh"
+[[ $# -ge 1 ]] || { fd_usage_from_header "$0"; exit 2; }
+fd_resolve "$1"
+shift
+exec python3 "$FD_REPO_ROOT/ops/scripts/incident_inventory.py" --profile "$FD_PROFILE" "$@"
