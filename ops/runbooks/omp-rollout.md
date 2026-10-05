@@ -1,7 +1,8 @@
-# OMP operator-terminal rollout
+# Initial OMP operator-terminal rollout (historical)
 
-The desired manifest now targets `kod-ovh-01`. Its migration is prepared but
-not yet deployed; see [the migration procedure](omp-ovh-migration.md).
+The active manifest targets `kod-ovh-01`; its fresh migration is deployed.
+See [the active migration record](omp-ovh-migration.md) for current 3 GiB/2 CPU
+limits, successful bounded provider reads and unrecovered old state.
 The following records describe the initial 2026-10-05 rollout, not current
 proof that the old host is reachable.
 
@@ -19,7 +20,7 @@ Its config/image ID is
 The registry package is private. The release branch must resolve to this source
 SHA before execution; a moved branch invalidates the rollout evidence.
 
-## Roles and access
+## Initial rollout roles, access and capacity (historical)
 
 FRIDAY implements software changes in isolated task worktrees. VERONICA owns
 application diagnostics and independent release review, with read-only source
@@ -29,11 +30,11 @@ JARVIS owns business/data and SENTINEL owns infrastructure in Hermes; this
 terminal update does not migrate their live bindings. Other personas retain
 existing authority.
 
-Both terminals keep separate state/code volumes, UID 10001, a read-only root,
+At the initial old-host rollout, both terminals kept separate state/code volumes, UID 10001, a read-only root,
 no public ports, no Docker socket, no added host/SSH/GitHub/deployment credentials,
 one CPU and 768 MiB each. They retain DeepSeek and the existing provider secret.
 Native Codex login remains separate per persona; never copy OAuth state.
-Live provider acceptance remains incomplete at the current resource limits.
+At that initial rollout, live provider acceptance was incomplete at its resource limits.
 Post-deployment verification started a second full OMP process inside these limits; the kernel recorded a
 Bun OOM kill. FRIDAY restarted twice during those checks. Later input checks
 also coincided with one restart per terminal; their cause remains under
@@ -41,7 +42,8 @@ investigation. Process health alone does not establish prompt readiness.
 Both isolated
 synthetic prompt/read checks passed at 1 GiB after skipping the optional
 provider setup. FRIDAY reached the 1 GiB limit; VERONICA peaked at 957,435,904
-bytes. Production prompt acceptance remains unresolved at 768 MiB. Do not
+bytes. Initial old-host prompt acceptance was unresolved at 768 MiB. The following
+capacity warning applied to that old host, not the completed OVH move: do not
 raise both limits on this shared 4 GiB host without a capacity plan. A dedicated
 runner or additional host RAM (starting with at least 8 GiB) needs explicit
 provisioning authorization and paired workload validation; no server was
@@ -61,6 +63,11 @@ the operator's credentialed session as an authenticated CI/agent principal or
 enable missing integration flags to make a gate appear satisfied.
 
 ## Preparation and deployment
+
+Historical old-host procedure. For the active OVH compose, use
+[omp-ovh-migration.md](omp-ovh-migration.md) and `ops/scripts/omp_ovh_guard.py`;
+the old compose below is missing and the legacy guard rejects the OVH manifest.
+
 
 1. Freeze source and digest. Confirm OMP `main` is protected, required GitHub
    Actions `validate` succeeded at that SHA, and the independent source review
