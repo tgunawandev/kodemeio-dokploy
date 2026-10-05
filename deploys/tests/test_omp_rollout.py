@@ -49,3 +49,12 @@ def test_terminal_profiles_do_not_gain_production_or_publication_authority():
     assert all(profile["production_access"] is False for profile in profiles)
     assert profiles[0]["principal"] != profiles[1]["principal"]
     assert profiles[1]["publication"] == "none"
+
+
+def test_readiness_matches_the_promoted_source_and_image_without_inherited_database_backup():
+    release = manifest()
+    evidence = json.loads((ROOT / "ops/evidence/omp-production-readiness-2026-10-05.json").read_text())
+    assert release["env_overrides"]["OMP_IMAGE"] == evidence["registry_image"]
+    assert release["env_overrides"]["OMP_BUILD_COMMIT"] == evidence["source_sha"]
+    assert evidence["canary"]["image_id"] == evidence["tested_image_id"]
+    assert "extends" not in release and "backup" not in release

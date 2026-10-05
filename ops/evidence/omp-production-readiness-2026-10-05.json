@@ -90,6 +90,25 @@
     "local_image_id": "sha256:37fe34650226e84a714f8446c9ed2673bce8ad312f29cfc845c9dfe9fc3eeb22",
     "founder_approval_required": true,
     "preserve_new_audit_rows": true,
-    "automatic_rollback": false
-  }
+    "automatic_rollback": false,
+    "branch": "release/omp-rollback-8ff7f5e",
+    "source_branch_locked": true,
+    "image_available_on_target": true
+  },
+  "command_propagation": {
+    "schema": "omp.dokploy-command-propagation.v1",
+    "runtime_client_version": "0.18.5",
+    "actual_installed_method": "Deployer._apply_advanced_compose_settings",
+    "transport": "mocked; no production mutation",
+    "captured": {
+      "endpoint": "/compose.update",
+      "payload": {
+        "composeId": "OaeHlGC5BvVH6R3W-rh9q",
+        "command": "compose -p compose-program-optical-panel-vswhbh -f docker-compose.prod.yml up -d --no-build --pull never --remove-orphans"
+      }
+    },
+    "mandatory_live_readback": "ops/scripts/omp_rollout_guard.py before deploy run"
+  },
+  "source_branch_locked": true,
+  "check_receipts": "Trusted operator captures completed test/CI/preview receipts at the frozen configuration head before execution; they cannot embed their own commit hash here."
 }

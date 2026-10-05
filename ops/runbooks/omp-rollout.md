@@ -52,7 +52,8 @@ enable missing integration flags to make a gate appear satisfied.
    Preload it through the trusted host image client with a short-lived,
    repository-scoped pull bearer; never forward a founder token or persist
    registry credentials in an agent container. Verify its RepoDigest and image
-   ID before deployment. A missing image fails closed.
+   ID before deployment. A missing image fails closed. The active and rollback source branches are
+   locked with administrator enforcement; also recheck their exact SHA.
 3. Read existing compose identity, environment/server, provider, secret values
    and four mounts privately. Compare the ignored env file with the deployed
    secret before setup; stop on unexplained drift. Never print either secret,
@@ -69,17 +70,25 @@ enable missing integration flags to make a gate appear satisfied.
    evidence to the operator until the SENTINEL adapter exists.
 6. Validate and preview through the owning front door, then execute only after
    rechecking frozen SHA/digest/review/CI/target and approval. Keep auto-deploy
-   disabled and preserve the existing compose ID/app name.
+   disabled and preserve the existing compose ID/app name. After setup, require
+   trusted API readback through `ops/scripts/omp_rollout_guard.py` before
+   triggering deployment; the CLI applies advanced settings on a best-effort
+   basis, so successful setup alone does not prove the command was accepted.
 
 ```bash
 ./dokploy.sh kodemeio deploy validate -f deploys/instances/production/kod-infra-omp.yaml
-./dokploy.sh kodemeio deploy setup -f deploys/instances/production/kod-infra-omp.yaml --kctl-dry-run
-./dokploy.sh kodemeio deploy run -f deploys/instances/production/kod-infra-omp.yaml --skip-verify --kctl-dry-run
+./dokploy.sh kodemeio deploy setup -f deploys/instances/production/kod-infra-omp.yaml --kctl-dry-run --yes
+./dokploy.sh kodemeio deploy run -f deploys/instances/production/kod-infra-omp.yaml --skip-verify --kctl-dry-run --yes
 ./dokploy.sh kodemeio deploy setup -f deploys/instances/production/kod-infra-omp.yaml --yes
-./dokploy.sh kodemeio deploy run -f deploys/instances/production/kod-infra-omp.yaml --skip-verify --yes
+# BEFORE deploy run: read compose get privately and call omp_rollout_guard.assert_staged.
+# It must verify command, source, target, project, auto-deploy and preserved env.
+./dokploy.sh kodemeio compose start OaeHlGC5BvVH6R3W-rh9q --yes
 ```
 
-The generic HTTP verifier cannot verify terminals. `--skip-verify` skips only
+After setup and readback, `compose start` queues deployment of the verified
+record without another best-effort configuration phase. The generic HTTP
+verifier cannot verify terminals. The `deploy run` preview uses `--skip-verify`
+to skip only
 that inapplicable check; native health, image/process/tool checks and bounded
 provider acceptance remain required. Deployment is asynchronous: a queued API
 response is not success. Poll the deployment to `done`, then inspect both Docker
@@ -98,7 +107,7 @@ the API/environment snapshot. This one-time local backup is not proof of
 scheduled/off-site retention or disaster recovery.
 
 Previous source: `8ff7f5ecef01f3dcb1cac5554a60ca56615abc43`, branch
-`release/omp-local-cloud-yolo-20261005`, image `kodemeio-omp:8ff7f5e`, image ID
+`release/omp-rollback-8ff7f5e`, image `kodemeio-omp:8ff7f5e`, image ID
 `sha256:37fe34650226e84a714f8446c9ed2673bce8ad312f29cfc845c9dfe9fc3eeb22`.
 Retain that image. Rollback requires founder authorization for the exact target
 and prior artifact. Prefer restoring the previous image/config with existing
@@ -125,3 +134,16 @@ proved. DSH/llmlite source clones remain in sibling `kodemeio-archived`; their
 live consumers were not stopped. Hatchet, Prometheus, Tempo,
 Grafana/Alloy/OpenTelemetry and 1Password keep their existing responsibilities.
 See the OMP [migration record](https://github.com/tgunawandev/kodemeio-omp/blob/main/docs/migration.md).
+
+The front-door guard table includes context-specific `deploy setup`, `run` and
+`post` writes in addition to the generic derivation. These verbs require
+`--yes` before the real client runs; mock-CLI refusal/forwarding tests cover
+all three. CLI dry-run previews also carry the door confirmation, while the
+actual `--dry-run` forwarded to the CLI prevents effects. Read-only validation
+and compose lookup remain available.
+
+Managed JSON-in-YAML remains intentional. The legacy backup script's textual
+column-zero scan does not recognize this style; this terminal manifest must
+not inherit a database backup block. Tests assert no `extends`/`backup`, and
+operator volume backup/restore evidence is recorded separately. Scheduled and
+off-site retention remain a configuration gap.
