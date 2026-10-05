@@ -49,6 +49,8 @@ catch-all covers every domain on that server — present and future.
 | tpp-prod-04 | `tpp-infra-maintenance-prod04` | tpp / production |
 | tpp-prod-06 | `tpp-infra-maintenance-prod06` | tpp / production |
 | tpp-prod-07 | `tpp-infra-maintenance-prod07` | tpp / **staging** — mis-filed 2026-09-08, not repairable |
+| kod-ovh-01 | `kod-infra-maintenance-ovh01` | kod / production — added 2026-10-05 with the kod migration (odoo SSO needs the `kodemeio-maintenance-errors` middleware to exist, or the priority-100 `-app` routers that carry `X-Odoo-dbfilter` are dropped) |
+| kod-hzc-01 | `kod-infra-maintenance-hzc01` | kod / production — added 2026-10-05 |
 
 The tenant prefix follows the project the app is filed under, not the server —
 tpp-prod-02 hosts the mac instances, so its fallback is filed under `mac`.
