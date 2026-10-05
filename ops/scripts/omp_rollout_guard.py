@@ -18,6 +18,8 @@ IMAGE = "ghcr.io/tgunawandev/kodemeio-omp@sha256:aac0a855a0e95efb0054d29bef89d01
 
 def assert_staged(live, manifest, snapshot):
     """Fail if source, command, target, provider secret or project drifted."""
+    if manifest["server"] != "kod-prod-02":
+        raise ValueError("Legacy rollout guard cannot authorize another host")
     for key, value in {
         "composeId": COMPOSE,
         "serverId": SERVER,
