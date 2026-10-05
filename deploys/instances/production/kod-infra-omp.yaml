@@ -11,12 +11,14 @@ source:
   type: github
   owner: tgunawandev
   repo: kodemeio-omp
-  branch: main
+  branch: release/omp-local-cloud-yolo-20261005
   compose_path: docker-compose.prod.yml
 env_file: ../../env/production/.env.kod-infra-omp
 env_overrides:
   OMP_CONTAINER_PREFIX: kod-infra-omp
   OMP_PRESET: deepseek
+  OMP_IMAGE_TAG: 8ff7f5e
+  OMP_BUILD_COMMIT: 8ff7f5ecef01f3dcb1cac5554a60ca56615abc43
   OMP_MEMORY_LIMIT: 768m
   OMP_CPU_LIMIT: '1'
   TZ: Asia/Jakarta

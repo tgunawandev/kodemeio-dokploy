@@ -1,0 +1,525 @@
+{
+  "observed_at": "2026-10-05T02:29:09.984635+00:00",
+  "compose_semantically_equal": true,
+  "native_release": {
+    "source_revision": "8ff7f5ecef01f3dcb1cac5554a60ca56615abc43",
+    "source_dirty": false,
+    "integration_sha256": "c0dcaeb2ee107023eec103eb78fdf7d9021514f4182045078abe897b9f91121a",
+    "runtime_sha256": "ba0145b4215e3671aa44681b0ce9faa9efbf7ee2045f7829a670eaf7781b5312",
+    "skill_sha256": {
+      "friday": "9e1474e751527e5875dc2d2020fb627340f554741648aebc7a7dbdf932ff9caa",
+      "veronica": "5c8d08052c326ec7cb10a52464fcc7290b9871707573cd3c1fd4afa0aadb3ef3"
+    },
+    "upstream_package": "18.6.0",
+    "bun": "1.3.14"
+  },
+  "observations": [
+    {
+      "persona": "friday",
+      "approval_mode": "yolo",
+      "managed_approval_mode": "yolo",
+      "terminal_approval_mode": "yolo",
+      "explicit_denies": {
+        "github": "deny",
+        "manage_skill": "deny"
+      },
+      "tools": [
+        "read",
+        "grep",
+        "ast_grep",
+        "glob",
+        "bash",
+        "task",
+        "wait",
+        "todo",
+        "edit",
+        "ast_edit",
+        "write",
+        "lsp",
+        "eval",
+        "ask"
+      ],
+      "capability_settings": {
+        "task": {
+          "maxConcurrency": 2,
+          "maxRecursionDepth": 1,
+          "maxRuntimeMs": 900000,
+          "softRequestBudget": 40,
+          "isolation": {
+            "enabled": true,
+            "apply": true
+          },
+          "disabledAgents": [],
+          "agentModelOverrides": {
+            "explorer": "@smol",
+            "auditor": "@review",
+            "implementer": "@task"
+          }
+        },
+        "lsp": {
+          "enabled": true,
+          "lazy": true,
+          "shared": false,
+          "formatOnWrite": false,
+          "diagnosticsOnWrite": true,
+          "diagnosticsOnEdit": false
+        },
+        "astGrep": {
+          "enabled": true
+        },
+        "astEdit": {
+          "enabled": true
+        },
+        "eval": {
+          "js": true,
+          "py": false,
+          "tools": {
+            "enabled": false
+          }
+        },
+        "browser": {
+          "enabled": true,
+          "headless": true,
+          "cdpUrl": "",
+          "relay": false,
+          "cmux": false,
+          "tern": false
+        }
+      },
+      "project_skill_roots": [],
+      "preset": "codex",
+      "release": {
+        "source_revision": "8ff7f5ecef01f3dcb1cac5554a60ca56615abc43",
+        "source_dirty": null,
+        "integration_sha256": "c0dcaeb2ee107023eec103eb78fdf7d9021514f4182045078abe897b9f91121a",
+        "runtime_sha256": "ba0145b4215e3671aa44681b0ce9faa9efbf7ee2045f7829a670eaf7781b5312",
+        "skill_sha256": {
+          "friday": "9e1474e751527e5875dc2d2020fb627340f554741648aebc7a7dbdf932ff9caa",
+          "veronica": "5c8d08052c326ec7cb10a52464fcc7290b9871707573cd3c1fd4afa0aadb3ef3"
+        },
+        "upstream_package": "18.6.0",
+        "bun": "1.3.14"
+      },
+      "location": "local",
+      "container": {
+        "name": "kod-local-omp-friday",
+        "image": "kodemeio-omp:local-c0dcaeb2ee10",
+        "image_id": "sha256:dbc70236b87a7ef58854d8a9d9b4ec7aba8124e6ab0d3df7da9db4c66ce6f4d6",
+        "revision": "8ff7f5ecef01f3dcb1cac5554a60ca56615abc43",
+        "health": "healthy",
+        "uid": "10001:10001",
+        "readonly_root": true,
+        "memory_bytes": 805306368,
+        "nano_cpus": 1000000000,
+        "published_ports": {},
+        "mounts": [
+          {
+            "type": "volume",
+            "destination": "/var/lib/kodemeio-omp",
+            "name": "kodemeio-omp-local_friday-state"
+          },
+          {
+            "type": "volume",
+            "destination": "/workspace",
+            "name": "kodemeio-omp-local_friday-workspace"
+          }
+        ],
+        "networks": [
+          "kodemeio-omp-local_coding"
+        ]
+      }
+    },
+    {
+      "persona": "veronica",
+      "approval_mode": "yolo",
+      "managed_approval_mode": "yolo",
+      "terminal_approval_mode": "yolo",
+      "explicit_denies": {
+        "github": "deny",
+        "manage_skill": "deny"
+      },
+      "tools": [
+        "read",
+        "grep",
+        "ast_grep",
+        "glob",
+        "bash",
+        "task",
+        "wait",
+        "todo",
+        "edit",
+        "ast_edit",
+        "write",
+        "lsp",
+        "eval",
+        "ask"
+      ],
+      "capability_settings": {
+        "task": {
+          "maxConcurrency": 2,
+          "maxRecursionDepth": 1,
+          "maxRuntimeMs": 900000,
+          "softRequestBudget": 40,
+          "isolation": {
+            "enabled": true,
+            "apply": true
+          },
+          "disabledAgents": [],
+          "agentModelOverrides": {
+            "explorer": "@smol",
+            "auditor": "@review",
+            "implementer": "@task"
+          }
+        },
+        "lsp": {
+          "enabled": true,
+          "lazy": true,
+          "shared": false,
+          "formatOnWrite": false,
+          "diagnosticsOnWrite": true,
+          "diagnosticsOnEdit": false
+        },
+        "astGrep": {
+          "enabled": true
+        },
+        "astEdit": {
+          "enabled": true
+        },
+        "eval": {
+          "js": true,
+          "py": false,
+          "tools": {
+            "enabled": false
+          }
+        },
+        "browser": {
+          "enabled": true,
+          "headless": true,
+          "cdpUrl": "",
+          "relay": false,
+          "cmux": false,
+          "tern": false
+        }
+      },
+      "project_skill_roots": [],
+      "preset": "codex",
+      "release": {
+        "source_revision": "8ff7f5ecef01f3dcb1cac5554a60ca56615abc43",
+        "source_dirty": null,
+        "integration_sha256": "c0dcaeb2ee107023eec103eb78fdf7d9021514f4182045078abe897b9f91121a",
+        "runtime_sha256": "ba0145b4215e3671aa44681b0ce9faa9efbf7ee2045f7829a670eaf7781b5312",
+        "skill_sha256": {
+          "friday": "9e1474e751527e5875dc2d2020fb627340f554741648aebc7a7dbdf932ff9caa",
+          "veronica": "5c8d08052c326ec7cb10a52464fcc7290b9871707573cd3c1fd4afa0aadb3ef3"
+        },
+        "upstream_package": "18.6.0",
+        "bun": "1.3.14"
+      },
+      "location": "local",
+      "container": {
+        "name": "kod-local-omp-veronica",
+        "image": "kodemeio-omp:local-c0dcaeb2ee10",
+        "image_id": "sha256:dbc70236b87a7ef58854d8a9d9b4ec7aba8124e6ab0d3df7da9db4c66ce6f4d6",
+        "revision": "8ff7f5ecef01f3dcb1cac5554a60ca56615abc43",
+        "health": "healthy",
+        "uid": "10001:10001",
+        "readonly_root": true,
+        "memory_bytes": 805306368,
+        "nano_cpus": 1000000000,
+        "published_ports": {},
+        "mounts": [
+          {
+            "type": "volume",
+            "destination": "/var/lib/kodemeio-omp",
+            "name": "kodemeio-omp-local_veronica-state"
+          },
+          {
+            "type": "volume",
+            "destination": "/workspace",
+            "name": "kodemeio-omp-local_veronica-workspace"
+          }
+        ],
+        "networks": [
+          "kodemeio-omp-local_coding"
+        ]
+      }
+    },
+    {
+      "persona": "friday",
+      "approval_mode": "yolo",
+      "managed_approval_mode": "yolo",
+      "terminal_approval_mode": "yolo",
+      "explicit_denies": {
+        "github": "deny",
+        "manage_skill": "deny"
+      },
+      "tools": [
+        "read",
+        "grep",
+        "ast_grep",
+        "glob",
+        "bash",
+        "task",
+        "wait",
+        "todo",
+        "edit",
+        "ast_edit",
+        "write",
+        "lsp",
+        "eval",
+        "ask"
+      ],
+      "capability_settings": {
+        "task": {
+          "maxConcurrency": 2,
+          "maxRecursionDepth": 1,
+          "maxRuntimeMs": 900000,
+          "softRequestBudget": 40,
+          "isolation": {
+            "enabled": true,
+            "apply": true
+          },
+          "disabledAgents": [],
+          "agentModelOverrides": {
+            "explorer": "@smol",
+            "auditor": "@review",
+            "implementer": "@task"
+          }
+        },
+        "lsp": {
+          "enabled": true,
+          "lazy": true,
+          "shared": false,
+          "formatOnWrite": false,
+          "diagnosticsOnWrite": true,
+          "diagnosticsOnEdit": false
+        },
+        "astGrep": {
+          "enabled": true
+        },
+        "astEdit": {
+          "enabled": true
+        },
+        "eval": {
+          "js": true,
+          "py": false,
+          "tools": {
+            "enabled": false
+          }
+        },
+        "browser": {
+          "enabled": true,
+          "headless": true,
+          "cdpUrl": "",
+          "relay": false,
+          "cmux": false,
+          "tern": false
+        }
+      },
+      "project_skill_roots": [],
+      "preset": "deepseek",
+      "release": {
+        "source_revision": "8ff7f5ecef01f3dcb1cac5554a60ca56615abc43",
+        "source_dirty": null,
+        "integration_sha256": "e9b1d0ea570c48bd2ed795564ad34f5cb18afeee5e53fabe5f8201d216458aec",
+        "runtime_sha256": "ba0145b4215e3671aa44681b0ce9faa9efbf7ee2045f7829a670eaf7781b5312",
+        "skill_sha256": {
+          "friday": "9e1474e751527e5875dc2d2020fb627340f554741648aebc7a7dbdf932ff9caa",
+          "veronica": "5c8d08052c326ec7cb10a52464fcc7290b9871707573cd3c1fd4afa0aadb3ef3"
+        },
+        "upstream_package": "18.6.0",
+        "bun": "1.3.14"
+      },
+      "location": "cloud",
+      "container": {
+        "name": "kod-infra-omp-friday",
+        "image": "kodemeio-omp:8ff7f5e",
+        "image_id": "sha256:37fe34650226e84a714f8446c9ed2673bce8ad312f29cfc845c9dfe9fc3eeb22",
+        "revision": "8ff7f5ecef01f3dcb1cac5554a60ca56615abc43",
+        "health": "healthy",
+        "uid": "10001:10001",
+        "readonly_root": true,
+        "memory_bytes": 805306368,
+        "nano_cpus": 1000000000,
+        "published_ports": {},
+        "mounts": [
+          {
+            "type": "volume",
+            "destination": "/var/lib/kodemeio-omp",
+            "name": "compose-program-optical-panel-vswhbh_friday-state"
+          },
+          {
+            "type": "volume",
+            "destination": "/workspace",
+            "name": "compose-program-optical-panel-vswhbh_friday-workspace"
+          }
+        ],
+        "networks": [
+          "compose-program-optical-panel-vswhbh_coding"
+        ]
+      }
+    },
+    {
+      "persona": "veronica",
+      "approval_mode": "yolo",
+      "managed_approval_mode": "yolo",
+      "terminal_approval_mode": "yolo",
+      "explicit_denies": {
+        "github": "deny",
+        "manage_skill": "deny"
+      },
+      "tools": [
+        "read",
+        "grep",
+        "ast_grep",
+        "glob",
+        "bash",
+        "task",
+        "wait",
+        "todo",
+        "edit",
+        "ast_edit",
+        "write",
+        "lsp",
+        "eval",
+        "ask"
+      ],
+      "capability_settings": {
+        "task": {
+          "maxConcurrency": 2,
+          "maxRecursionDepth": 1,
+          "maxRuntimeMs": 900000,
+          "softRequestBudget": 40,
+          "isolation": {
+            "enabled": true,
+            "apply": true
+          },
+          "disabledAgents": [],
+          "agentModelOverrides": {
+            "explorer": "@smol",
+            "auditor": "@review",
+            "implementer": "@task"
+          }
+        },
+        "lsp": {
+          "enabled": true,
+          "lazy": true,
+          "shared": false,
+          "formatOnWrite": false,
+          "diagnosticsOnWrite": true,
+          "diagnosticsOnEdit": false
+        },
+        "astGrep": {
+          "enabled": true
+        },
+        "astEdit": {
+          "enabled": true
+        },
+        "eval": {
+          "js": true,
+          "py": false,
+          "tools": {
+            "enabled": false
+          }
+        },
+        "browser": {
+          "enabled": true,
+          "headless": true,
+          "cdpUrl": "",
+          "relay": false,
+          "cmux": false,
+          "tern": false
+        }
+      },
+      "project_skill_roots": [],
+      "preset": "deepseek",
+      "release": {
+        "source_revision": "8ff7f5ecef01f3dcb1cac5554a60ca56615abc43",
+        "source_dirty": null,
+        "integration_sha256": "e9b1d0ea570c48bd2ed795564ad34f5cb18afeee5e53fabe5f8201d216458aec",
+        "runtime_sha256": "ba0145b4215e3671aa44681b0ce9faa9efbf7ee2045f7829a670eaf7781b5312",
+        "skill_sha256": {
+          "friday": "9e1474e751527e5875dc2d2020fb627340f554741648aebc7a7dbdf932ff9caa",
+          "veronica": "5c8d08052c326ec7cb10a52464fcc7290b9871707573cd3c1fd4afa0aadb3ef3"
+        },
+        "upstream_package": "18.6.0",
+        "bun": "1.3.14"
+      },
+      "location": "cloud",
+      "container": {
+        "name": "kod-infra-omp-veronica",
+        "image": "kodemeio-omp:8ff7f5e",
+        "image_id": "sha256:37fe34650226e84a714f8446c9ed2673bce8ad312f29cfc845c9dfe9fc3eeb22",
+        "revision": "8ff7f5ecef01f3dcb1cac5554a60ca56615abc43",
+        "health": "healthy",
+        "uid": "10001:10001",
+        "readonly_root": true,
+        "memory_bytes": 805306368,
+        "nano_cpus": 1000000000,
+        "published_ports": {},
+        "mounts": [
+          {
+            "type": "volume",
+            "destination": "/workspace",
+            "name": "compose-program-optical-panel-vswhbh_veronica-workspace"
+          },
+          {
+            "type": "volume",
+            "destination": "/var/lib/kodemeio-omp",
+            "name": "compose-program-optical-panel-vswhbh_veronica-state"
+          }
+        ],
+        "networks": [
+          "compose-program-optical-panel-vswhbh_coding"
+        ]
+      }
+    }
+  ],
+  "host": "kod-prod-02",
+  "compose_id": "OaeHlGC5BvVH6R3W-rh9q",
+  "source_branch": "release/omp-local-cloud-yolo-20261005",
+  "auto_deploy": false,
+  "deployment": {
+    "deploymentId": "9ocy_5g8CmzMECeRt6hll",
+    "status": "done",
+    "createdAt": "2026-10-05T02:27:47.136Z",
+    "finishedAt": "2026-10-05T02:28:00.527Z",
+    "errorMessage": null
+  },
+  "previous_deployment": {
+    "deploymentId": "Qj55mCvefvhVKbAKKmOip",
+    "status": "done",
+    "createdAt": "2026-10-05T01:58:03.373Z",
+    "finishedAt": "2026-10-05T01:58:13.992Z",
+    "errorMessage": null
+  },
+  "ci": {
+    "run_id": 37255362454,
+    "source_commit": "8ff7f5ecef01f3dcb1cac5554a60ca56615abc43",
+    "conclusion": "success"
+  },
+  "verification": {
+    "regression_tests": 31,
+    "settings": 600,
+    "overlays": 12,
+    "model_roles": 132,
+    "tool_plans": 12,
+    "project_skill_uri_reads": 12,
+    "browser_preludes": 12,
+    "native_ast": [
+      "typescript",
+      "python"
+    ],
+    "native_odoo_namespace_equal": true,
+    "native_odoo_project_skills": 24,
+    "provider_calls_issued": false,
+    "browser_handshake_performed": false,
+    "language_server_handshake_performed": false,
+    "dokploy_repository_python_tests": {
+      "passed": 1288,
+      "skipped": 2
+    },
+    "dokploy_repository_ruff": "passed",
+    "dokploy_repository_terraform": "not run: just/Terraform absent locally; no Terraform files changed"
+  }
+}

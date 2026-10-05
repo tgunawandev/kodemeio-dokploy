@@ -1,0 +1,68 @@
+# Canonical Dokploy deployment candidate; not an activated Hatchet worker.
+# Reviewed against incident_triage commit 00627a9b30cad544cb84a5a40de535a66ce6744f.
+# Evidence service only: no code mounts, provider keys, shell runner or GitHub token.
+# Apply through Dokploy only after the rollout runbook's service/credential gates.
+name: kod-incident-triage
+
+x-service: &service
+  image: ${INCIDENT_IMAGE:?use a reviewed immutable image reference}
+  restart: unless-stopped
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  tmpfs: [/tmp]
+  volumes:
+    - incident-state:/state
+    - ./services.json:/config/services.json:ro
+  deploy:
+    resources:
+      limits: {memory: 256M, cpus: '0.5'}
+
+services:
+  incident-ingress:
+    <<: *service
+    environment:
+      INCIDENT_STATE: /state/incidents.db
+      INCIDENT_SERVICES: /config/services.json
+      INCIDENT_GATUS_TOKEN: ${INCIDENT_GATUS_TOKEN:?required}
+      INCIDENT_GLITCHTIP_TOKEN: ${INCIDENT_GLITCHTIP_TOKEN:?required}
+      INCIDENT_READ_TOKEN: ${INCIDENT_READ_TOKEN:?required}
+    networks: [dokploy-network, evidence]
+    # TLS route and access-log suppression must be configured by the operator.
+    # Do not publish a host port; the routed backend port is 8080.
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  incident-worker:
+    <<: *service
+    command: [python, -m, incident_triage.hatchet_worker]
+    environment:
+      INCIDENT_STATE: /state/incidents.db
+      INCIDENT_SERVICES: /config/services.json
+      INCIDENT_GLITCHTIP_READ_TOKEN: ${INCIDENT_GLITCHTIP_READ_TOKEN:?read-only project/event token required}
+      HATCHET_CLIENT_TOKEN: ${HATCHET_CLIENT_TOKEN:?required}
+      HATCHET_CLIENT_HOST_PORT: ${HATCHET_CLIENT_HOST_PORT:?required}
+      HATCHET_CLIENT_SERVER_URL: ${HATCHET_CLIENT_SERVER_URL:?required}
+      HATCHET_CLIENT_TLS_STRATEGY: tls
+      HATCHET_CLIENT_WORKER_HEALTHCHECK_ENABLED: 'true'
+      HATCHET_CLIENT_WORKER_HEALTHCHECK_BIND_ADDRESS: 127.0.0.1
+    networks: [evidence, egress]
+    depends_on:
+      incident-ingress: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, python, -m, incident_triage, health, hatchet-scheduler]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  incident-state:
+
+networks:
+  dokploy-network: {external: true}
+  evidence: {internal: true}
+  egress: {}

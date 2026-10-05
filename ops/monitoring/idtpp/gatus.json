@@ -1,0 +1,106 @@
+{
+  "storage": {
+    "type": "sqlite",
+    "path": "/data/gatus.db"
+  },
+  "security": {
+    "basic": {
+      "username": "${GATUS_USERNAME}",
+      "password-bcrypt-base64": "${GATUS_PASSWORD_BCRYPT_BASE64}"
+    }
+  },
+  "alerting": {
+    "custom": {
+      "url": "http://incident-ingress:8080/webhooks/gatus",
+      "method": "POST",
+      "headers": {
+        "Authorization": "Bearer ${INCIDENT_GATUS_TOKEN}",
+        "Content-Type": "application/json"
+      },
+      "body": "{\"endpoint\": \"[ENDPOINT_NAME]\", \"state\": \"[ALERT_TRIGGERED_OR_RESOLVED]\"}",
+      "default-alert": {
+        "enabled": true,
+        "failure-threshold": 3,
+        "success-threshold": 2,
+        "send-on-resolved": true
+      }
+    }
+  },
+  "endpoints": [
+    {
+      "name": "tpp-desk",
+      "group": "IDTPP",
+      "url": "https://desk.idtpp.com/web/health",
+      "interval": "60s",
+      "conditions": [
+        "[STATUS] == 200",
+        "[CERTIFICATE_EXPIRATION] > 336h"
+      ],
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-erp",
+      "group": "IDTPP",
+      "url": "https://erp.idtpp.com/web/health",
+      "interval": "60s",
+      "conditions": [
+        "[STATUS] == 200",
+        "[CERTIFICATE_EXPIRATION] > 336h"
+      ],
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-authentik",
+      "group": "IDTPP",
+      "url": "https://auth.idtpp.com/-/health/live/",
+      "interval": "60s",
+      "conditions": [
+        "[STATUS] == 200",
+        "[CERTIFICATE_EXPIRATION] > 336h"
+      ],
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-glitchtip",
+      "group": "IDTPP",
+      "url": "https://glitchtip.idtpp.com/_health/",
+      "interval": "60s",
+      "conditions": [
+        "[STATUS] == 200",
+        "[CERTIFICATE_EXPIRATION] > 336h"
+      ],
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-mattermost",
+      "group": "IDTPP",
+      "url": "https://mm.idtpp.com/api/v4/system/ping",
+      "interval": "60s",
+      "conditions": [
+        "[STATUS] == 200",
+        "[CERTIFICATE_EXPIRATION] > 336h"
+      ],
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    }
+  ]
+}

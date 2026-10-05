@@ -1,0 +1,138 @@
+name: tpp-infra-gatus
+services:
+  gatus:
+    image: ghcr.io/twin/gatus:v5.37.0
+    restart: unless-stopped
+    container_name: tpp-infra-gatus
+    configs:
+    - source: gatus-config
+      target: /config/config.yaml
+    volumes:
+    - gatus-state:/data
+    networks:
+    - dokploy-network
+    - evidence
+    depends_on:
+      incident-ingress:
+        condition: service_healthy
+    environment:
+      GATUS_USERNAME: ${GATUS_USERNAME:?required}
+      GATUS_PASSWORD_BCRYPT_BASE64: ${GATUS_PASSWORD_BCRYPT_BASE64:?required}
+      INCIDENT_GATUS_TOKEN: ${INCIDENT_GATUS_TOKEN:?required}
+      MONITORING_CONFIG_REVISION: 19a21ccef0c4a009
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.25'
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+  incident-ingress:
+    image: sha256:2d8da50510f415cdd8a3c83593fee7964d0af580242220a15ec226863bc0f9b7
+    pull_policy: never
+    restart: unless-stopped
+    read_only: true
+    cap_drop: &id001
+    - ALL
+    security_opt: &id002
+    - no-new-privileges:true
+    tmpfs: &id003
+    - /tmp
+    volumes: &id004
+    - incident-state:/state
+    configs: &id005
+    - source: services-map
+      target: /config/services.json
+    deploy: &id006
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+    container_name: tpp-infra-incident-ingress
+    networks:
+    - dokploy-network
+    - evidence
+    environment:
+      INCIDENT_GATUS_TOKEN: ${INCIDENT_GATUS_TOKEN:?required}
+      INCIDENT_GLITCHTIP_TOKEN: ${INCIDENT_GLITCHTIP_TOKEN:?required}
+      INCIDENT_READ_TOKEN: ${INCIDENT_READ_TOKEN:?required}
+      INCIDENT_STATE: /state/incidents.db
+      INCIDENT_SERVICES: /config/services.json
+      MONITORING_CONFIG_REVISION: 19a21ccef0c4a009
+    healthcheck:
+      test:
+      - CMD
+      - python
+      - -c
+      - import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz')
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    labels:
+      traefik.enable: 'true'
+      traefik.docker.network: dokploy-network
+      traefik.http.routers.tpp-incident-webhook.rule: Host(`gatus.idtpp.com`) && PathPrefix(`/webhooks/glitchtip/`)
+      traefik.http.routers.tpp-incident-webhook.priority: '200'
+      traefik.http.routers.tpp-incident-webhook.entrypoints: websecure
+      traefik.http.routers.tpp-incident-webhook.tls: 'true'
+      traefik.http.routers.tpp-incident-webhook.tls.certresolver: letsencrypt
+      traefik.http.routers.tpp-incident-webhook.service: tpp-incident-webhook
+      traefik.http.routers.tpp-incident-webhook.observability.accesslogs: 'false'
+      traefik.http.routers.tpp-incident-webhook.observability.tracing: 'false'
+      traefik.http.services.tpp-incident-webhook.loadbalancer.server.port: '8080'
+  incident-collector:
+    image: sha256:2d8da50510f415cdd8a3c83593fee7964d0af580242220a15ec226863bc0f9b7
+    pull_policy: never
+    restart: unless-stopped
+    read_only: true
+    cap_drop: *id001
+    security_opt: *id002
+    tmpfs: *id003
+    volumes: *id004
+    configs: *id005
+    deploy: *id006
+    container_name: tpp-infra-incident-collector
+    command:
+    - python
+    - -m
+    - incident_triage
+    - loop
+    networks:
+    - evidence
+    - egress
+    environment:
+      INCIDENT_STATE: /state/incidents.db
+      INCIDENT_SERVICES: /config/services.json
+      INCIDENT_GLITCHTIP_READ_TOKEN: ${INCIDENT_GLITCHTIP_READ_TOKEN:?required}
+      MONITORING_CONFIG_REVISION: 19a21ccef0c4a009
+    depends_on:
+      incident-ingress:
+        condition: service_healthy
+    healthcheck:
+      test:
+      - CMD
+      - python
+      - -m
+      - incident_triage
+      - health
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+configs:
+  gatus-config:
+    file: /etc/dokploy/monitoring/tpp-infra-gatus/gatus.json
+  services-map:
+    file: /etc/dokploy/monitoring/tpp-infra-gatus/services.json
+volumes:
+  incident-state: {}
+  gatus-state: {}
+networks:
+  dokploy-network:
+    external: true
+  evidence:
+    internal: true
+  egress: {}
