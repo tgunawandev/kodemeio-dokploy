@@ -1,0 +1,269 @@
+volumes:
+  jitsi-web-config: null
+  jitsi-transcripts: null
+  jitsi-prosody-config: null
+  jitsi-prosody-plugins: null
+  jitsi-jicofo-config: null
+  jitsi-jvb-config: null
+  coturn-data: null
+networks:
+  dokploy-network:
+    external: true
+  jitsi-internal: null
+services:
+  web:
+    image: jitsi/web:${JITSI_IMAGE_VERSION}
+    restart: ${RESTART_POLICY:-unless-stopped}
+    networks:
+    - jitsi-internal
+    - dokploy-network
+    depends_on:
+    - prosody
+    volumes:
+    - jitsi-web-config:/config:Z
+    - jitsi-transcripts:/usr/share/jitsi-meet/transcripts:Z
+    healthcheck:
+      test:
+      - CMD
+      - curl
+      - -fsS
+      - http://localhost/
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          memory: 128M
+    labels:
+    - logging=promtail
+    - logging.format=json
+    - app=jitsi
+    - app.component=web
+    environment:
+      PUBLIC_URL: https://${JITSI_DOMAIN}
+      TZ: ${TZ:-Asia/Jakarta}
+      DISABLE_HTTPS: '1'
+      ENABLE_HTTP_REDIRECT: '0'
+      ENABLE_AUTH: ${ENABLE_AUTH:-1}
+      ENABLE_GUESTS: ${ENABLE_GUESTS:-1}
+      ENABLE_LOBBY: ${ENABLE_LOBBY:-true}
+      AUTH_TYPE: ${AUTH_TYPE:-jwt}
+      JWT_ASAP_KEYSERVER: ${JWT_ASAP_KEYSERVER}
+      JWT_ACCEPTED_ISSUERS: ${JWT_ACCEPTED_ISSUERS}
+      JWT_ACCEPTED_AUDIENCES: ${JWT_ACCEPTED_AUDIENCES}
+      JWT_APP_ID: ${JWT_APP_ID}
+      JWT_APP_SECRET: ${JWT_APP_SECRET}
+      TURN_HOST: ${JITSI_DOMAIN}
+      TURN_PORT: ${COTURN_PORT:-5349}
+      TURN_TRANSPORT: udp
+      TURN_CREDENTIALS: ${COTURN_SHARED_SECRET}
+      SENTRY_DSN: ${SENTRY_DSN}
+      ENABLE_PREJOIN_PAGE: '1'
+      ENABLE_REQUIRE_DISPLAY_NAME: '1'
+      DISABLE_THIRD_PARTY_REQUESTS: '1'
+      XMPP_DOMAIN: meet.jitsi
+      XMPP_AUTH_DOMAIN: auth.meet.jitsi
+      XMPP_BOSH_URL_BASE: http://xmpp.meet.jitsi:5280
+      XMPP_GUEST_DOMAIN: guest.meet.jitsi
+      XMPP_MUC_DOMAIN: muc.meet.jitsi
+      XMPP_RECORDER_DOMAIN: recorder.meet.jitsi
+    memswap_limit: 1024M
+  prosody:
+    image: jitsi/prosody:${JITSI_IMAGE_VERSION}
+    restart: ${RESTART_POLICY:-unless-stopped}
+    networks:
+      jitsi-internal:
+        aliases:
+        - xmpp.meet.jitsi
+    expose:
+    - '5222'
+    - '5347'
+    - '5280'
+    volumes:
+    - jitsi-prosody-config:/config:Z
+    - jitsi-prosody-plugins:/prosody-plugins-custom:Z
+    healthcheck:
+      test:
+      - CMD
+      - prosodyctl
+      - --config
+      - /config/prosody.cfg.lua
+      - status
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          memory: 128M
+    labels:
+    - logging=promtail
+    - logging.format=json
+    - app=jitsi
+    - app.component=prosody
+    environment:
+      PUBLIC_URL: https://${JITSI_DOMAIN}
+      TZ: ${TZ:-Asia/Jakarta}
+      ENABLE_AUTH: ${ENABLE_AUTH:-1}
+      ENABLE_GUESTS: ${ENABLE_GUESTS:-1}
+      ENABLE_LOBBY: ${ENABLE_LOBBY:-true}
+      AUTH_TYPE: ${AUTH_TYPE:-jwt}
+      JWT_ASAP_KEYSERVER: ${JWT_ASAP_KEYSERVER}
+      JWT_ACCEPTED_ISSUERS: ${JWT_ACCEPTED_ISSUERS}
+      JWT_ACCEPTED_AUDIENCES: ${JWT_ACCEPTED_AUDIENCES}
+      JWT_APP_ID: ${JWT_APP_ID}
+      JWT_APP_SECRET: ${JWT_APP_SECRET}
+      JICOFO_AUTH_PASSWORD: ${JICOFO_AUTH_PASSWORD}
+      JVB_AUTH_PASSWORD: ${JVB_AUTH_PASSWORD}
+      JIGASI_XMPP_PASSWORD: ${JIGASI_XMPP_PASSWORD:-unused}
+      JIGASI_TRANSCRIBER_PASSWORD: ${JIGASI_TRANSCRIBER_PASSWORD:-unused}
+      JIBRI_RECORDER_PASSWORD: ${JIBRI_RECORDER_PASSWORD:-unused}
+      JIBRI_XMPP_PASSWORD: ${JIBRI_XMPP_PASSWORD:-unused}
+      XMPP_DOMAIN: meet.jitsi
+      XMPP_AUTH_DOMAIN: auth.meet.jitsi
+      XMPP_GUEST_DOMAIN: guest.meet.jitsi
+      XMPP_MUC_DOMAIN: muc.meet.jitsi
+      XMPP_INTERNAL_MUC_DOMAIN: internal-muc.meet.jitsi
+      XMPP_RECORDER_DOMAIN: recorder.meet.jitsi
+      XMPP_CROSS_DOMAIN: 'true'
+      TURN_HOST: ${JITSI_DOMAIN}
+      TURN_PORT: ${COTURN_PORT:-5349}
+      TURN_TRANSPORT: tcp,udp
+      TURN_CREDENTIALS: ${COTURN_SHARED_SECRET}
+    memswap_limit: 1024M
+  jicofo:
+    image: jitsi/jicofo:${JITSI_IMAGE_VERSION}
+    restart: ${RESTART_POLICY:-unless-stopped}
+    networks:
+    - jitsi-internal
+    depends_on:
+    - prosody
+    volumes:
+    - jitsi-jicofo-config:/config:Z
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - pidof java || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          memory: 128M
+    labels:
+    - logging=promtail
+    - logging.format=json
+    - app=jitsi
+    - app.component=jicofo
+    environment:
+      TZ: ${TZ:-Asia/Jakarta}
+      ENABLE_AUTH: ${ENABLE_AUTH:-1}
+      ENABLE_GUESTS: ${ENABLE_GUESTS:-1}
+      AUTH_TYPE: ${AUTH_TYPE:-jwt}
+      JICOFO_AUTH_PASSWORD: ${JICOFO_AUTH_PASSWORD}
+      JICOFO_ENABLE_BRIDGE_HEALTH_CHECKS: 'true'
+      XMPP_DOMAIN: meet.jitsi
+      XMPP_AUTH_DOMAIN: auth.meet.jitsi
+      XMPP_INTERNAL_MUC_DOMAIN: internal-muc.meet.jitsi
+      XMPP_MUC_DOMAIN: muc.meet.jitsi
+      XMPP_SERVER: xmpp.meet.jitsi
+    memswap_limit: 1024M
+  jvb:
+    image: jitsi/jvb:${JITSI_IMAGE_VERSION}
+    restart: ${RESTART_POLICY:-unless-stopped}
+    networks:
+    - jitsi-internal
+    depends_on:
+    - prosody
+    ports:
+    - ${JVB_PORT:-10000}:${JVB_PORT:-10000}/udp
+    volumes:
+    - jitsi-jvb-config:/config:Z
+    healthcheck:
+      test:
+      - CMD
+      - curl
+      - -fsS
+      - http://localhost:8080/about/health
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          memory: 512M
+    labels:
+    - logging=promtail
+    - logging.format=json
+    - app=jitsi
+    - app.component=jvb
+    environment:
+      TZ: ${TZ:-Asia/Jakarta}
+      PUBLIC_URL: https://${JITSI_DOMAIN}
+      JVB_AUTH_PASSWORD: ${JVB_AUTH_PASSWORD}
+      JVB_ADVERTISE_IPS: ${JVB_ADVERTISE_IPS}
+      JVB_PORT: ${JVB_PORT:-10000}
+      JVB_ENABLE_STATISTICS: ${JVB_ENABLE_STATISTICS:-true}
+      XMPP_AUTH_DOMAIN: auth.meet.jitsi
+      XMPP_INTERNAL_MUC_DOMAIN: internal-muc.meet.jitsi
+      XMPP_SERVER: xmpp.meet.jitsi
+      COLIBRI_REST_ENABLED: 'true'
+    memswap_limit: 4G
+  coturn:
+    image: coturn/coturn:${COTURN_IMAGE_VERSION}
+    restart: ${RESTART_POLICY:-unless-stopped}
+    networks:
+    - jitsi-internal
+    ports:
+    - ${COTURN_PORT:-5349}:${COTURN_PORT:-5349}/tcp
+    - ${COTURN_PORT:-5349}:${COTURN_PORT:-5349}/udp
+    - 49160-49200:49160-49200/udp
+    volumes:
+    - coturn-data:/var/lib/coturn
+    command:
+    - -n
+    - --log-file=stdout
+    - --listening-port=${COTURN_PORT:-5349}
+    - --realm=${COTURN_REALM}
+    - --use-auth-secret
+    - --static-auth-secret=${COTURN_SHARED_SECRET}
+    - --no-cli
+    - --no-tlsv1
+    - --no-tlsv1_1
+    - --min-port=49160
+    - --max-port=49200
+    - --external-ip=${JVB_ADVERTISE_IPS}
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - pidof turnserver || exit 1
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          memory: 64M
+    labels:
+    - logging=promtail
+    - logging.format=json
+    - app=jitsi
+    - app.component=coturn
+    memswap_limit: 512M

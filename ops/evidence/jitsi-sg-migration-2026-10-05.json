@@ -1,0 +1,658 @@
+{
+  "executed_at": "2026-10-05T05:34:43.889915+00:00",
+  "production": {
+    "host": "jitsi.idtpp.com",
+    "server": "tpp-prod-06",
+    "ip": "5.223.69.142",
+    "compose_id": "ecS_rlMmI25Pnc-AdedA3",
+    "deployment_id": "mHazK2QF_JajEew3j4Dmr",
+    "dns_record_id": "2bbe800431708b9b27670ba6ad50ff88",
+    "dns_only": true,
+    "dns_ttl_seconds": 60,
+    "verified_resolvers": [
+      "desiree.ns.cloudflare.com",
+      "1.1.1.1",
+      "8.8.8.8"
+    ],
+    "https_status": 200,
+    "tls_verified": true,
+    "acme_managed": true
+  },
+  "rollback": {
+    "server": "tpp-prod-01",
+    "ip": "178.104.127.104",
+    "compose_id": "mWq0GSmAbyUtIjcEnWgCj",
+    "name": "tpp-infra-jitsi-eu-rollback",
+    "containers_stopped": true,
+    "volumes_retained": true
+  },
+  "backup": {
+    "volume_count": 7,
+    "files": 54,
+    "source_files_unchanged_during_final_archive": true,
+    "final_archive_sha256": "708931c0a1c3e1b3a12c1b4d8f8dfe4f5c6c685e3f9186e31083baac843b1277"
+  },
+  "memory": {
+    "swap_gib": 8,
+    "swap_persistent": true,
+    "swappiness": 10,
+    "jvb_ram_gib": 2,
+    "jvb_swap_gib": 2,
+    "web_prosody_jicofo_each_ram_mib": 512,
+    "web_prosody_jicofo_each_swap_mib": 512,
+    "coturn_ram_mib": 256,
+    "coturn_swap_mib": 256,
+    "oom_kills": 0,
+    "restarts": 0,
+    "final_available_ram_mib": 5388,
+    "final_swap_used_mib": 30
+  },
+  "latency": {
+    "measurement_origin": "Operator workstation in Indonesia; single client path",
+    "icmp_samples_each": 8,
+    "eu_icmp_mean_ms": 277.933,
+    "sg_icmp_mean_ms": 21.337,
+    "icmp_loss_percent_both": 0,
+    "icmp_improvement_percent": 92.32,
+    "https": {
+      "EU": {
+        "ip": "178.104.127.104",
+        "samples": [
+          {
+            "status": 200,
+            "tcp_s": 0.276673,
+            "tls_s": 0.607892,
+            "ttfb_s": 0.888024,
+            "total_s": 1.168862
+          },
+          {
+            "status": 200,
+            "tcp_s": 0.265989,
+            "tls_s": 0.629442,
+            "ttfb_s": 0.900104,
+            "total_s": 1.165395
+          },
+          {
+            "status": 200,
+            "tcp_s": 0.264516,
+            "tls_s": 0.569187,
+            "ttfb_s": 0.835925,
+            "total_s": 1.10059
+          },
+          {
+            "status": 200,
+            "tcp_s": 0.264711,
+            "tls_s": 0.601939,
+            "ttfb_s": 0.871355,
+            "total_s": 1.136601
+          },
+          {
+            "status": 200,
+            "tcp_s": 0.264754,
+            "tls_s": 0.586814,
+            "ttfb_s": 0.856548,
+            "total_s": 1.121283
+          }
+        ],
+        "average_ttfb_ms": 870.39
+      },
+      "SG": {
+        "ip": "5.223.69.142",
+        "samples": [
+          {
+            "status": 200,
+            "tcp_s": 0.024235,
+            "tls_s": 0.356218,
+            "ttfb_s": 0.379764,
+            "total_s": 0.399888
+          },
+          {
+            "status": 200,
+            "tcp_s": 0.025106,
+            "tls_s": 0.3843,
+            "ttfb_s": 0.408818,
+            "total_s": 0.429893
+          },
+          {
+            "status": 200,
+            "tcp_s": 0.022246,
+            "tls_s": 0.262095,
+            "ttfb_s": 0.283516,
+            "total_s": 0.302241
+          },
+          {
+            "status": 200,
+            "tcp_s": 0.019247,
+            "tls_s": 0.263436,
+            "ttfb_s": 0.289584,
+            "total_s": 0.310399
+          },
+          {
+            "status": 200,
+            "tcp_s": 0.019558,
+            "tls_s": 0.116378,
+            "ttfb_s": 0.140994,
+            "total_s": 0.159722
+          }
+        ],
+        "average_ttfb_ms": 300.54
+      },
+      "measuredAt": "2026-10-05T05:31:44.100270+00:00"
+    }
+  },
+  "media": {
+    "eu_direct": {
+      "checked_at": "2026-10-05T05:29:50.575Z",
+      "participants": 3,
+      "result": "passed",
+      "stats": [
+        {
+          "participant": 1,
+          "state": "connected",
+          "received_bytes": 697263,
+          "sent_bytes": 2876197,
+          "packets_lost": 3,
+          "ice_transport_policy": "all",
+          "pairs": [
+            {
+              "state": "succeeded",
+              "localType": "prflx",
+              "remoteType": "srflx",
+              "remoteAddress": "178.104.127.104",
+              "remotePort": 10000,
+              "currentRoundTripTime": 0.444
+            }
+          ],
+          "media": [
+            {
+              "kind": "audio",
+              "bytesReceived": 64430
+            },
+            {
+              "kind": "video",
+              "bytesReceived": 632833,
+              "framesDecoded": 131
+            }
+          ],
+          "relay_candidates": []
+        },
+        {
+          "participant": 2,
+          "state": "connected",
+          "received_bytes": 790217,
+          "sent_bytes": 2928355,
+          "packets_lost": 0,
+          "ice_transport_policy": "all",
+          "pairs": [
+            {
+              "state": "succeeded",
+              "localType": "prflx",
+              "remoteType": "srflx",
+              "remoteAddress": "178.104.127.104",
+              "remotePort": 10000,
+              "currentRoundTripTime": 0.277
+            }
+          ],
+          "media": [
+            {
+              "kind": "audio",
+              "bytesReceived": 74398
+            },
+            {
+              "kind": "video",
+              "bytesReceived": 715819,
+              "framesDecoded": 150
+            }
+          ],
+          "relay_candidates": []
+        },
+        {
+          "participant": 3,
+          "state": "connected",
+          "received_bytes": 8000,
+          "sent_bytes": 1249,
+          "packets_lost": 0,
+          "ice_transport_policy": "all",
+          "pairs": [
+            {
+              "state": "succeeded",
+              "localType": "prflx",
+              "remoteType": "srflx",
+              "remoteAddress": "178.104.127.104",
+              "remotePort": 10000,
+              "currentRoundTripTime": 0.339
+            }
+          ],
+          "media": [
+            {
+              "kind": "audio",
+              "bytesReceived": 1688
+            },
+            {
+              "kind": "video",
+              "bytesReceived": 6312,
+              "framesDecoded": 0
+            }
+          ],
+          "relay_candidates": []
+        }
+      ],
+      "mean_media_rtt_ms": 353.33
+    },
+    "sg_direct": {
+      "checked_at": "2026-10-05T05:28:36.543Z",
+      "participants": 3,
+      "result": "passed",
+      "stats": [
+        {
+          "participant": 1,
+          "state": "connected",
+          "received_bytes": 577308,
+          "sent_bytes": 1236210,
+          "packets_lost": 1,
+          "ice_transport_policy": "all",
+          "pairs": [
+            {
+              "state": "succeeded",
+              "localType": "prflx",
+              "remoteType": "srflx",
+              "remoteAddress": "5.223.69.142",
+              "remotePort": 10000,
+              "currentRoundTripTime": 0.021
+            }
+          ],
+          "media": [
+            {
+              "kind": "audio",
+              "bytesReceived": 28739
+            },
+            {
+              "kind": "video",
+              "bytesReceived": 0,
+              "framesDecoded": 1
+            },
+            {
+              "kind": "video",
+              "bytesReceived": 548569,
+              "framesDecoded": 148
+            }
+          ],
+          "relay_candidates": []
+        },
+        {
+          "participant": 2,
+          "state": "connected",
+          "received_bytes": 559515,
+          "sent_bytes": 1097523,
+          "packets_lost": 1,
+          "ice_transport_policy": "all",
+          "pairs": [
+            {
+              "state": "succeeded",
+              "localType": "prflx",
+              "remoteType": "srflx",
+              "remoteAddress": "5.223.69.142",
+              "remotePort": 10000,
+              "currentRoundTripTime": 0.027
+            }
+          ],
+          "media": [
+            {
+              "kind": "audio",
+              "bytesReceived": 29200
+            },
+            {
+              "kind": "video",
+              "bytesReceived": 530315,
+              "framesDecoded": 148
+            }
+          ],
+          "relay_candidates": []
+        },
+        {
+          "participant": 3,
+          "state": "connected",
+          "received_bytes": 30485,
+          "sent_bytes": 12580,
+          "packets_lost": 0,
+          "ice_transport_policy": "all",
+          "pairs": [
+            {
+              "state": "succeeded",
+              "localType": "prflx",
+              "remoteType": "srflx",
+              "remoteAddress": "5.223.69.142",
+              "remotePort": 10000,
+              "currentRoundTripTime": 0.044
+            }
+          ],
+          "media": [
+            {
+              "kind": "video",
+              "bytesReceived": 0,
+              "framesDecoded": 1
+            },
+            {
+              "kind": "video",
+              "bytesReceived": 14424,
+              "framesDecoded": 8
+            },
+            {
+              "kind": "video",
+              "bytesReceived": 16061,
+              "framesDecoded": 9
+            }
+          ],
+          "relay_candidates": []
+        }
+      ],
+      "mean_media_rtt_ms": 30.67
+    },
+    "sg_forced_turn_tcp": {
+      "checked_at": "2026-10-05T05:33:34.608Z",
+      "participants": 3,
+      "result": "passed",
+      "stats": [
+        {
+          "participant": 1,
+          "state": "connected",
+          "received_bytes": 624621,
+          "sent_bytes": 1462876,
+          "packets_lost": 0,
+          "ice_transport_policy": "relay",
+          "pairs": [
+            {
+              "state": "succeeded",
+              "localType": "prflx",
+              "localPort": 49173,
+              "relayProtocol": "tcp",
+              "remoteType": "host",
+              "remoteAddress": "172.19.0.4",
+              "remotePort": 10000,
+              "currentRoundTripTime": 0.024
+            }
+          ],
+          "media": [
+            {
+              "kind": "audio",
+              "bytesReceived": 36060
+            },
+            {
+              "kind": "video",
+              "bytesReceived": 588561,
+              "framesDecoded": 156
+            }
+          ],
+          "relay_candidates": [
+            {
+              "candidateType": "relay",
+              "address": "5.223.69.142",
+              "port": 49173,
+              "protocol": "udp",
+              "relayProtocol": "tcp"
+            }
+          ]
+        },
+        {
+          "participant": 2,
+          "state": "connected",
+          "received_bytes": 622962,
+          "sent_bytes": 1463153,
+          "packets_lost": 0,
+          "ice_transport_policy": "relay",
+          "pairs": [
+            {
+              "state": "succeeded",
+              "localType": "prflx",
+              "localPort": 49165,
+              "relayProtocol": "tcp",
+              "remoteType": "host",
+              "remoteAddress": "172.19.0.4",
+              "remotePort": 10000,
+              "currentRoundTripTime": 0.028
+            }
+          ],
+          "media": [
+            {
+              "kind": "audio",
+              "bytesReceived": 36517
+            },
+            {
+              "kind": "video",
+              "bytesReceived": 586445,
+              "framesDecoded": 154
+            }
+          ],
+          "relay_candidates": [
+            {
+              "candidateType": "relay",
+              "address": "5.223.69.142",
+              "port": 49165,
+              "protocol": "udp",
+              "relayProtocol": "tcp"
+            }
+          ]
+        },
+        {
+          "participant": 3,
+          "state": "connected",
+          "received_bytes": 17658,
+          "sent_bytes": 10969,
+          "packets_lost": 0,
+          "ice_transport_policy": "relay",
+          "pairs": [
+            {
+              "state": "succeeded",
+              "localType": "prflx",
+              "localPort": 49166,
+              "relayProtocol": "tcp",
+              "remoteType": "host",
+              "remoteAddress": "172.19.0.4",
+              "remotePort": 10000,
+              "currentRoundTripTime": 0.027
+            }
+          ],
+          "media": [
+            {
+              "kind": "video",
+              "bytesReceived": 8795,
+              "framesDecoded": 1
+            },
+            {
+              "kind": "video",
+              "bytesReceived": 8863,
+              "framesDecoded": 1
+            }
+          ],
+          "relay_candidates": [
+            {
+              "candidateType": "relay",
+              "address": "5.223.69.142",
+              "port": 49166,
+              "protocol": "udp",
+              "relayProtocol": "tcp"
+            }
+          ]
+        }
+      ],
+      "mean_media_rtt_ms": 26.33
+    }
+  },
+  "turn_echo": {
+    "checkedAt": "2026-10-05T05:11:45.214Z",
+    "result": [
+      {
+        "transport": "udp",
+        "messages": 10,
+        "peers": [
+          {
+            "connectionState": "connected",
+            "pairs": [
+              {
+                "localType": "relay",
+                "localAddress": "5.223.69.142",
+                "localPort": 49175,
+                "relayProtocol": "udp",
+                "remoteType": "relay",
+                "remoteAddress": "5.223.69.142",
+                "remotePort": 49165,
+                "bytesSent": 12207,
+                "bytesReceived": 12209
+              }
+            ]
+          },
+          {
+            "connectionState": "connected",
+            "pairs": [
+              {
+                "localType": "relay",
+                "localAddress": "5.223.69.142",
+                "localPort": 49165,
+                "relayProtocol": "udp",
+                "remoteType": "relay",
+                "remoteAddress": "5.223.69.142",
+                "remotePort": 49175,
+                "bytesSent": 12209,
+                "bytesReceived": 11907
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "transport": "tcp",
+        "messages": 10,
+        "peers": [
+          {
+            "connectionState": "connected",
+            "pairs": [
+              {
+                "localType": "relay",
+                "localAddress": "5.223.69.142",
+                "localPort": 49173,
+                "relayProtocol": "tcp",
+                "remoteType": "relay",
+                "remoteAddress": "5.223.69.142",
+                "remotePort": 49164,
+                "bytesSent": 12208,
+                "bytesReceived": 12169
+              }
+            ]
+          },
+          {
+            "connectionState": "connected",
+            "pairs": [
+              {
+                "localType": "relay",
+                "localAddress": "5.223.69.142",
+                "localPort": 49164,
+                "relayProtocol": "tcp",
+                "remoteType": "relay",
+                "remoteAddress": "5.223.69.142",
+                "remotePort": 49173,
+                "bytesSent": 12169,
+                "bytesReceived": 12108
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "existing_services": {
+    "mm.idtpp.com": "OK",
+    "mac-mm.idtpp.com": "OK"
+  },
+  "limitations": [
+    "Short synthetic 3- and 5-participant tests, not a validated maximum meeting capacity",
+    "Existing ENABLE_AUTH=0 and ENABLE_GUESTS=1 preserved",
+    "Swap provides reserve, not a guarantee against OOM",
+    "Mattermost HTTP health checked; Mattermost voice calls not exercised"
+  ],
+  "mattermost_jitsi": {
+    "site_url": "https://mm.idtpp.com",
+    "jitsi_plugin_enabled": true,
+    "jitsi_url": "https://jitsi.idtpp.com",
+    "embedded": true,
+    "plugin_version": "2.1.0",
+    "sdk_status": 200,
+    "sdk_source": "https://mm.idtpp.com/plugins/jitsi/jitsi_meet_external_api.js",
+    "embedded_media_test": {
+      "result": "passed",
+      "checked_at": "2026-10-05T05:39:00.553Z",
+      "parent_origin": "https://mm.idtpp.com",
+      "participants": 3,
+      "stats": [
+        {
+          "participant": 1,
+          "connection_state": "connected",
+          "received_bytes": 567212,
+          "decoded_video_frames": 137,
+          "selected_bridge": "5.223.69.142",
+          "media": [
+            {
+              "kind": "audio",
+              "bytesReceived": 28947
+            },
+            {
+              "kind": "video",
+              "bytesReceived": 538265,
+              "framesDecoded": 137
+            }
+          ]
+        },
+        {
+          "participant": 2,
+          "connection_state": "connected",
+          "received_bytes": 522843,
+          "decoded_video_frames": 127,
+          "selected_bridge": "5.223.69.142",
+          "media": [
+            {
+              "kind": "audio",
+              "bytesReceived": 28897
+            },
+            {
+              "kind": "video",
+              "bytesReceived": 493946,
+              "framesDecoded": 127
+            }
+          ]
+        },
+        {
+          "participant": 3,
+          "connection_state": "connected",
+          "received_bytes": 25799,
+          "decoded_video_frames": 11,
+          "selected_bridge": "5.223.69.142",
+          "media": [
+            {
+              "kind": "audio",
+              "bytesReceived": 404
+            },
+            {
+              "kind": "audio",
+              "bytesReceived": 390
+            },
+            {
+              "kind": "video",
+              "bytesReceived": 12510,
+              "framesDecoded": 5
+            },
+            {
+              "kind": "video",
+              "bytesReceived": 12495,
+              "framesDecoded": 5
+            },
+            {
+              "kind": "video",
+              "bytesReceived": 0,
+              "framesDecoded": 1
+            }
+          ]
+        }
+      ],
+      "method": "Synthetic room embedded from Mattermost origin using its actual plugin SDK; no channel posts or login UI actions"
+    }
+  }
+}

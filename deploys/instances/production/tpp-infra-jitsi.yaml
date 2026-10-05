@@ -1,21 +1,25 @@
 kind: instance
-extends: ../../bases/infra.yaml
+type: infrastructure
 
 instance:
   name: tpp-infra-jitsi
-  description: "TPP Jitsi Meet — self-hosted video conferencing with Authentik JWT, Zulip/SOGo integration"
+  description: "TPP Jitsi Meet — production video conferencing in Singapore"
 
 project: tpp
 environment: production
-server: tpp-prod-01
+server: tpp-prod-06
 
-source_overrides:
-  repo: kodemeio-jitsi
-  compose_path: ./docker-compose.prod.yml
+# This stack uses Dokploy's raw Compose source. Deploy with compose update,
+# env push, and compose start; deploy apply currently assumes a GitHub source.
+# See ops/runbooks/jitsi-sg-migration-execution-2026-10-05.md.
+source:
+  type: raw
+  compose_path: deploys/composes/jitsi/docker-compose.prod.yml
 
 dns:
   zone: idtpp.com
   name: jitsi
+  content: 5.223.69.142
 
 domain:
   host: jitsi.idtpp.com
@@ -26,8 +30,24 @@ domain:
 
 env_file: ../../env/production/.env.tpp-infra-jitsi
 
+healthcheck:
+  path: /
+  port: 80
+  expected_status: 200
+  timeout: 60
+  interval: 10
+
+env_defaults:
+  TZ: "Asia/Jakarta"
+
+# Jitsi has no PostgreSQL database. Migration volume archives are documented
+# in the execution runbook; no scheduled volume backup existed on the source.
+backup: null
+
 # Post-deploy manual steps (not handled by pipeline):
-#  1. Firewall on tpp-prod-01: open UDP 10000 (JVB) + TCP/UDP 5349 (coturn)
+#  1. Firewall on tpp-prod-06: UDP 10000 (JVB), TCP/UDP 5349 (coturn),
+#     and UDP 49160-49200 (coturn relay allocations).
+# Optional authentication setup (currently ENABLE_AUTH=0; not enabled by migration):
 #  2. Authentik (auth.idtpp.com) OIDC provider `jitsi` — Client ID MUST be set
 #     to "jitsi" explicitly (not auto/UUID). See kodemeio-jitsi/docs/authentik-setup.md
 #  3. Create `jitsi-moderators` group in Authentik and add operator users

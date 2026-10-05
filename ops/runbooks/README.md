@@ -11,6 +11,8 @@ safe operating instructions.
 | [p9-incident-rotation-access-review.md](p9-incident-rotation-access-review.md) | P9: incident coordination, credential rotation calendar, and quarterly access review |
 | [postgres-restore.md](postgres-restore.md) | Restore a compose-embedded PostgreSQL database |
 | [mattermost-sg-migration.md](mattermost-sg-migration.md) | Reviewed Mattermost Singapore migration |
+| [jitsi-sg-migration-execution-2026-10-05.md](jitsi-sg-migration-execution-2026-10-05.md) | Completed Jitsi Singapore migration: production placement, latency, swap, Mattermost validation, deployment, and rollback |
+| [jitsi-sg-migration-assessment-2026-10-05.md](jitsi-sg-migration-assessment-2026-10-05.md) | Jitsi capacity and migration assessment before execution; current state is in the execution report |
 | [hetzner-disk-resize.md](hetzner-disk-resize.md) | Resize Hetzner disks and filesystems |
 | [odoo-mcp-governance-rollout.md](odoo-mcp-governance-rollout.md) | Install/upgrade the MCP governance addons (fail-closed binding, kill switch, rollback) |
 | [chatwoot-host.md](chatwoot-host.md) | CW1: provision the Chatwoot/kido_chat host (M1) |

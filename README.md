@@ -13,6 +13,7 @@ consumes `kctl-dokploy`; it does not contain CLI implementation code.
 deploys/
 ├── bases/                  # Reusable manifest bases
 ├── bootstrap/              # Dokploy and Traefik bootstrap assets
+├── composes/               # Versioned raw Compose definitions
 ├── env/                    # Gitignored values + committed .example contracts
 ├── instances/              # local, staging, and production desired state
 ├── migrations/             # Server/application migration manifests
@@ -102,6 +103,7 @@ GitHub environment.
 
 - [Architecture](docs/architecture.md)
 - [Migration SOP](docs/migration-sop.md)
+- [Jitsi Singapore migration report](ops/runbooks/jitsi-sg-migration-execution-2026-10-05.md)
 - [PostgreSQL restore](ops/runbooks/postgres-restore.md)
 - [Repository consolidation ADR](docs/adrs/0001-dokploy-consolidation.md)
 - [Contributing](CONTRIBUTING.md)
