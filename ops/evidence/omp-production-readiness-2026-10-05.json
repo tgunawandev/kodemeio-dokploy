@@ -1,0 +1,95 @@
+{
+  "schema": "omp.production-readiness.v1",
+  "source_sha": "6779db2e6be05d01d04e00c6b4e3db59f0c21239",
+  "registry_image": "ghcr.io/tgunawandev/kodemeio-omp@sha256:aac0a855a0e95efb0054d29bef89d01f3cf5e1df0f6f79d3bdddaf6a80ea5163",
+  "tested_image_id": "sha256:d059deccec05fd8dbead041e4f2b0b292cc05e3124b8e9de410f0b00a7180cc2",
+  "source_pr": "https://github.com/tgunawandev/kodemeio-omp/pull/2",
+  "source_ci": "https://github.com/tgunawandev/kodemeio-omp/actions/runs/37289978526",
+  "required_source_check": "validate",
+  "required_source_check_result": "success",
+  "protected_source_main": true,
+  "compose_id": "OaeHlGC5BvVH6R3W-rh9q",
+  "environment": "production",
+  "server_id": "3aceAeKfqzyFWTppqDAlI",
+  "registry_visibility": "private",
+  "canary": {
+    "passed": true,
+    "provider": "deepseek/deepseek-flash",
+    "published": false,
+    "independent_worktrees": true,
+    "separate_planning_and_review": true,
+    "developer_committed": true,
+    "required_check_passed": true,
+    "verdict": "approve",
+    "original_checkout_unchanged": true,
+    "verified_at": 1791195033.3310006,
+    "image_id": "sha256:d059deccec05fd8dbead041e4f2b0b292cc05e3124b8e9de410f0b00a7180cc2",
+    "source_sha": "6779db2e6be05d01d04e00c6b4e3db59f0c21239",
+    "production_mounts": false,
+    "doctor_passed": true
+  },
+  "backup_restore": {
+    "schema": "omp.state-backup.v1",
+    "verified_at": 1791194369.9079888,
+    "path": "/root/omp-release-backups/6779db2-20261005",
+    "volumes": [
+      {
+        "volume": "compose-program-optical-panel-vswhbh_friday-state",
+        "archive_sha256": "91312bc5b96d4dd9b7b6f8d7cdc0db3a2af6692f0183b6399125a6afdfb4bdab",
+        "archive_bytes": 46499,
+        "restored_files_verified": 48,
+        "restored_into_scratch": true
+      },
+      {
+        "volume": "compose-program-optical-panel-vswhbh_friday-workspace",
+        "archive_sha256": "8e73736801203e5fadb994bc80ab52e6c7af01e27df3e9587f9fed576a7e4148",
+        "archive_bytes": 253932593,
+        "restored_files_verified": 32533,
+        "restored_into_scratch": true
+      },
+      {
+        "volume": "compose-program-optical-panel-vswhbh_veronica-state",
+        "archive_sha256": "a88c6bcd7f35d253c225bd158b3f27c9be4b8ff792386636d7d707e2e4a66a94",
+        "archive_bytes": 47121,
+        "restored_files_verified": 47,
+        "restored_into_scratch": true
+      },
+      {
+        "volume": "compose-program-optical-panel-vswhbh_veronica-workspace",
+        "archive_sha256": "99e61ebce7ddcfdd1bda16c5394a2c4a385e0af2ea8f0b51f58620190ab39254",
+        "archive_bytes": 253930954,
+        "restored_files_verified": 32533,
+        "restored_into_scratch": true
+      }
+    ],
+    "live_volumes_overwritten": false
+  },
+  "secret_drift": false,
+  "automatic_deploy": false,
+  "delivery": "founder-authorized operator rollout through Dokploy CD after GitHub CI",
+  "unregistered_integrations": [
+    "hermes_gateway",
+    "orca",
+    "hermes_control",
+    "desk_writer",
+    "production_pipeline_gateway"
+  ],
+  "post_deploy_checks": [
+    "Dokploy deployment done",
+    "both native terminal healthchecks healthy",
+    "both exact source and image digests",
+    "actual role-specific guarded native tool arguments",
+    "same four state/workspace mounts",
+    "non-root read-only root no public ports no production credential mounts",
+    "doctor runtime/skills/settings parity",
+    "bounded provider and independent workflow acceptance",
+    "recorded native VERONICA health assessment"
+  ],
+  "rollback": {
+    "source_sha": "8ff7f5ecef01f3dcb1cac5554a60ca56615abc43",
+    "local_image_id": "sha256:37fe34650226e84a714f8446c9ed2673bce8ad312f29cfc845c9dfe9fc3eeb22",
+    "founder_approval_required": true,
+    "preserve_new_audit_rows": true,
+    "automatic_rollback": false
+  }
+}

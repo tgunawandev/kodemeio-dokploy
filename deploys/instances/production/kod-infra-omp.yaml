@@ -1,28 +1,34 @@
-kind: instance
-type: infrastructure
-instance:
-  name: kod-infra-omp
-  description: "OMP coding terminals: independent FRIDAY developer and VERONICA planner/reviewer"
-project: apps
-environment: production
-auto_deploy: false
-server: kod-prod-02
-source:
-  type: github
-  owner: tgunawandev
-  repo: kodemeio-omp
-  branch: release/omp-local-cloud-yolo-20261005
-  compose_path: docker-compose.prod.yml
-env_file: ../../env/production/.env.kod-infra-omp
-env_overrides:
-  OMP_CONTAINER_PREFIX: kod-infra-omp
-  OMP_PRESET: deepseek
-  OMP_IMAGE_TAG: 8ff7f5e
-  OMP_BUILD_COMMIT: 8ff7f5ecef01f3dcb1cac5554a60ca56615abc43
-  OMP_MEMORY_LIMIT: 768m
-  OMP_CPU_LIMIT: '1'
-  TZ: Asia/Jakarta
-healthcheck:
-  timeout: 300
-# No public domain/ports: operator uses host SSH and tmux. Native container
-# healthchecks prove terminal liveness; provider acceptance is a separate smoke.
+{
+  "kind": "instance",
+  "type": "infrastructure",
+  "instance": {
+    "name": "kod-infra-omp",
+    "description": "OMP operator terminals: FRIDAY software engineering; VERONICA application reliability and independent release review"
+  },
+  "project": "apps",
+  "environment": "production",
+  "auto_deploy": false,
+  "server": "kod-prod-02",
+  "source": {
+    "type": "github",
+    "owner": "tgunawandev",
+    "repo": "kodemeio-omp",
+    "branch": "release/omp-agent-boundaries-6779db2",
+    "compose_path": "docker-compose.prod.yml"
+  },
+  "env_file": "../../env/production/.env.kod-infra-omp",
+  "env_overrides": {
+    "OMP_CONTAINER_PREFIX": "kod-infra-omp",
+    "OMP_PRESET": "deepseek",
+    "OMP_IMAGE_TAG": "6779db2e6be05d01d04e00c6b4e3db59f0c21239",
+    "OMP_BUILD_COMMIT": "6779db2e6be05d01d04e00c6b4e3db59f0c21239",
+    "OMP_MEMORY_LIMIT": "768m",
+    "OMP_CPU_LIMIT": "1",
+    "TZ": "Asia/Jakarta",
+    "OMP_IMAGE": "ghcr.io/tgunawandev/kodemeio-omp@sha256:aac0a855a0e95efb0054d29bef89d01f3cf5e1df0f6f79d3bdddaf6a80ea5163"
+  },
+  "healthcheck": {
+    "timeout": 300
+  },
+  "command": "compose -p compose-program-optical-panel-vswhbh -f docker-compose.prod.yml up -d --no-build --pull never --remove-orphans"
+}
