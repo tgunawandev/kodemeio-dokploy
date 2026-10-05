@@ -1,0 +1,19 @@
+kind: instance
+type: infrastructure
+instance:
+  name: tpp-infra-operations-read
+  description: "Isolated, authenticated metadata diagnostics for JARVIS and SENTINEL"
+project: tpp
+environment: production
+server: tpp-prod-04
+source:
+  type: github
+  owner: tgunawandev
+  repo: kodemeio-hermes
+  branch: main
+  compose_path: ./docker-compose.operations-read.yml
+# Private MCP only. No domain, direct published port, backup or shared agent env.
+env_file: ../../env/production/.env.tpp-infra-operations-read
+env_defaults:
+  OPERATIONS_READ_PRIVATE_DIR: /etc/kodemeio/operations-read
+  TZ: Asia/Jakarta
