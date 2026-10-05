@@ -654,5 +654,224 @@
       ],
       "method": "Synthetic room embedded from Mattermost origin using its actual plugin SDK; no channel posts or login UI actions"
     }
+  },
+  "audio_followup": {
+    "date": "2026-10-05",
+    "method": "Controlled 440 Hz microphone input, decoded inbound Opus audio energy, and HTML audio playback state; browser autoplay bypass flag not used",
+    "user_confirmed_audio_working": true,
+    "production_configuration_changed_during_audio_diagnostics": false,
+    "cases": [
+      {
+        "case": "Direct Jitsi through SG bridge",
+        "checked_at": "2026-10-05T05:55:24.836Z",
+        "participants": 2,
+        "parent_origin": "https://jitsi.idtpp.com",
+        "result": "passed",
+        "receive_only_last_participant": false,
+        "stats": [
+          {
+            "participant": 1,
+            "microphone_muted": false,
+            "microphone_available": true,
+            "received_audio_bytes": 63342,
+            "decoded_audio_energy": 0.03856052632824777,
+            "playback": [
+              {
+                "paused": false,
+                "muted": false,
+                "volume": 1,
+                "ready_state": 4
+              }
+            ]
+          },
+          {
+            "participant": 2,
+            "microphone_muted": false,
+            "microphone_available": true,
+            "received_audio_bytes": 67796,
+            "decoded_audio_energy": 0.1903092908108346,
+            "playback": [
+              {
+                "paused": false,
+                "muted": false,
+                "volume": 1,
+                "ready_state": 4
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "case": "Mattermost embed with two-person P2P",
+        "checked_at": "2026-10-05T05:55:22.917Z",
+        "participants": 2,
+        "parent_origin": "https://mm.idtpp.com",
+        "result": "passed",
+        "receive_only_last_participant": false,
+        "stats": [
+          {
+            "participant": 1,
+            "microphone_muted": false,
+            "microphone_available": true,
+            "received_audio_bytes": 74712,
+            "decoded_audio_energy": 0.07598212362124741,
+            "playback": [
+              {
+                "paused": false,
+                "muted": false,
+                "volume": 1,
+                "ready_state": 4
+              }
+            ]
+          },
+          {
+            "participant": 2,
+            "microphone_muted": false,
+            "microphone_available": true,
+            "received_audio_bytes": 69475,
+            "decoded_audio_energy": 0.1557216433043531,
+            "playback": [
+              {
+                "paused": false,
+                "muted": false,
+                "volume": 1,
+                "ready_state": 4
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "case": "Mattermost embed with forced SG TURN",
+        "checked_at": "2026-10-05T05:58:37.804Z",
+        "participants": 2,
+        "parent_origin": "https://mm.idtpp.com",
+        "result": "passed",
+        "receive_only_last_participant": false,
+        "stats": [
+          {
+            "participant": 1,
+            "microphone_muted": false,
+            "microphone_available": true,
+            "received_audio_bytes": 43194,
+            "decoded_audio_energy": 0.01684980980333439,
+            "playback": [
+              {
+                "paused": false,
+                "muted": false,
+                "volume": 1,
+                "ready_state": 4
+              }
+            ]
+          },
+          {
+            "participant": 2,
+            "microphone_muted": false,
+            "microphone_available": true,
+            "received_audio_bytes": 42363,
+            "decoded_audio_energy": 0.016473915109435616,
+            "playback": [
+              {
+                "paused": false,
+                "muted": false,
+                "volume": 1,
+                "ready_state": 4
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "case": "Mattermost embed with muted receive-only participant",
+        "checked_at": "2026-10-05T05:59:34.007Z",
+        "participants": 2,
+        "parent_origin": "https://mm.idtpp.com",
+        "result": "passed",
+        "receive_only_last_participant": true,
+        "stats": [
+          {
+            "participant": 1,
+            "microphone_muted": false,
+            "microphone_available": true,
+            "received_audio_bytes": 0,
+            "decoded_audio_energy": 0,
+            "playback": []
+          },
+          {
+            "participant": 2,
+            "microphone_muted": true,
+            "microphone_available": true,
+            "received_audio_bytes": 44823,
+            "decoded_audio_energy": 0.017406299153170445,
+            "playback": [
+              {
+                "paused": false,
+                "muted": false,
+                "volume": 1,
+                "ready_state": 4
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "limits": "Synthetic browser checks verify capture, transport, decoding, and playback state; physical speaker output and affected devices were not remotely inspected. The precise cause of the reported transient failure was not established."
+  },
+  "post_migration_resource_check": {
+    "checked_at_utc": "2026-10-05T06:08:10.573751+00:00",
+    "checked_at_wib": "2026-10-05 13:08 WIB",
+    "source": "Live SSH /proc sampling, Docker stats and inspect, JVB Colibri stats; subsequent sar CPU sample",
+    "server": "tpp-prod-06",
+    "vcpus": 4,
+    "cpu_busy_percent_5s_sample": 5.94,
+    "cpu_busy_percent_subsequent_3s_average": 7.14,
+    "cpu_steal_percent": 0.0,
+    "load_average": [
+      0.11,
+      0.23,
+      0.24
+    ],
+    "memory_total_mib": 7745.7,
+    "memory_available_mib": 5405.7,
+    "swap_total_mib": 8192.0,
+    "swap_used_mib": 30.3,
+    "swap_pages_in_per_second": 0.0,
+    "swap_pages_out_per_second": 0.0,
+    "swap_persistent": true,
+    "swappiness": 10,
+    "memory_pressure_avg10": 0.0,
+    "io_pressure_avg10": 0.0,
+    "root_disk_total_gib_rounded": 150,
+    "root_disk_used_gib_rounded": 31,
+    "root_disk_available_gib_rounded": 114,
+    "root_disk_used_percent": 22,
+    "inode_used_percent": 3,
+    "jitsi_container_memory_mib": {
+      "web": 16.67,
+      "jvb": 289.6,
+      "prosody": 27.52,
+      "coturn": 9.805,
+      "jicofo": 137.5
+    },
+    "jitsi_total_memory_mib": 481.095,
+    "jitsi_bridge": {
+      "healthy": true,
+      "participants": 4,
+      "conferences": 1,
+      "endpoints_sending_audio": 3,
+      "endpoints_sending_video": 2,
+      "stress_level": 0.01572,
+      "rtt_aggregate_ms": 27.22359833333333,
+      "incoming_loss_fraction": 0.000556599179016211,
+      "outgoing_loss_fraction": 0.001524003048006096,
+      "total_ice_failed": 0,
+      "dtls_failed_endpoints": 0
+    },
+    "jitsi_and_mattermost_containers_healthy": true,
+    "oom_kills": 0,
+    "restarts": 0,
+    "mm_ping": "OK",
+    "mac_mm_ping": "OK",
+    "limits": "Short live sample during one four-participant conference, not a maximum-capacity test."
   }
 }

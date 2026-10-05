@@ -128,6 +128,47 @@ Mattermost channel button or post a meeting announcement. Mattermost's native
 Calls plugin is a separate service; its voice-call UI was not exercised by the
 Jitsi migration tests.
 
+## Audio follow-up and live resource check
+
+After an audio issue was reported, checked production audio with a controlled
+440 Hz microphone source, received Opus audio energy, and HTML audio playback
+state. The browser autoplay bypass flag used in earlier migration tests was
+omitted for these checks. All of the following passed:
+
+- Direct two-participant Jitsi audio through the SG bridge.
+- Two-participant Mattermost embedded audio using P2P.
+- Mattermost embedded audio forced through Singapore TURN.
+- Mattermost embedded audio received by a participant with microphone and
+  camera muted.
+
+Both receiving browsers in the bidirectional tests decoded non-silent audio;
+their audio elements were playing, unmuted, at full volume. The user subsequently
+confirmed audio was working. No production configuration was changed during
+these diagnostics. The precise cause of the transient user-reported failure
+was not established; the checks did not inspect physical speaker output or the
+affected devices remotely.
+
+Checked SG resources again at **2026-10-05 13:08 WIB (06:08 UTC)** during one
+live **four-participant** meeting:
+
+| Resource | Observed |
+|---|---|
+| CPU | 5.94% busy over five seconds; subsequent three-second average 7.14%, across four vCPU |
+| Load average, 1 / 5 / 15 minutes | 0.11 / 0.23 / 0.24 |
+| Available RAM | 5,405.7 MiB of 7,745.7 MiB (5.28 GiB of 7.56 GiB) |
+| Jitsi containers, total RAM | 481 MiB |
+| Videobridge RAM | 289.6 MiB of 2 GiB limit |
+| Host swap | 30.3 MiB used of 8 GiB, persistent; zero sampled swap-in/out |
+| Root disk | 31 GiB used, 114 GiB available, 22% used |
+| Memory / I/O pressure | Zero in the 10-second PSI averages |
+| Container health | Jitsi and both Mattermost apps/databases healthy, zero OOM kills or restarts |
+| Active bridge | Three audio senders, two video senders; aggregate RTT 27.22 ms |
+
+Both Mattermost HTTP health checks returned `status: OK`. The current meeting
+has ample observed headroom; this short sample does not establish maximum
+participant capacity. Detailed audio and resource samples are included in the
+sanitized migration evidence JSON linked below.
+
 ## Backups and certificate renewal
 
 Exported the source raw Compose and environment privately, and archived all
