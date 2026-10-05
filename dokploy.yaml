@@ -78,7 +78,8 @@ guards:
   databases:
     _: [delete, deploy, stop]
   deploy:
-    _: [apply, rollback]
+    # Context-specific writes: the generic derivation cannot classify setup/run/post.
+    _: [apply, post, rollback, run, setup]
     migrate: [apply, rollback]
   docker:
     _: [prune, restart]
