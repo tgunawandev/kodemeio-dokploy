@@ -17,6 +17,8 @@ spec.loader.exec_module(guard)
 
 def staged():
     manifest = json.loads((ROOT / "deploys/instances/production/kod-infra-omp.yaml").read_text())
+    # Historical guard fixture: the active manifest now targets OVH.
+    manifest["server"] = "kod-prod-02"
     snapshot = {"environmentId": "fixture-production-env", "env": "DEEPSEEK_API_KEY=fixture-only\nTZ=Asia/Jakarta"}
     live = {
         "composeId": guard.COMPOSE,
@@ -117,4 +119,11 @@ def test_joint_live_and_manifest_artifact_drift_cannot_reuse_review(field):
         manifest["env_overrides"][field] = value
         live["env"] = live["env"].replace(f"{field}={old}", f"{field}={value}")
     with pytest.raises(ValueError, match="reviewed|Approved source"):
+        guard.assert_staged(live, manifest, snapshot)
+
+
+def test_legacy_guard_rejects_the_new_active_host():
+    live, manifest, snapshot = staged()
+    manifest["server"] = "kod-ovh-01"
+    with pytest.raises(ValueError, match="Legacy rollout guard"):
         guard.assert_staged(live, manifest, snapshot)

@@ -1,6 +1,11 @@
 # OMP operator-terminal rollout
 
-The desired state is `deploys/instances/production/kod-infra-omp.yaml` for
+The desired manifest now targets `kod-ovh-01`. Its migration is prepared but
+not yet deployed; see [the migration procedure](omp-ovh-migration.md).
+The following records describe the initial 2026-10-05 rollout, not current
+proof that the old host is reachable.
+
+The initial rollout used `deploys/instances/production/kod-infra-omp.yaml` for
 Dokploy compose `OaeHlGC5BvVH6R3W-rh9q` in `apps/production` on `kod-prod-02`
 (88.198.151.167). Preserve its app name `compose-program-optical-panel-vswhbh`:
 that name owns the four existing state/workspace volumes.
