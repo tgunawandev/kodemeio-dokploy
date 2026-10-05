@@ -6,12 +6,11 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-HATCHET = ROOT.parents[3] / "kodemeio-hatchet"
 
 
 def test_local_and_cloud_collector_credential_boundaries():
     local = yaml.safe_load((ROOT / "compose.local.yml").read_text())
-    cloud = yaml.safe_load((HATCHET / "workers/incident_triage/deploy/docker-compose.yml").read_text())
+    cloud = yaml.safe_load((ROOT / "compose.worker.yml").read_text())
     for stack in (local, cloud):
         ingress = stack["services"]["incident-ingress"]
         env = ingress["environment"]
@@ -58,7 +57,7 @@ def test_cloud_compose_renders_without_real_secrets():
             "docker",
             "compose",
             "-f",
-            str(HATCHET / "workers/incident_triage/deploy/docker-compose.yml"),
+            str(ROOT / "compose.worker.yml"),
             "config",
             "--quiet",
         ],

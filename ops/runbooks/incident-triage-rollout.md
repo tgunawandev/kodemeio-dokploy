@@ -56,8 +56,9 @@ Pattern redaction is best-effort: inspect the bundle before model use.
 Validation commands for this slice:
 `uv run pytest ops/monitoring/incidents/tests -q`,
 `uv run ruff check ops/monitoring/incidents`, and the worker's own unit/format
-suite. The configuration tests currently require the sibling Hatchet checkout;
-the Hatchet package has an independent CI job. Run the Docker pilot separately
+suite. The configuration tests use this repository's `compose.worker.yml`
+deployment candidate; the Hatchet implementation has an independent CI job.
+Run the Docker pilot separately
 to verify real delivery. No remote CI run is claimed for uncommitted changes.
 
 ## Model-backed pilot
@@ -92,7 +93,7 @@ never be treated as formal exact-head code-review approval.
    tenant database, silently upgrade an existing database or duplicate a monitor.
 3. Build/publish an immutable reviewed collector image from
    `kodemeio-hatchet/workers/incident_triage/deploy/Dockerfile` and supply its
-   reference to that package's `deploy/docker-compose.yml`. Both local/cloud
+   reference to `ops/monitoring/incidents/compose.worker.yml`. Both local/cloud
    use that Dockerfile and lockfile. The cloud ingress and Hatchet worker share
    one persistent SQLite volume on one host; do not distribute it over NFS.
 4. Populate `services.json` from `services.example.json`: explicit service,
