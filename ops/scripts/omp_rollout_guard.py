@@ -5,12 +5,15 @@ adapter. Callers obtain live/snapshot records through the authenticated front
 door. Credentials remain private and are never returned or included in errors.
 """
 
-import re
 import shlex
 
 COMPOSE = "OaeHlGC5BvVH6R3W-rh9q"
 SERVER = "3aceAeKfqzyFWTppqDAlI"
 PROJECT = "compose-program-optical-panel-vswhbh"
+# This bounded rollout is tied to the reviewed artifact, not arbitrary desired state.
+SOURCE = "6779db2e6be05d01d04e00c6b4e3db59f0c21239"
+BRANCH = "release/omp-agent-boundaries-6779db2"
+IMAGE = "ghcr.io/tgunawandev/kodemeio-omp@sha256:aac0a855a0e95efb0054d29bef89d01f3cf5e1df0f6f79d3bdddaf6a80ea5163"
 
 
 def assert_staged(live, manifest, snapshot):
@@ -21,6 +24,7 @@ def assert_staged(live, manifest, snapshot):
         "appName": PROJECT,
         "environmentId": snapshot["environmentId"],
         "autoDeploy": False,
+        "createEnvFile": True,
         "sourceType": "github",
         "repository": "kodemeio-omp",
         "owner": "tgunawandev",
@@ -45,10 +49,13 @@ def assert_staged(live, manifest, snapshot):
     ]
     if shlex.split(live["command"]) != expected_command:
         raise ValueError("Approved prebuilt-only command required")
-    if not re.fullmatch(
-        r"ghcr.io/tgunawandev/kodemeio-omp@sha256:[a-f0-9]{64}", manifest["env_overrides"].get("OMP_IMAGE", "")
-    ):
-        raise ValueError("Immutable approved image required")
+    if manifest["source"]["branch"] != BRANCH:
+        raise ValueError("Approved source branch required")
+    overrides = manifest["env_overrides"]
+    if overrides.get("OMP_IMAGE") != IMAGE:
+        raise ValueError("Exact reviewed image required")
+    if overrides.get("OMP_BUILD_COMMIT") != SOURCE or overrides.get("OMP_IMAGE_TAG") != SOURCE:
+        raise ValueError("Exact reviewed source revision required")
 
     def parse(text):
         # Dokploy receives normalized KEY=value content from this manifest.

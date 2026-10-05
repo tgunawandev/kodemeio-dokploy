@@ -81,7 +81,7 @@
     "actual role-specific guarded native tool arguments",
     "same four state/workspace mounts",
     "non-root read-only root no public ports no production credential mounts",
-    "doctor runtime/skills/settings parity",
+    "lightweight live runtime/skills fingerprints match disposable-canary doctor",
     "bounded provider and independent workflow acceptance",
     "recorded native VERONICA health assessment"
   ],
@@ -107,7 +107,8 @@
         "command": "compose -p compose-program-optical-panel-vswhbh -f docker-compose.prod.yml up -d --no-build --pull never --remove-orphans"
       }
     },
-    "mandatory_live_readback": "ops/scripts/omp_rollout_guard.py before deploy run"
+    "mandatory_live_readback": "ops/scripts/omp_rollout_guard.py after explicit typed command update, before compose start",
+    "actual_setup_outcome": "Advanced-settings client resolution failed; command remained empty; readback guard prevented deployment until explicit compose update and successful readback"
   },
   "source_branch_locked": true,
   "check_receipts": "Trusted operator captures completed test/CI/preview receipts at the frozen configuration head before execution; they cannot embed their own commit hash here."

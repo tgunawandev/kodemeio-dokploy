@@ -28,7 +28,24 @@ Both terminals keep separate state/code volumes, UID 10001, a read-only root,
 no public ports, no Docker socket, no added host/SSH/GitHub/deployment credentials,
 one CPU and 768 MiB each. They retain DeepSeek and the existing provider secret.
 Native Codex login remains separate per persona; never copy OAuth state.
-Large target builds need a capacity review.
+Live provider acceptance remains incomplete at the current resource limits.
+Post-deployment verification started a second full OMP process inside these limits; the kernel recorded a
+Bun OOM kill. FRIDAY restarted twice during those checks. Later input checks
+also coincided with one restart per terminal; their cause remains under
+investigation. Process health alone does not establish prompt readiness.
+Both isolated
+synthetic prompt/read checks passed at 1 GiB after skipping the optional
+provider setup. FRIDAY reached the 1 GiB limit; VERONICA peaked at 957,435,904
+bytes. Production prompt acceptance remains unresolved at 768 MiB. Do not
+raise both limits on this shared 4 GiB host without a capacity plan. A dedicated
+runner or additional host RAM (starting with at least 8 GiB) needs explicit
+provisioning authorization and paired workload validation; no server was
+provisioned or resized during this rollout.
+
+Use only the existing native terminal for production provider checks. Run the full `./omp.sh doctor` and workflow smoke in a disposable canary
+with its own resources; use lightweight Python fingerprints and process
+inspection on live terminals. Concurrent runtimes and large target builds need
+a tested capacity increase before enabling those workloads.
 
 Orca, Hermes Control, the remote Desk writer and the automatic production
 gateway adapter remain unavailable/disabled. The source ships a tested shared
@@ -80,21 +97,34 @@ enable missing integration flags to make a gate appear satisfied.
 ./dokploy.sh kodemeio deploy setup -f deploys/instances/production/kod-infra-omp.yaml --kctl-dry-run --yes
 ./dokploy.sh kodemeio deploy run -f deploys/instances/production/kod-infra-omp.yaml --skip-verify --kctl-dry-run --yes
 ./dokploy.sh kodemeio deploy setup -f deploys/instances/production/kod-infra-omp.yaml --yes
-# BEFORE deploy run: read compose get privately and call omp_rollout_guard.assert_staged.
-# It must verify command, source, target, project, auto-deploy and preserved env.
+# Client 0.18.5 setup did not persist this advanced field; apply it explicitly.
+./dokploy.sh kodemeio compose update --id OaeHlGC5BvVH6R3W-rh9q --command 'compose -p compose-program-optical-panel-vswhbh -f docker-compose.prod.yml up -d --no-build --pull never --remove-orphans' --yes
+# BEFORE compose start: read compose get privately and call omp_rollout_guard.assert_staged.
+# Verify command, exact reviewed source/image, target, project, createEnvFile,
+# auto-deploy and preserved environment; independently resolve the locked Git ref.
 ./dokploy.sh kodemeio compose start OaeHlGC5BvVH6R3W-rh9q --yes
 ```
 
-After setup and readback, `compose start` queues deployment of the verified
-record without another best-effort configuration phase. The generic HTTP
+The actual 0.18.5 setup advanced-settings path failed to resolve its client and
+silently skipped the custom command. The readback guard caught the empty field
+and prevented restart. The explicit typed `compose update` above corrected that
+field; record and verify the response before proceeding. The mocked transport
+check proved the method can forward the field, not that live setup would do so.
+A client fix belongs in the CLI owning repository.
+
+After setup, explicit command update and readback, `compose start` queues
+deployment of the verified record without another best-effort configuration phase. The generic HTTP
 verifier cannot verify terminals. The `deploy run` preview uses `--skip-verify`
 to skip only
 that inapplicable check; native health, image/process/tool checks and bounded
-provider acceptance remain required. Deployment is asynchronous: a queued API
-response is not success. Poll the deployment to `done`, then inspect both Docker
+provider acceptance remain required. A passing isolated canary does not replace
+production prompt acceptance at the actual production limits.
+Deployment is asynchronous: a queued API response is not success. Poll the deployment to `done`, then inspect both Docker
 healthchecks, exact image/config/source revision, native Bun arguments, role/tool
 sets, mounts and privilege/network boundaries. Record VERONICA's post-deployment
-assessment from bounded sanitized evidence. Escalate missing/failing checks;
+assessment from bounded sanitized evidence. A process-health result must not
+be reported as complete application acceptance when a prompt check failed.
+Escalate missing/failing checks;
 no automatic rollback or subsequent release is authorized.
 
 ## State and rollback
@@ -124,8 +154,12 @@ framework dependencies still need preparation in their code runners.
 
 Previous capability deployment `9ocy_5g8CmzMECeRt6hll` at `8ff7f5e` is historical;
 its identical-tool results do not describe agent-boundary's role boundaries. Source
-PR #2 and CI run `37289978526` validate the new coding harness. Production cutover
-results belong in a sanitized evidence record after verification.
+PR #2 and CI run `37289978526` validate the new coding harness.
+Production deployment `3-l4_f-kZt6b6XpIDrHYD` completed on 2026-10-05.
+See [cutover evidence](../evidence/omp-production-cutover-2026-10-05.json) for
+verified live fingerprints/tools, provider acceptance status and limitations.
+These results cover the two operator terminals and the isolated coding flow;
+they do not establish the missing cross-system agent integrations.
 
 This remains an operator terminal deployment, not Hatchet's authenticated
 `/run` service. Preserve legacy FRIDAY broker/idempotency/contained-runner,

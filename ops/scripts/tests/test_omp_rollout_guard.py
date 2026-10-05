@@ -24,6 +24,7 @@ def staged():
         "appName": guard.PROJECT,
         "environmentId": snapshot["environmentId"],
         "autoDeploy": False,
+        "createEnvFile": True,
         "sourceType": "github",
         "repository": "kodemeio-omp",
         "owner": "tgunawandev",
@@ -45,6 +46,8 @@ def test_exact_staged_readback_preserves_provider_and_target():
     [
         ("command", ""),
         ("autoDeploy", True),
+        ("createEnvFile", False),
+        ("createEnvFile", None),
         ("appName", "new-project"),
         ("composeId", "another-compose"),
         ("serverId", "another-host"),
@@ -101,3 +104,17 @@ def test_write_verbs_require_door_confirmation_without_calling_real_cli(tmp_path
         assert result.returncode == 2
         assert "Re-run with --yes" in result.stderr
         assert f"deploy {verb}" not in calls
+
+
+@pytest.mark.parametrize("field", ["OMP_IMAGE", "OMP_BUILD_COMMIT", "OMP_IMAGE_TAG", "branch"])
+def test_joint_live_and_manifest_artifact_drift_cannot_reuse_review(field):
+    live, manifest, snapshot = staged()
+    if field == "branch":
+        live["branch"] = manifest["source"]["branch"] = "release/another"
+    else:
+        old = manifest["env_overrides"][field]
+        value = "ghcr.io/tgunawandev/kodemeio-omp@sha256:" + "a" * 64 if field == "OMP_IMAGE" else "a" * 40
+        manifest["env_overrides"][field] = value
+        live["env"] = live["env"].replace(f"{field}={old}", f"{field}={value}")
+    with pytest.raises(ValueError, match="reviewed|Approved source"):
+        guard.assert_staged(live, manifest, snapshot)

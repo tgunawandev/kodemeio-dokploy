@@ -1,0 +1,263 @@
+{
+  "schema": "omp.production-cutover.v1",
+  "deployment": {
+    "deploymentId": "3-l4_f-kZt6b6XpIDrHYD",
+    "status": "done",
+    "createdAt": "2026-10-05T10:44:23.424Z",
+    "finishedAt": "2026-10-05T10:44:27.600Z",
+    "commit": null,
+    "commitId": null,
+    "title": "Reject rewritten native editor paths before scoped authorization"
+  },
+  "deployed_configuration_sha": "f97ea6a69f2e6f681a5457c35aff4ac7db69b4df",
+  "source_sha": "6779db2e6be05d01d04e00c6b4e3db59f0c21239",
+  "registry_image": "ghcr.io/tgunawandev/kodemeio-omp@sha256:aac0a855a0e95efb0054d29bef89d01f3cf5e1df0f6f79d3bdddaf6a80ea5163",
+  "tested_image_id": "sha256:d059deccec05fd8dbead041e4f2b0b292cc05e3124b8e9de410f0b00a7180cc2",
+  "release_review": "Native readonly VERONICA approved the deployment configuration at f97ea6a before execution; private bound receipt retained",
+  "human_authorization": "Founder explicitly authorized this production operator-terminal rollout; no future automatic release authorization",
+  "delivery": "Manual authenticated operator through Dokploy CD after exact-head GitHub CI; unregistered automatic gateway adapters remain disabled",
+  "verified_at": 1791205358.5298848,
+  "status": "deployed; native process checks healthy; production prompt acceptance unresolved; capacity follow-up required",
+  "command_setup_issue": {
+    "runtime_client_version": "0.18.5",
+    "setup_persisted_command": false,
+    "readback_guard_blocked_restart": true,
+    "explicit_typed_compose_update_corrected_command": true,
+    "deployment_queued_only_after_successful_readback": true
+  },
+  "terminals": [
+    {
+      "persona": "friday",
+      "health": "healthy",
+      "restart_count": 3,
+      "started_at": "2026-10-05T11:00:05.21623851Z",
+      "image": "ghcr.io/tgunawandev/kodemeio-omp@sha256:aac0a855a0e95efb0054d29bef89d01f3cf5e1df0f6f79d3bdddaf6a80ea5163",
+      "image_id": "sha256:d059deccec05fd8dbead041e4f2b0b292cc05e3124b8e9de410f0b00a7180cc2",
+      "memory_limit_bytes": 805306368,
+      "tools": [
+        "read",
+        "grep",
+        "ast_grep",
+        "glob",
+        "bash",
+        "task",
+        "wait",
+        "todo",
+        "edit",
+        "ast_edit",
+        "write",
+        "lsp",
+        "eval",
+        "ask"
+      ],
+      "native_process": {
+        "role": "friday",
+        "context": "coding",
+        "tools": [
+          "read",
+          "grep",
+          "ast_grep",
+          "glob",
+          "bash",
+          "task",
+          "wait",
+          "todo",
+          "edit",
+          "ast_edit",
+          "write",
+          "lsp",
+          "eval",
+          "ask"
+        ],
+        "approval_mode": "yolo",
+        "trusted_extension": "/opt/kodemeio-omp/scripts/tool-boundaries.ts"
+      },
+      "release": {
+        "source_revision": "6779db2e6be05d01d04e00c6b4e3db59f0c21239",
+        "source_dirty": null,
+        "integration_sha256": "e42bffc6417038af74e88f88588e086d3c4b3e6307e8f8710575274321919066",
+        "runtime_sha256": "6b174e27f26cb956185828f0d506ea7352ec70991926de06b11736f23b4336a7",
+        "skill_sha256": {
+          "friday": "9e1474e751527e5875dc2d2020fb627340f554741648aebc7a7dbdf932ff9caa",
+          "veronica": "5c8d08052c326ec7cb10a52464fcc7290b9871707573cd3c1fd4afa0aadb3ef3"
+        },
+        "upstream_package": "18.6.0",
+        "bun": "1.3.14"
+      },
+      "integrations": {
+        "hermes_gateway": false,
+        "orca": false,
+        "hermes_control": false,
+        "desk_writer": false,
+        "production_pipeline": false
+      },
+      "mount_names": [
+        "compose-program-optical-panel-vswhbh_friday-state",
+        "compose-program-optical-panel-vswhbh_friday-workspace"
+      ],
+      "non_root": true,
+      "read_only": true,
+      "public_ports": []
+    },
+    {
+      "persona": "veronica",
+      "health": "healthy",
+      "restart_count": 1,
+      "started_at": "2026-10-05T11:00:08.198762308Z",
+      "image": "ghcr.io/tgunawandev/kodemeio-omp@sha256:aac0a855a0e95efb0054d29bef89d01f3cf5e1df0f6f79d3bdddaf6a80ea5163",
+      "image_id": "sha256:d059deccec05fd8dbead041e4f2b0b292cc05e3124b8e9de410f0b00a7180cc2",
+      "memory_limit_bytes": 805306368,
+      "tools": [
+        "read",
+        "grep",
+        "ast_grep",
+        "glob",
+        "todo",
+        "ask"
+      ],
+      "native_process": {
+        "role": "veronica",
+        "context": "coding",
+        "tools": [
+          "read",
+          "grep",
+          "ast_grep",
+          "glob",
+          "todo",
+          "ask"
+        ],
+        "approval_mode": "yolo",
+        "trusted_extension": "/opt/kodemeio-omp/scripts/tool-boundaries.ts"
+      },
+      "release": {
+        "source_revision": "6779db2e6be05d01d04e00c6b4e3db59f0c21239",
+        "source_dirty": null,
+        "integration_sha256": "e42bffc6417038af74e88f88588e086d3c4b3e6307e8f8710575274321919066",
+        "runtime_sha256": "6b174e27f26cb956185828f0d506ea7352ec70991926de06b11736f23b4336a7",
+        "skill_sha256": {
+          "friday": "9e1474e751527e5875dc2d2020fb627340f554741648aebc7a7dbdf932ff9caa",
+          "veronica": "5c8d08052c326ec7cb10a52464fcc7290b9871707573cd3c1fd4afa0aadb3ef3"
+        },
+        "upstream_package": "18.6.0",
+        "bun": "1.3.14"
+      },
+      "integrations": {
+        "hermes_gateway": false,
+        "orca": false,
+        "hermes_control": false,
+        "desk_writer": false,
+        "production_pipeline": false
+      },
+      "mount_names": [
+        "compose-program-optical-panel-vswhbh_veronica-state",
+        "compose-program-optical-panel-vswhbh_veronica-workspace"
+      ],
+      "non_root": true,
+      "read_only": true,
+      "public_ports": []
+    }
+  ],
+  "cloud_disposable_workflow": {
+    "passed": true,
+    "provider": "deepseek/deepseek-flash",
+    "published": false,
+    "independent_worktrees": true,
+    "separate_planning_and_review": true,
+    "developer_committed": true,
+    "required_check_passed": true,
+    "verdict": "approve",
+    "original_checkout_unchanged": true,
+    "verified_at": 1791195033.3310006,
+    "image_id": "sha256:d059deccec05fd8dbead041e4f2b0b292cc05e3124b8e9de410f0b00a7180cc2",
+    "source_sha": "6779db2e6be05d01d04e00c6b4e3db59f0c21239",
+    "production_mounts": false,
+    "doctor_passed": true
+  },
+  "backup_restore_verified_files": 65161,
+  "capacity": {
+    "host_total_kib": 3911564,
+    "last_available_kib": 914576,
+    "production_limit_bytes_per_terminal": 805306368,
+    "extra_runtime_check": {
+      "failed": true,
+      "kernel_bun_oom_kill_confirmed": true,
+      "friday_restarts_during_auxiliary_checks": 2
+    },
+    "later_input_checks": {
+      "passed": false,
+      "friday_additional_restarts": 1,
+      "veronica_additional_restarts": 1,
+      "root_cause_confirmed": false
+    },
+    "isolated_synthetic_prompt_tests": [
+      {
+        "persona": "friday",
+        "memory_limit_bytes": 1073741824,
+        "native_provider_read_passed": true,
+        "running": true,
+        "oom_killed": false,
+        "cgroup": {
+          "memory.current": "1073590272",
+          "memory.peak": "1073741824",
+          "memory.events": "low 0\nhigh 0\nmax 36\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0"
+        },
+        "source_sha": "6779db2e6be05d01d04e00c6b4e3db59f0c21239",
+        "image_id": "sha256:d059deccec05fd8dbead041e4f2b0b292cc05e3124b8e9de410f0b00a7180cc2",
+        "production_data_used": false,
+        "verified_at": 1791198490.1268694
+      },
+      {
+        "persona": "veronica",
+        "native_provider_read_passed": true,
+        "memory_limit_bytes": 1073741824,
+        "production_data_used": false,
+        "source_sha": "6779db2e6be05d01d04e00c6b4e3db59f0c21239",
+        "running": true,
+        "oom_killed": false,
+        "image_id": "sha256:d059deccec05fd8dbead041e4f2b0b292cc05e3124b8e9de410f0b00a7180cc2",
+        "cgroup": {
+          "memory.current": "953278464",
+          "memory.peak": "957435904",
+          "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\nsock_throttled 0"
+        },
+        "verified_at": 1791205364.0088136,
+        "fixture_removed": true
+      }
+    ],
+    "assessment": "1 GiB permits the bounded prompt/read checks, but FRIDAY reaches its limit. The shared 4 GiB production host lacks comfortable capacity for both terminals under this workload. Heavy builds and parallel workers are not validated.",
+    "recommendation": "Plan a dedicated OMP runner or additional host RAM, starting with at least 8 GiB and reviewed container budgets; validate paired expected workloads before cutover.",
+    "server_provisioned_or_resized": false,
+    "production_limits_changed": false
+  },
+  "first_login_setup": {
+    "optional_provider_wizard_encountered": true,
+    "deepseek_already_configured": true,
+    "operator_skipped_optional_scenes": true,
+    "isolated_tests_submitted_after_setup": true
+  },
+  "tests": {
+    "source": "76 passed; required source CI validate success",
+    "owning": "1524 passed, 2 skipped; updated documentation/evidence CI remains required before merge",
+    "ruff": "passed",
+    "generator_dry_run": "passed"
+  },
+  "unregistered_integrations": [
+    "hermes_gateway",
+    "orca",
+    "hermes_control",
+    "desk_writer",
+    "production_pipeline_gateway"
+  ],
+  "scheduled_offsite_backup_configured": false,
+  "production_business_mutations": false,
+  "rollback": {
+    "source_sha": "8ff7f5ecef01f3dcb1cac5554a60ca56615abc43",
+    "local_image_id": "sha256:37fe34650226e84a714f8446c9ed2673bce8ad312f29cfc845c9dfe9fc3eeb22",
+    "founder_approval_required": true,
+    "preserve_new_audit_rows": true,
+    "automatic_rollback": false,
+    "branch": "release/omp-rollback-8ff7f5e",
+    "source_branch_locked": true,
+    "image_available_on_target": true
+  }
+}
