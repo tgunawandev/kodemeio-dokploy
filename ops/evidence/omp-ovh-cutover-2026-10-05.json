@@ -104,5 +104,64 @@
     "Orca, Hermes Control, Desk writer, authorization adapters and automatic release gateway remain unregistered in OMP; migration does not activate them",
     "Heavy or simultaneous build workloads not benchmarked"
   ],
-  "health_review": "pending independent post-deployment assessment; process and bounded-read evidence is operator-recorded"
+  "health_review": "VERONICA reports healthy within bounded terminal/synthetic workflow scope; documentation review follow-up pending",
+  "post_deployment_security_readback": {
+    "friday": {
+      "nonroot_user": "10001:10001",
+      "readonly_root": true,
+      "cap_drop": [
+        "ALL"
+      ],
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "privileged": false,
+      "public_ports": {},
+      "mounts": [
+        {
+          "name": "compose-program-optical-panel-vswhbh_friday-state",
+          "destination": "/var/lib/kodemeio-omp",
+          "type": "volume",
+          "rw": true
+        },
+        {
+          "name": "compose-program-optical-panel-vswhbh_friday-workspace",
+          "destination": "/workspace",
+          "type": "volume",
+          "rw": true
+        }
+      ],
+      "restart_count": 0,
+      "health": "healthy"
+    },
+    "veronica": {
+      "nonroot_user": "10001:10001",
+      "readonly_root": true,
+      "cap_drop": [
+        "ALL"
+      ],
+      "security_opt": [
+        "no-new-privileges:true"
+      ],
+      "privileged": false,
+      "public_ports": {},
+      "mounts": [
+        {
+          "name": "compose-program-optical-panel-vswhbh_veronica-state",
+          "destination": "/var/lib/kodemeio-omp",
+          "type": "volume",
+          "rw": true
+        },
+        {
+          "name": "compose-program-optical-panel-vswhbh_veronica-workspace",
+          "destination": "/workspace",
+          "type": "volume",
+          "rw": true
+        }
+      ],
+      "restart_count": 0,
+      "health": "healthy"
+    }
+  },
+  "evidence_review_scope": "Sanitized active runbooks/evidence/guard comment only. Env examples remain excluded by reviewer secret-path policy and are unchanged in this final change."
 }
