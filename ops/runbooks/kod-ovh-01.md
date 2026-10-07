@@ -94,17 +94,19 @@ renamed from `kod-prod-01`), `kod-ovh-01` (this host). Hetzner-side names
 `server: kod-hzc-01` (`kod-infra-{alloy,gatus,kctl,plausible,shlink}`), each
 re-validated; prose in older runbooks still says `kod-prod-01`.
 
-## Deferred / next
+## Current workload and backup records
 
-- No workloads yet. When a service lands here: add its ports to ufw (reference:
-  Hetzner `firewall-1` rules) and decide Alloy/Gatus coverage.
-- Backups for host data (beyond OVH automated backup) are decided with the
-  first stateful workload.
-- `deploys/instances/production/kod-infra-omp.yaml` still names `server:
-  kod-prod-02`; no `kod-prod-02` entry exists in Dokploy as of 2026-10-05
-  (servers changed outside this session — recreate as `kod-hzc-02` when
-  intended).
+Production records now include PostgreSQL, Odoo ERP/Desk and the Kodeme operator
+gateways on this host. See the instance manifests and the current
+[OMP migration runbook](omp-ovh-migration.md) for the later migration evidence.
+The initial no-workload snapshot from 2026-10-05 is superseded.
 
+Native database and volume backup jobs are managed directly in Dokploy. The
+installed manifest backup phase does not forward all fields required to create
+PostgreSQL compose backups, including the database user and service/database
+selection. Manifest schedule/retention metadata alone does not prove that a job
+can be recreated. Inspect the existing native jobs before a replay; successful
+backup creation is separate from archive/restore acceptance.
 
 ## Kodeme operator agents — 2026-10-07
 
@@ -128,8 +130,8 @@ explicit `compose update --no-auto-deploy` and re-reading the API corrected them
 
 Each gateway is capped at 1 CPU / 1 GiB and has a separate state volume. SENTINEL
 alone adds `kod-operations-read-sentinel` (0.5 CPU / 256 MiB), image
-`kodemeio-operations-read:bb8418c8ce48`, source
-`/opt/kodemeio/operations-read/bb8418c8ce48`. Its private policy/provider/bearer
+`kodemeio-operations-read:d2a60af8c1dd`, source
+`/opt/kodemeio/operations-read/d2a60af8c1dd`. Its private policy/provider/bearer
 mounts are under `/etc/kodemeio/operations-read-kodemeio/`; the bearer/provider
 files are mode 0600, owned by uid 10000. No Docker socket or published ports.
 Never print or commit those files or private deployment env inputs.
@@ -145,9 +147,11 @@ avoids its unrelated HTTP-to-localhost probe. Async deploy replies are not proof
 
 Both private Mattermost connections and native DeepSeek Flash tool calls passed.
 JARVIS is restricted to Kodeme ERP/Desk; all writes initially need Tri's native
-approval. SENTINEL's read backend permits only Dokploy stacks/servers, Mattermost
-health and Gatus deployment metadata. Recovery, raw logs, GlitchTip events, Gatus
-check history and proactive alert scheduling are not provisioned.
+approval. SENTINEL has scoped Dokploy/Mattermost diagnostics, Gatus history for the 68
+Kodeme checks, and a separate native GlitchTip connection for the enrolled ERP/Desk
+projects. Recovery and raw-log execution remain outside these read grants.
+The linked setup and monitoring runbooks describe the current catalog and
+acceptance limits.
 Full permission and acceptance details:
 [kodemeio-hermes setup](../../../kodemeio-hermes/docs/kodeme-agent-setup.md).
 No IDTPP, existing Odoo/Mattermost deployment, legacy worker, VISION or TERA

@@ -9,9 +9,7 @@ project: apps
 environment: production
 # Was inheriting the infra base's stale `server: kodeme-service` default
 # (never overridden here before). The live kod postgres instance actually
-# runs on abc-prod-02 (Task 5, LiteLLM gateway design §1
-# "facts" table) -- correcting it so this manifest matches the fleet, and so
-# kod-infra-litellm (same host, same project) resolves against the truth.
+# now runs on kod-ovh-01. This record follows the current hosting inventory.
 server: kod-ovh-01
 
 source_overrides:
@@ -37,10 +35,12 @@ env_overrides:
   PGBOUNCER_PORT: "127.0.0.1:6432"
   POSTGRES_EXPORTER_PORT: "127.0.0.1:9187"
 
+# Native backup jobs are managed directly in Dokploy. The installed manifest
+# backup phase does not forward the required database-user/service fields; this
+# block records the schedule and retention, rather than proving replay support.
 backup:
   destination: kodemeio-s3-backups
   type: postgres
-  database_user: postgres
   schedule: "0 3 * * *"
   prefix_template: "{instance_name}"
   keep_latest: 14
