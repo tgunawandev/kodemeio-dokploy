@@ -19,7 +19,12 @@ services:
       GATUS_USERNAME: ${GATUS_USERNAME:?required}
       GATUS_PASSWORD_BCRYPT_BASE64: ${GATUS_PASSWORD_BCRYPT_BASE64:?required}
       INCIDENT_GATUS_TOKEN: ${INCIDENT_GATUS_TOKEN:?required}
-      MONITORING_CONFIG_REVISION: 19a21ccef0c4a009
+      MONITORING_CONFIG_REVISION: 7f69bbd43da61de6
+      GATUS_HOST0_TOKEN: ${GATUS_HOST0_TOKEN:?required}
+      GATUS_HOST1_TOKEN: ${GATUS_HOST1_TOKEN:?required}
+      GATUS_HOST2_TOKEN: ${GATUS_HOST2_TOKEN:?required}
+      GATUS_HOST3_TOKEN: ${GATUS_HOST3_TOKEN:?required}
+      GATUS_HOST4_TOKEN: ${GATUS_HOST4_TOKEN:?required}
     deploy:
       resources:
         limits:
@@ -61,7 +66,7 @@ services:
       INCIDENT_READ_TOKEN: ${INCIDENT_READ_TOKEN:?required}
       INCIDENT_STATE: /state/incidents.db
       INCIDENT_SERVICES: /config/services.json
-      MONITORING_CONFIG_REVISION: 19a21ccef0c4a009
+      MONITORING_CONFIG_REVISION: 7f69bbd43da61de6
     healthcheck:
       test:
       - CMD
@@ -107,7 +112,7 @@ services:
       INCIDENT_STATE: /state/incidents.db
       INCIDENT_SERVICES: /config/services.json
       INCIDENT_GLITCHTIP_READ_TOKEN: ${INCIDENT_GLITCHTIP_READ_TOKEN:?required}
-      MONITORING_CONFIG_REVISION: 19a21ccef0c4a009
+      MONITORING_CONFIG_REVISION: 7f69bbd43da61de6
     depends_on:
       incident-ingress:
         condition: service_healthy

@@ -1,0 +1,95 @@
+http:
+  routers:
+    tpp-gatus-browser:
+      entryPoints:
+      - websecure
+      tls:
+        certResolver: letsencrypt
+      rule: Host(`gatus.idtpp.com`)
+      priority: 100
+      service: tpp-gatus-backend
+      middlewares:
+      - tpp-gatus-sso
+      - tpp-gatus-upstream-basic
+    tpp-gatus-machine-api:
+      entryPoints:
+      - websecure
+      tls:
+        certResolver: letsencrypt
+      rule: Host(`gatus.idtpp.com`) && PathPrefix(`/api/v1/`) && HeaderRegexp(`Authorization`,
+        `^Basic [A-Za-z0-9+/]+=*$`)
+      priority: 300
+      service: tpp-gatus-backend
+    tpp-gatus-outpost:
+      entryPoints:
+      - websecure
+      tls:
+        certResolver: letsencrypt
+      rule: Host(`gatus.idtpp.com`) && PathPrefix(`/outpost.goauthentik.io/`)
+      priority: 400
+      service: tpp-gatus-outpost
+    tpp-gatus-health:
+      entryPoints:
+      - websecure
+      tls:
+        certResolver: letsencrypt
+      rule: Host(`gatus.idtpp.com`) && Path(`/health`)
+      priority: 300
+      service: tpp-gatus-backend
+    tpp-gatus-host-health:
+      entryPoints:
+      - websecure
+      tls:
+        certResolver: letsencrypt
+      rule: Host(`gatus.idtpp.com`) && Method(`POST`) && (Path(`/api/v1/endpoints/tpp-runtime_tpp-accurate-sync/external`)
+        || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-authentik/external`) || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-glitchtip/external`)
+        || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-mailcow/external`) || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-maintenance-prod01/external`)
+        || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-mdm/external`) || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-postgres/external`)
+        || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-redis/external`) || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-rmm/external`)
+        || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-stirling/external`) || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-wa-auth-sender/external`)
+        || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-waha/external`) || Path(`/api/v1/endpoints/tpp-runtime_tpp-ofelia-reports/external`)
+        || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-diagram-render/external`)
+        || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-maintenance-prod03/external`)
+        || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-rustdesk/external`) || Path(`/api/v1/endpoints/tpp-runtime_tpp-odoo-erp/external`)
+        || Path(`/api/v1/endpoints/tpp-runtime_tpp-odoo-filestore-backup/external`)
+        || Path(`/api/v1/endpoints/tpp-runtime_tpp-odoo-helpdesk/external`) || Path(`/api/v1/endpoints/tpp-runtime_tpp-odoo-hrms/external`)
+        || Path(`/api/v1/endpoints/tpp-runtime_tpp-react-erp/external`) || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-drawio/external`)
+        || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-hermes-friday/external`)
+        || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-hermes-jarvis/external`)
+        || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-hermes-sentinel/external`)
+        || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-kctl/external`) || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-maintenance-prod04/external`)
+        || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-nextcloud/external`) || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-operations-read/external`)
+        || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-xyops-backup/external`) ||
+        Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-xyops/external`) || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-gatus/external`)
+        || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-jitsi/external`) || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-maintenance-prod06/external`)
+        || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-mattermost-sg-prod/external`)
+        || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-maintenance-prod07/external`)
+        || Path(`/api/v1/endpoints/tpp-runtime_tpp-odoo-erp-stg/external`) || Path(`/api/v1/endpoints/tpp-runtime_tpp-odoo-filestore-backup-stg/external`)
+        || Path(`/api/v1/endpoints/tpp-runtime_tpp-odoo-hrms-stg/external`) || Path(`/api/v1/endpoints/tpp-runtime_tpp25-odoo-erp-stg/external`)
+        || Path(`/api/v1/endpoints/tpp-runtime_tpp25-odoo-erp/external`) || Path(`/api/v1/endpoints/tpp-runtime_tpp25-odoo-filestore-backup/external`))
+      priority: 350
+      service: tpp-gatus-backend
+      observability:
+        accessLogs: false
+        tracing: false
+  services:
+    tpp-gatus-backend:
+      loadBalancer:
+        servers:
+        - url: http://tpp-infra-gatus:8080
+    tpp-gatus-outpost:
+      loadBalancer:
+        servers:
+        - url: https://auth.idtpp.com
+  middlewares:
+    tpp-gatus-sso:
+      forwardAuth:
+        address: https://gatus.idtpp.com/outpost.goauthentik.io/auth/traefik
+        trustForwardHeader: false
+        authResponseHeaders:
+        - X-authentik-username
+        - X-authentik-email
+    tpp-gatus-upstream-basic:
+      headers:
+        customRequestHeaders:
+          Authorization: ${GATUS_UPSTREAM_AUTHORIZATION}
