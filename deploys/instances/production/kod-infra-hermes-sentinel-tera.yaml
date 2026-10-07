@@ -1,0 +1,54 @@
+# Standalone manifest: native volumeBackups replaces the incompatible legacy backup phase.
+# Actual Docker volume verified on kod-ovh-01; stop only this new agent for SQLite consistency.
+kind: instance
+instance:
+  name: kod-infra-hermes-sentinel-tera
+  description: "SENTINEL \u2014 Kodeme IT Operations; isolated deployment on kod-ovh-01"
+project: apps
+environment: production
+server: kod-ovh-01
+env_file: ../../env/production/.env.kod-infra-hermes-sentinel-tera
+env_overrides:
+  COMPOSE_PROJECT_NAME: kod-infra-hermes-sentinel-tera
+  HERMES_CONTAINER_PREFIX: kod-infra-hermes-sentinel-tera
+  HERMES_UPSTREAM_REF: v2026.8.31
+  HERMES_BUILD_CONTEXT: /opt/hermes-upstream/v2026.8.31
+  HERMES_EDITION: business
+  HERMES_PERSONA: sentinel
+  HERMES_DEPLOYMENT: kodemeio
+  HERMES_MODEL_PROVIDER: deepseek
+  HERMES_INFERENCE_MODEL: deepseek-flash
+  HERMES_CPU_LIMIT: '1.0'
+  HERMES_MEM_LIMIT: 1G
+  HERMES_MEM_RESERVATION: 256M
+  COMPOSE_PROFILES: operations-read
+post_deploy: {}
+type: infrastructure
+source:
+  type: github
+  owner: tgunawandev
+  repo: kodemeio-hermes
+  branch: agent/kodeme-monitoring-weknora
+  compose_path: docker-compose.kodeme-operators.yml
+auto_deploy: false
+healthcheck:
+  test:
+  - CMD-SHELL
+  - pgrep -f 'gateway run' >/dev/null && test -f /opt/data/config.yaml
+  port: 0
+  timeout: 10
+  interval: 60
+  start_period: 180
+env_defaults:
+  TZ: Asia/Jakarta
+  HERMES_LOG_LEVEL: info
+  HERMES_UID: '10000'
+  HERMES_GID: '10000'
+volume_backups:
+- service: hermes
+  volume: compose-program-auxiliary-bandwidth-5pdthj_hermes-state
+  cron_schedule: 15 4 * * *
+  destination: kodemeio-s3-backups
+  prefix: kod-infra-hermes-sentinel-tera
+  keep_latest: 14
+  turn_off: true
