@@ -38,6 +38,8 @@ URI and protocol headers still redirect for the Gatus callback. All three named
 accounts pass the expression policy; another active account fails. Interactive
 sign-in with the users' credentials remains for the users to exercise.
 
-Rollback: restore the prior protected dynamic file from the operator backup.
-Restoring the original browser router brings back native Basic authentication.
+Rollback: remove the owned browser/outpost routers and SSO middlewares from
+the protected file through the same front door. The original Docker browser
+router then resumes native Basic authentication; keep the machine API and
+health routes plus the existing webhook router.
 Do not alter global Traefik forwarded-header trust or stop Dokploy/Traefik.
