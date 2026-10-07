@@ -107,7 +107,9 @@
   "tpp-odoo-erp": {
     "repo": "kodemeio-odoo",
     "environment": "production",
-    "gatus_endpoints": [],
+    "gatus_endpoints": [
+      "tpp-odoo-erp"
+    ],
     "glitchtip": {
       "url": "https://glitchtip.idtpp.com",
       "org": "idtpp",
@@ -120,7 +122,9 @@
   "tpp-odoo-hrms": {
     "repo": "kodemeio-odoo",
     "environment": "production",
-    "gatus_endpoints": [],
+    "gatus_endpoints": [
+      "tpp-odoo-hrms"
+    ],
     "glitchtip": {
       "url": "https://glitchtip.idtpp.com",
       "org": "idtpp",
@@ -133,7 +137,9 @@
   "tpp-odoo-erp-stg": {
     "repo": "kodemeio-odoo",
     "environment": "staging",
-    "gatus_endpoints": [],
+    "gatus_endpoints": [
+      "tpp-odoo-erp-stg"
+    ],
     "glitchtip": {
       "url": "https://glitchtip.idtpp.com",
       "org": "idtpp",
@@ -146,7 +152,9 @@
   "tpp-odoo-hrms-stg": {
     "repo": "kodemeio-odoo",
     "environment": "staging",
-    "gatus_endpoints": [],
+    "gatus_endpoints": [
+      "tpp-odoo-hrms-stg"
+    ],
     "glitchtip": {
       "url": "https://glitchtip.idtpp.com",
       "org": "idtpp",
@@ -155,5 +163,363 @@
       "issue_api": "legacy",
       "token_env": "INCIDENT_GLITCHTIP_READ_TOKEN"
     }
+  },
+  "tpp-nextcloud": {
+    "repo": "kodemeio-nextcloud",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-nextcloud"
+    ]
+  },
+  "tpp-mailcow": {
+    "repo": "kodemeio-mailcow",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-mailcow"
+    ]
+  },
+  "tpp-jitsi": {
+    "repo": "kodemeio-jitsi",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-jitsi"
+    ]
+  },
+  "tpp-rmm": {
+    "repo": "kodemeio-rmm",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-rmm"
+    ]
+  },
+  "tpp-rmm-api": {
+    "repo": "kodemeio-rmm",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-rmm-api"
+    ]
+  },
+  "tpp-meshcentral": {
+    "repo": "kodemeio-rmm",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-meshcentral"
+    ]
+  },
+  "tpp-mdm": {
+    "repo": "kodemeio-dokploy",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-mdm"
+    ]
+  },
+  "tpp-drawio": {
+    "repo": "kodemeio-dokploy",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-drawio"
+    ]
+  },
+  "tpp-react-erp": {
+    "repo": "kodemeio-react",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-react-erp",
+      "tpp-react-erp"
+    ]
+  },
+  "tpp-hrms": {
+    "repo": "kodemeio-odoo",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-hrms"
+    ]
+  },
+  "tpp-erp-stg": {
+    "repo": "kodemeio-odoo",
+    "environment": "staging",
+    "gatus_endpoints": [
+      "tpp-erp-stg"
+    ]
+  },
+  "tpp-hrms-stg": {
+    "repo": "kodemeio-odoo",
+    "environment": "staging",
+    "gatus_endpoints": [
+      "tpp-hrms-stg"
+    ]
+  },
+  "tpp-dokploy": {
+    "repo": "kodemeio-dokploy",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-dokploy"
+    ]
+  },
+  "tpp-gatus": {
+    "repo": "kodemeio-dokploy",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-gatus"
+    ]
+  },
+  "tpp-accurate-sync": {
+    "repo": "kodemeio-accurate",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-accurate-sync"
+    ]
+  },
+  "tpp-infra-authentik": {
+    "repo": "kodemeio-authentik",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-infra-authentik"
+    ]
+  },
+  "tpp-infra-diagram-render": {
+    "repo": "kodemeio-odoo",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-infra-diagram-render"
+    ]
+  },
+  "tpp-infra-drawio": {
+    "repo": "kodemeio-odoo",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-infra-drawio"
+    ]
+  },
+  "tpp-infra-gatus": {
+    "repo": "kodemeio-dokploy",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-infra-gatus"
+    ]
+  },
+  "tpp-infra-glitchtip": {
+    "repo": "kodemeio-glitchtip",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-infra-glitchtip"
+    ]
+  },
+  "tpp-infra-hermes-friday": {
+    "repo": "kodemeio-hermes",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-infra-hermes-friday"
+    ]
+  },
+  "tpp-infra-hermes-jarvis": {
+    "repo": "kodemeio-hermes",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-infra-hermes-jarvis"
+    ]
+  },
+  "tpp-infra-hermes-sentinel": {
+    "repo": "kodemeio-hermes",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-infra-hermes-sentinel"
+    ]
+  },
+  "tpp-infra-jitsi": {
+    "repo": "kodemeio-dokploy",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-infra-jitsi"
+    ]
+  },
+  "tpp-infra-kctl": {
+    "repo": "kodemeio-skills",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-infra-kctl"
+    ]
+  },
+  "tpp-infra-mailcow": {
+    "repo": "kodemeio-mailcow",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-infra-mailcow"
+    ]
+  },
+  "tpp-infra-maintenance-prod01": {
+    "repo": "kodemeio-dokploy",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-infra-maintenance-prod01"
+    ]
+  },
+  "tpp-infra-maintenance-prod03": {
+    "repo": "kodemeio-dokploy",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-infra-maintenance-prod03"
+    ]
+  },
+  "tpp-infra-maintenance-prod04": {
+    "repo": "kodemeio-dokploy",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-infra-maintenance-prod04"
+    ]
+  },
+  "tpp-infra-maintenance-prod06": {
+    "repo": "kodemeio-dokploy",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-infra-maintenance-prod06"
+    ]
+  },
+  "tpp-infra-maintenance-prod07": {
+    "repo": "kodemeio-dokploy",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-infra-maintenance-prod07"
+    ]
+  },
+  "tpp-infra-mattermost-sg-prod": {
+    "repo": "kodemeio-mattermost",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-infra-mattermost-sg-prod"
+    ]
+  },
+  "tpp-infra-mdm": {
+    "repo": "kodemeio-headwind",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-infra-mdm"
+    ]
+  },
+  "tpp-infra-nextcloud": {
+    "repo": "kodemeio-nextcloud",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-infra-nextcloud"
+    ]
+  },
+  "tpp-infra-operations-read": {
+    "repo": "kodemeio-hermes",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-infra-operations-read"
+    ]
+  },
+  "tpp-infra-postgres": {
+    "repo": "kodemeio-postgres",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-infra-postgres"
+    ]
+  },
+  "tpp-infra-redis": {
+    "repo": "kodemeio-redis",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-infra-redis"
+    ]
+  },
+  "tpp-infra-rmm": {
+    "repo": "kodemeio-rmm",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-infra-rmm"
+    ]
+  },
+  "tpp-infra-rustdesk": {
+    "repo": "kodemeio-rustdesk",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-infra-rustdesk"
+    ]
+  },
+  "tpp-infra-stirling": {
+    "repo": "kodemeio-stirling",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-infra-stirling"
+    ]
+  },
+  "tpp-infra-wa-auth-sender": {
+    "repo": "kodemeio-waha",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-infra-wa-auth-sender"
+    ]
+  },
+  "tpp-infra-waha": {
+    "repo": "kodemeio-waha",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-infra-waha"
+    ]
+  },
+  "tpp-infra-xyops-backup": {
+    "repo": "kodemeio-xyops",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-infra-xyops-backup"
+    ]
+  },
+  "tpp-infra-xyops": {
+    "repo": "kodemeio-xyops",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-infra-xyops"
+    ]
+  },
+  "tpp-odoo-filestore-backup-stg": {
+    "repo": "kodemeio-odoo",
+    "environment": "staging",
+    "gatus_endpoints": [
+      "tpp-odoo-filestore-backup-stg"
+    ]
+  },
+  "tpp-odoo-filestore-backup": {
+    "repo": "kodemeio-odoo",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-odoo-filestore-backup"
+    ]
+  },
+  "tpp-odoo-helpdesk": {
+    "repo": "kodemeio-odoo",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-odoo-helpdesk"
+    ]
+  },
+  "tpp-ofelia-reports": {
+    "repo": "kodemeio-ofelia",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp-ofelia-reports"
+    ]
+  },
+  "tpp25-odoo-erp-stg": {
+    "repo": "kodemeio-odoo",
+    "environment": "staging",
+    "gatus_endpoints": [
+      "tpp25-odoo-erp-stg"
+    ]
+  },
+  "tpp25-odoo-erp": {
+    "repo": "kodemeio-odoo",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp25-odoo-erp"
+    ]
+  },
+  "tpp25-odoo-filestore-backup": {
+    "repo": "kodemeio-odoo",
+    "environment": "production",
+    "gatus_endpoints": [
+      "tpp25-odoo-filestore-backup"
+    ]
   }
 }

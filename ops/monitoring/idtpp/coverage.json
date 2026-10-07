@@ -1,0 +1,557 @@
+[
+  {
+    "name": "tpp-accurate-sync",
+    "host": 0,
+    "services": [
+      "accurate-sync"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "accurate-sync"
+    ]
+  },
+  {
+    "name": "tpp-infra-authentik",
+    "host": 0,
+    "services": [
+      "server",
+      "worker"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "server",
+      "worker"
+    ]
+  },
+  {
+    "name": "tpp-infra-diagram-render",
+    "host": 1,
+    "services": [
+      "render"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "render"
+    ]
+  },
+  {
+    "name": "tpp-infra-drawio",
+    "host": 2,
+    "services": [
+      "drawio"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "drawio"
+    ]
+  },
+  {
+    "name": "tpp-infra-gatus",
+    "host": 3,
+    "services": [
+      "gatus",
+      "incident-collector",
+      "incident-ingress"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "incident-collector",
+      "incident-ingress"
+    ]
+  },
+  {
+    "name": "tpp-infra-glitchtip",
+    "host": 0,
+    "services": [
+      "glitchtip",
+      "glitchtip-redis",
+      "glitchtip-worker"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "glitchtip",
+      "glitchtip-redis",
+      "glitchtip-worker"
+    ]
+  },
+  {
+    "name": "tpp-infra-hermes-friday",
+    "host": 2,
+    "services": [
+      "dashboard",
+      "hermes",
+      "vault-sync"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "dashboard",
+      "hermes"
+    ]
+  },
+  {
+    "name": "tpp-infra-hermes-jarvis",
+    "host": 2,
+    "services": [
+      "hermes",
+      "vault-sync"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "hermes"
+    ]
+  },
+  {
+    "name": "tpp-infra-hermes-sentinel",
+    "host": 2,
+    "services": [
+      "hermes",
+      "vault-sync"
+    ],
+    "init_services": [
+      "init"
+    ],
+    "health_checks": [
+      "hermes"
+    ]
+  },
+  {
+    "name": "tpp-infra-jitsi",
+    "host": 3,
+    "services": [
+      "coturn",
+      "jicofo",
+      "jvb",
+      "prosody",
+      "web"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "coturn",
+      "jicofo",
+      "jvb",
+      "prosody",
+      "web"
+    ]
+  },
+  {
+    "name": "tpp-infra-kctl",
+    "host": 2,
+    "services": [
+      "kctl"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "kctl"
+    ]
+  },
+  {
+    "name": "tpp-infra-mailcow",
+    "host": 0,
+    "services": [
+      "acme-mailcow",
+      "clamd-mailcow",
+      "dockerapi-mailcow",
+      "dovecot-mailcow",
+      "memcached-mailcow",
+      "mysql-mailcow",
+      "netfilter-mailcow",
+      "nginx-mailcow",
+      "ofelia-mailcow",
+      "olefy-mailcow",
+      "php-fpm-mailcow",
+      "postfix-mailcow",
+      "postfix-tlspol-mailcow",
+      "redis-mailcow",
+      "rspamd-mailcow",
+      "sogo-mailcow",
+      "unbound-mailcow",
+      "watchdog-mailcow"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "clamd-mailcow",
+      "unbound-mailcow"
+    ]
+  },
+  {
+    "name": "tpp-infra-maintenance-prod01",
+    "host": 0,
+    "services": [
+      "maintenance"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "maintenance"
+    ]
+  },
+  {
+    "name": "tpp-infra-maintenance-prod03",
+    "host": 1,
+    "services": [
+      "maintenance"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "maintenance"
+    ]
+  },
+  {
+    "name": "tpp-infra-maintenance-prod04",
+    "host": 2,
+    "services": [
+      "maintenance"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "maintenance"
+    ]
+  },
+  {
+    "name": "tpp-infra-maintenance-prod06",
+    "host": 3,
+    "services": [
+      "maintenance"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "maintenance"
+    ]
+  },
+  {
+    "name": "tpp-infra-maintenance-prod07",
+    "host": 4,
+    "services": [
+      "maintenance"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "maintenance"
+    ]
+  },
+  {
+    "name": "tpp-infra-mattermost-sg-prod",
+    "host": 3,
+    "services": [
+      "mattermost",
+      "mm-backup",
+      "mm-postgres"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "mattermost",
+      "mm-postgres"
+    ]
+  },
+  {
+    "name": "tpp-infra-mdm",
+    "host": 0,
+    "services": [
+      "hmdm"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "hmdm"
+    ]
+  },
+  {
+    "name": "tpp-infra-nextcloud",
+    "host": 2,
+    "services": [
+      "cron",
+      "nextcloud",
+      "redis"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "cron",
+      "nextcloud",
+      "redis"
+    ]
+  },
+  {
+    "name": "tpp-infra-operations-read",
+    "host": 2,
+    "services": [
+      "operations-read-jarvis",
+      "operations-read-sentinel"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "operations-read-jarvis",
+      "operations-read-sentinel"
+    ]
+  },
+  {
+    "name": "tpp-infra-postgres",
+    "host": 0,
+    "services": [
+      "pgbouncer",
+      "postgres",
+      "postgres-exporter"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "pgbouncer",
+      "postgres"
+    ]
+  },
+  {
+    "name": "tpp-infra-redis",
+    "host": 0,
+    "services": [
+      "redis"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "redis"
+    ]
+  },
+  {
+    "name": "tpp-infra-rmm",
+    "host": 0,
+    "services": [
+      "meshcentral",
+      "mongodb",
+      "nats",
+      "postgres",
+      "redis",
+      "tactical-backend",
+      "tactical-celery",
+      "tactical-celerybeat",
+      "tactical-frontend",
+      "tactical-websocket"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "postgres",
+      "tactical-backend"
+    ]
+  },
+  {
+    "name": "tpp-infra-rustdesk",
+    "host": 1,
+    "services": [
+      "hbbr",
+      "hbbs"
+    ],
+    "init_services": [],
+    "health_checks": []
+  },
+  {
+    "name": "tpp-infra-stirling",
+    "host": 0,
+    "services": [
+      "stirling-pdf"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "stirling-pdf"
+    ]
+  },
+  {
+    "name": "tpp-infra-wa-auth-sender",
+    "host": 0,
+    "services": [
+      "wa-auth-sender"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "wa-auth-sender"
+    ]
+  },
+  {
+    "name": "tpp-infra-waha",
+    "host": 0,
+    "services": [
+      "waha"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "waha"
+    ]
+  },
+  {
+    "name": "tpp-infra-xyops-backup",
+    "host": 2,
+    "services": [
+      "xyops-backup"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "xyops-backup"
+    ]
+  },
+  {
+    "name": "tpp-infra-xyops",
+    "host": 2,
+    "services": [
+      "xyops"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "xyops"
+    ]
+  },
+  {
+    "name": "tpp-odoo-erp-stg",
+    "host": 4,
+    "services": [
+      "odoo-cron",
+      "odoo-gevent",
+      "odoo-web"
+    ],
+    "init_services": [
+      "odoo-init"
+    ],
+    "health_checks": [
+      "odoo-cron",
+      "odoo-gevent",
+      "odoo-web"
+    ]
+  },
+  {
+    "name": "tpp-odoo-erp",
+    "host": 1,
+    "services": [
+      "odoo-cron",
+      "odoo-gevent",
+      "odoo-web"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "odoo-cron",
+      "odoo-gevent",
+      "odoo-web"
+    ]
+  },
+  {
+    "name": "tpp-odoo-filestore-backup-stg",
+    "host": 4,
+    "services": [
+      "filestore-backup"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "filestore-backup"
+    ]
+  },
+  {
+    "name": "tpp-odoo-filestore-backup",
+    "host": 1,
+    "services": [
+      "filestore-backup"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "filestore-backup"
+    ]
+  },
+  {
+    "name": "tpp-odoo-helpdesk",
+    "host": 1,
+    "services": [
+      "odoo-cron",
+      "odoo-gevent",
+      "odoo-web"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "odoo-cron",
+      "odoo-gevent",
+      "odoo-web"
+    ]
+  },
+  {
+    "name": "tpp-odoo-hrms-stg",
+    "host": 4,
+    "services": [
+      "odoo-cron",
+      "odoo-gevent",
+      "odoo-web"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "odoo-cron",
+      "odoo-gevent",
+      "odoo-web"
+    ]
+  },
+  {
+    "name": "tpp-odoo-hrms",
+    "host": 1,
+    "services": [
+      "odoo-cron",
+      "odoo-gevent",
+      "odoo-web"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "odoo-cron",
+      "odoo-gevent",
+      "odoo-web"
+    ]
+  },
+  {
+    "name": "tpp-ofelia-reports",
+    "host": 0,
+    "services": [
+      "ofelia"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "ofelia"
+    ]
+  },
+  {
+    "name": "tpp-react-erp",
+    "host": 1,
+    "services": [
+      "erp"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "erp"
+    ]
+  },
+  {
+    "name": "tpp25-odoo-erp-stg",
+    "host": 4,
+    "services": [
+      "odoo-cron",
+      "odoo-gevent",
+      "odoo-web"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "odoo-cron",
+      "odoo-gevent",
+      "odoo-web"
+    ]
+  },
+  {
+    "name": "tpp25-odoo-erp",
+    "host": 4,
+    "services": [
+      "odoo-cron",
+      "odoo-gevent",
+      "odoo-web"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "odoo-cron",
+      "odoo-gevent",
+      "odoo-web"
+    ]
+  },
+  {
+    "name": "tpp25-odoo-filestore-backup",
+    "host": 4,
+    "services": [
+      "filestore-backup"
+    ],
+    "init_services": [],
+    "health_checks": [
+      "filestore-backup"
+    ]
+  }
+]

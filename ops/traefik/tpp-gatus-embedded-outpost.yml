@@ -1,0 +1,14 @@
+http:
+  routers:
+    tpp-gatus-embedded-outpost:
+      entryPoints:
+      - websecure
+      rule: Host(`gatus.idtpp.com`) && PathPrefix(`/outpost.goauthentik.io/`)
+      priority: 400
+      tls: {}
+      service: tpp-gatus-embedded-outpost
+  services:
+    tpp-gatus-embedded-outpost:
+      loadBalancer:
+        servers:
+        - url: http://authentik-server:9000

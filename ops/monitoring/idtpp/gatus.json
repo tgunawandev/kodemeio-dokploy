@@ -101,6 +101,766 @@
           "type": "custom"
         }
       ]
+    },
+    {
+      "name": "tpp-nextcloud",
+      "group": "IDTPP",
+      "url": "https://nextcloud.idtpp.com/status.php",
+      "interval": "60s",
+      "conditions": [
+        "[STATUS] == 200",
+        "[CERTIFICATE_EXPIRATION] > 336h",
+        "[BODY].installed == true",
+        "[BODY].maintenance == false"
+      ],
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-mailcow",
+      "group": "IDTPP",
+      "url": "https://mail.idtpp.com/",
+      "interval": "60s",
+      "conditions": [
+        "[STATUS] == 200",
+        "[CERTIFICATE_EXPIRATION] > 336h"
+      ],
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-jitsi",
+      "group": "IDTPP",
+      "url": "https://jitsi.idtpp.com/",
+      "interval": "60s",
+      "conditions": [
+        "[STATUS] == 200",
+        "[CERTIFICATE_EXPIRATION] > 336h"
+      ],
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-rmm",
+      "group": "IDTPP",
+      "url": "https://rmm.idtpp.com/",
+      "interval": "60s",
+      "conditions": [
+        "[STATUS] == 200",
+        "[CERTIFICATE_EXPIRATION] > 336h"
+      ],
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-rmm-api",
+      "group": "IDTPP",
+      "url": "https://api-rmm.idtpp.com/",
+      "interval": "60s",
+      "conditions": [
+        "[STATUS] == 200",
+        "[CERTIFICATE_EXPIRATION] > 336h"
+      ],
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-meshcentral",
+      "group": "IDTPP",
+      "url": "https://mesh.idtpp.com/",
+      "interval": "60s",
+      "conditions": [
+        "[STATUS] == 200",
+        "[CERTIFICATE_EXPIRATION] > 336h"
+      ],
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-mdm",
+      "group": "IDTPP",
+      "url": "https://mdm.idtpp.com/",
+      "interval": "60s",
+      "conditions": [
+        "[STATUS] == 200",
+        "[CERTIFICATE_EXPIRATION] > 336h"
+      ],
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-drawio",
+      "group": "IDTPP",
+      "url": "https://draw.idtpp.com/",
+      "interval": "60s",
+      "conditions": [
+        "[STATUS] == 200",
+        "[CERTIFICATE_EXPIRATION] > 336h"
+      ],
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-react-erp",
+      "group": "IDTPP",
+      "url": "https://mtpp.idtpp.com/",
+      "interval": "60s",
+      "conditions": [
+        "[STATUS] == 200",
+        "[CERTIFICATE_EXPIRATION] > 336h"
+      ],
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-hrms",
+      "group": "IDTPP",
+      "url": "https://tpp-odoo-hrms.idtpp.com/web/health",
+      "interval": "60s",
+      "conditions": [
+        "[STATUS] == 200",
+        "[CERTIFICATE_EXPIRATION] > 336h"
+      ],
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-erp-stg",
+      "group": "IDTPP",
+      "url": "https://erp-stg.idtpp.com/web/health",
+      "interval": "60s",
+      "conditions": [
+        "[STATUS] == 200",
+        "[CERTIFICATE_EXPIRATION] > 336h"
+      ],
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-hrms-stg",
+      "group": "IDTPP",
+      "url": "https://tpp-odoo-hrms-stg.idtpp.com/web/health",
+      "interval": "60s",
+      "conditions": [
+        "[STATUS] == 200",
+        "[CERTIFICATE_EXPIRATION] > 336h"
+      ],
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-dokploy",
+      "group": "IDTPP",
+      "url": "https://dokploy.idtpp.com/",
+      "interval": "60s",
+      "conditions": [
+        "[STATUS] == 200",
+        "[CERTIFICATE_EXPIRATION] > 336h"
+      ],
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-gatus",
+      "group": "IDTPP",
+      "url": "https://gatus.idtpp.com/health",
+      "interval": "60s",
+      "conditions": [
+        "[STATUS] == 200",
+        "[CERTIFICATE_EXPIRATION] > 336h"
+      ],
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    }
+  ],
+  "external-endpoints": [
+    {
+      "name": "tpp-accurate-sync",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST0_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-infra-authentik",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST0_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-infra-diagram-render",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST1_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-infra-drawio",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST2_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-infra-gatus",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST3_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-infra-glitchtip",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST0_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-infra-hermes-friday",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST2_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-infra-hermes-jarvis",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST2_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-infra-hermes-sentinel",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST2_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-infra-jitsi",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST3_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-infra-kctl",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST2_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-infra-mailcow",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST0_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-infra-maintenance-prod01",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST0_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-infra-maintenance-prod03",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST1_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-infra-maintenance-prod04",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST2_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-infra-maintenance-prod06",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST3_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-infra-maintenance-prod07",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST4_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-infra-mattermost-sg-prod",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST3_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-infra-mdm",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST0_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-infra-nextcloud",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST2_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-infra-operations-read",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST2_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-infra-postgres",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST0_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-infra-redis",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST0_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-infra-rmm",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST0_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-infra-rustdesk",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST1_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-infra-stirling",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST0_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-infra-wa-auth-sender",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST0_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-infra-waha",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST0_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-infra-xyops-backup",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST2_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-infra-xyops",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST2_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-odoo-erp-stg",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST4_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-odoo-erp",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST1_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-odoo-filestore-backup-stg",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST4_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-odoo-filestore-backup",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST1_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-odoo-helpdesk",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST1_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-odoo-hrms-stg",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST4_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-odoo-hrms",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST1_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-ofelia-reports",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST0_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp-react-erp",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST1_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp25-odoo-erp-stg",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST4_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp25-odoo-erp",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST4_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
+    },
+    {
+      "name": "tpp25-odoo-filestore-backup",
+      "group": "TPP Runtime",
+      "token": "${GATUS_HOST4_TOKEN}",
+      "heartbeat": {
+        "interval": "180s"
+      },
+      "alerts": [
+        {
+          "type": "custom"
+        }
+      ]
     }
   ]
 }
