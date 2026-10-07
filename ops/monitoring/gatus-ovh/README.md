@@ -9,8 +9,12 @@ and application/customer payloads are excluded from the checked-in definitions.
 SQLite persists ten result/event samples per endpoint. There are 14 HTTPS checks
 and 54 external container checks: 36 OVH, 14 HZ and 4 ORCA-host components. The
 collector/catalog.json file is the authoritative host-component enrollment list.
-The dedicated WeKnora MCP origin intentionally returns 404 at its root; that
-probe verifies TLS/routing only. Its backend health is checked by the collector.
+The WeKnora machine MCP route `/mcp/` must return its backend-specific JSON
+authentication refusal; an ingress-generated 404 cannot pass. Its workers also
+have collector health checks. Dokploy and the legacy Hatchet admin probes do not
+follow redirects and require a closed gate (302/401/403), matching the existing
+independent monitoring contract. Gate refusal does not prove backend health;
+the associated container checks cover runtime state.
 HTTP checks include ERP, Desk, HRIS, Mattermost, Authentik, Dokploy, GlitchTip,
 Gatus, WeKnora routes, Desk links, portfolio, Immich and the existing legacy
 Hatchet service. Monitoring an existing legacy component does not restore it
@@ -50,3 +54,11 @@ push credentials in /etc/kodemeio/gatus-collector/. Updates require a deliberate
 collector bundle/config rollout and native Gatus redeploy. Missing, ambiguous,
 unhealthy or restarting containers report failure. Do not suppress observed
 failures to make the monitor green. Database/volume backup verification is separate.
+
+PR #15 review corrections are not deployed. Retired Swarm task containers are
+ignored when selecting the active service; named stopped containers still fail,
+and multiple active replicas remain ambiguous. An unauthenticated live check on
+2026-10-07 found both admin origins returning 200. The stronger gate probes will
+therefore correctly alarm until their intended gates are configured; the current
+deployed 68-check snapshot predates these corrections. No gates or production
+services were changed during PR review.

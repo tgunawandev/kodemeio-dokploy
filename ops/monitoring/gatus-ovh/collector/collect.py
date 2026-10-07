@@ -33,6 +33,7 @@ def evaluate(check, containers):
             c["name"].lstrip("/") == check.get("container")
             or check.get("swarm_service")
             and c.get("swarm_service") == check["swarm_service"]
+            and c["status"] not in {"exited", "dead", "removing"}
         )
     ]
     if len(matches) != 1:

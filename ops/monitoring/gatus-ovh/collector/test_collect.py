@@ -50,3 +50,25 @@ def test_catalog_covers_unique_native_endpoint_keys_without_secret_material():
 def test_push_rejects_redirect():
     with pytest.raises(RuntimeError, match="redirects forbidden"):
         collector.NoRedirect().redirect_request(None, None, None, None, None, None)
+
+
+def test_swarm_retired_task_does_not_hide_active_replacement():
+    check = {"swarm_service": "dokploy"}
+    active = {"name": "/dokploy.1.new", "swarm_service": "dokploy", "status": "running", "health": "healthy"}
+    retired = {**active, "name": "/dokploy.1.old", "status": "exited"}
+    assert collector.evaluate(check, [active, retired])[0] is True
+    assert collector.evaluate(check, [retired])[0] is False
+    assert collector.evaluate(check, [active, {**active, "name": "/dokploy.2.new"}, retired])[0] is False
+    assert collector.evaluate({"container": "dokploy.1.old"}, [retired])[0] is False
+
+
+def test_admin_checks_cannot_follow_identity_provider_redirects():
+    cfg = yaml.safe_load((HERE.parent / "config.yaml").read_text())
+    endpoints = {e["name"]: e for e in cfg["endpoints"]}
+    for name in ("dokploy", "legacy-hatchet"):
+        assert endpoints[name]["client"]["ignore-redirect"] is True
+        assert '[STATUS] == any(302, 401, 403)' in endpoints[name]["conditions"]
+    mcp = endpoints["weknora-mcp-origin"]
+    assert mcp["url"].endswith('/mcp/')
+    assert '[STATUS] == 401' in mcp["conditions"]
+    assert '[BODY].error == Unauthorized: missing authentication' in mcp["conditions"]

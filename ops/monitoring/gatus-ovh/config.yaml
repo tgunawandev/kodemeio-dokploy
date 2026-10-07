@@ -1,4 +1,4 @@
-# MCP origin root intentionally returns 404; its API workers have host health checks.
+# Probe the machine MCP route's backend-specific authentication response.
 storage:
   type: sqlite
   path: /data/data.db
@@ -49,8 +49,10 @@ endpoints:
   url: https://dokploy.kodeme.io/
   interval: 60s
   conditions:
-  - '[STATUS] == 200'
+  - '[STATUS] == any(302, 401, 403)'
   - '[CERTIFICATE_EXPIRATION] > 168h'
+  client:
+    ignore-redirect: true
 - name: odoo-hris
   group: odoo
   url: https://hris.kodeme.io/web/health
@@ -74,10 +76,11 @@ endpoints:
   - '[CERTIFICATE_EXPIRATION] > 168h'
 - name: weknora-mcp-origin
   group: knowledge
-  url: https://weknora-mcp.kodeme.io/
+  url: https://weknora-mcp.kodeme.io/mcp/
   interval: 60s
   conditions:
-  - '[STATUS] == 404'
+  - '[STATUS] == 401'
+  - '[BODY].error == Unauthorized: missing authentication'
   - '[CERTIFICATE_EXPIRATION] > 168h'
   client:
     ignore-redirect: true
@@ -107,8 +110,10 @@ endpoints:
   url: https://hatchet.kodeme.io/
   interval: 60s
   conditions:
-  - '[STATUS] == 200'
+  - '[STATUS] == any(302, 401, 403)'
   - '[CERTIFICATE_EXPIRATION] > 168h'
+  client:
+    ignore-redirect: true
 external-endpoints:
 - name: glitchtip
   group: host-ovh
