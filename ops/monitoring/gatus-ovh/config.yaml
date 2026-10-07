@@ -1,4 +1,4 @@
-# OVH status reader; alerts stay with the independent hzc-01 monitor.
+# MCP origin root intentionally returns 404; its API workers have host health checks.
 storage:
   type: sqlite
   path: /data/data.db
@@ -51,3 +51,332 @@ endpoints:
   conditions:
   - '[STATUS] == 200'
   - '[CERTIFICATE_EXPIRATION] > 168h'
+- name: odoo-hris
+  group: odoo
+  url: https://hris.kodeme.io/web/health
+  interval: 60s
+  conditions:
+  - '[STATUS] == 200'
+  - '[CERTIFICATE_EXPIRATION] > 168h'
+- name: desk-links
+  group: odoo
+  url: https://go.desk.kodeme.io/
+  interval: 60s
+  conditions:
+  - '[STATUS] == 200'
+  - '[CERTIFICATE_EXPIRATION] > 168h'
+- name: weknora
+  group: knowledge
+  url: https://weknora.kodeme.io/
+  interval: 60s
+  conditions:
+  - '[STATUS] == 200'
+  - '[CERTIFICATE_EXPIRATION] > 168h'
+- name: weknora-mcp-origin
+  group: knowledge
+  url: https://weknora-mcp.kodeme.io/
+  interval: 60s
+  conditions:
+  - '[STATUS] == 404'
+  - '[CERTIFICATE_EXPIRATION] > 168h'
+  client:
+    ignore-redirect: true
+- name: gatus
+  group: monitoring
+  url: https://gatus.kodeme.io/health
+  interval: 60s
+  conditions:
+  - '[STATUS] == 200'
+  - '[CERTIFICATE_EXPIRATION] > 168h'
+- name: immich
+  group: owner-services
+  url: https://immich.kidneuro.io/api/server/ping
+  interval: 60s
+  conditions:
+  - '[STATUS] == 200'
+  - '[CERTIFICATE_EXPIRATION] > 168h'
+- name: portfolio
+  group: owner-services
+  url: https://trigunawan.com/
+  interval: 60s
+  conditions:
+  - '[STATUS] == 200'
+  - '[CERTIFICATE_EXPIRATION] > 168h'
+- name: legacy-hatchet
+  group: legacy
+  url: https://hatchet.kodeme.io/
+  interval: 60s
+  conditions:
+  - '[STATUS] == 200'
+  - '[CERTIFICATE_EXPIRATION] > 168h'
+external-endpoints:
+- name: glitchtip
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: hermes-sentinel-tera
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: operations-read-sentinel
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: hermes-jarvis-tera
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: weknora-frontend
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: gatus-ovh
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: weknora-app
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: weknora-reranker
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: weknora-ollama
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: weknora-docreader
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: odoo-dev-odoo
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: kodemeio-odoo-dev-pg
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: maintenance-maintenance
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: odoo-hris-odoo-web
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: odoo-desk-odoo-web
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: odoo-erp-odoo-web
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: mattermost-mattermost
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: mattermost-mm-postgres
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: mattermost-mm-backup
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: mattermost-mm-files-backup
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: legacy-hatchet-hatchet-dashboard
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: legacy-hatchet-hatchet-engine
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: legacy-hatchet-hatchet-backup
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: legacy-hatchet-hatchet-postgres
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: odoo-erp-odoo-gevent
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: odoo-erp-odoo-cron
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: odoo-hris-odoo-cron
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: odoo-hris-odoo-gevent
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: odoo-desk-odoo-gevent
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: odoo-desk-odoo-cron
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: shared-postgres-postgres
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: shared-postgres-postgres-exporter
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: shared-postgres-pgbouncer
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: omp-veronica
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: omp-friday
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: dokploy-traefik
+  group: host-ovh
+  token: ${GATUS_PUSH_OVH}
+  heartbeat:
+    interval: 3m
+- name: dokploy
+  group: host-hzc
+  token: ${GATUS_PUSH_HZC}
+  heartbeat:
+    interval: 3m
+- name: maintenance-maintenance
+  group: host-hzc
+  token: ${GATUS_PUSH_HZC}
+  heartbeat:
+    interval: 3m
+- name: independent-gatus-heartbeat
+  group: host-hzc
+  token: ${GATUS_PUSH_HZC}
+  heartbeat:
+    interval: 3m
+- name: independent-gatus-gatus
+  group: host-hzc
+  token: ${GATUS_PUSH_HZC}
+  heartbeat:
+    interval: 3m
+- name: authentik-worker
+  group: host-hzc
+  token: ${GATUS_PUSH_HZC}
+  heartbeat:
+    interval: 3m
+- name: authentik-server
+  group: host-hzc
+  token: ${GATUS_PUSH_HZC}
+  heartbeat:
+    interval: 3m
+- name: authentik-postgresql
+  group: host-hzc
+  token: ${GATUS_PUSH_HZC}
+  heartbeat:
+    interval: 3m
+- name: dokploy-redis
+  group: host-hzc
+  token: ${GATUS_PUSH_HZC}
+  heartbeat:
+    interval: 3m
+- name: dokploy-postgres
+  group: host-hzc
+  token: ${GATUS_PUSH_HZC}
+  heartbeat:
+    interval: 3m
+- name: kidneuro-immich-server
+  group: host-hzc
+  token: ${GATUS_PUSH_HZC}
+  heartbeat:
+    interval: 3m
+- name: kidneuro-immich-db
+  group: host-hzc
+  token: ${GATUS_PUSH_HZC}
+  heartbeat:
+    interval: 3m
+- name: kidneuro-immich-ml
+  group: host-hzc
+  token: ${GATUS_PUSH_HZC}
+  heartbeat:
+    interval: 3m
+- name: kidneuro-immich-redis
+  group: host-hzc
+  token: ${GATUS_PUSH_HZC}
+  heartbeat:
+    interval: 3m
+- name: dokploy-traefik
+  group: host-hzc
+  token: ${GATUS_PUSH_HZC}
+  heartbeat:
+    interval: 3m
+- name: orca
+  group: host-orca
+  token: ${GATUS_PUSH_ORCA}
+  heartbeat:
+    interval: 3m
+- name: orca-pair-redirect
+  group: host-orca
+  token: ${GATUS_PUSH_ORCA}
+  heartbeat:
+    interval: 3m
+- name: orca-gate
+  group: host-orca
+  token: ${GATUS_PUSH_ORCA}
+  heartbeat:
+    interval: 3m
+- name: dokploy-traefik
+  group: host-orca
+  token: ${GATUS_PUSH_ORCA}
+  heartbeat:
+    interval: 3m
