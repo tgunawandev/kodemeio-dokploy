@@ -1,0 +1,50 @@
+# Browser access is restricted by the Authentik Admins policy. Native API/DSN
+# authentication remains responsible for machine reads and event ingestion.
+http:
+  routers:
+    tpp-glitchtip-browser:
+      entryPoints: [websecure]
+      tls: {certResolver: letsencrypt}
+      rule: Host(`glitchtip.idtpp.com`)
+      priority: 100
+      service: tpp-glitchtip-backend
+      middlewares: [tpp-glitchtip-sso]
+    tpp-glitchtip-outpost:
+      entryPoints: [websecure]
+      tls: {certResolver: letsencrypt}
+      rule: Host(`glitchtip.idtpp.com`) && PathPrefix(`/outpost.goauthentik.io/`)
+      priority: 400
+      service: tpp-glitchtip-outpost
+    tpp-glitchtip-native-api:
+      entryPoints: [websecure]
+      tls: {certResolver: letsencrypt}
+      rule: Host(`glitchtip.idtpp.com`) && PathPrefix(`/api/0/`) && HeaderRegexp(`Authorization`, `^Bearer [A-Za-z0-9._-]+$`)
+      priority: 300
+      service: tpp-glitchtip-backend
+      observability: {accessLogs: false, tracing: false}
+    tpp-glitchtip-ingest:
+      entryPoints: [websecure]
+      tls: {certResolver: letsencrypt}
+      rule: Host(`glitchtip.idtpp.com`) && (Method(`POST`) || Method(`OPTIONS`)) && PathRegexp(`^/api/[0-9]+/(store|envelope|security|minidump|unreal)/?$`)
+      priority: 300
+      service: tpp-glitchtip-backend
+      observability: {accessLogs: false, tracing: false}
+    tpp-glitchtip-health:
+      entryPoints: [websecure]
+      tls: {certResolver: letsencrypt}
+      rule: Host(`glitchtip.idtpp.com`) && Path(`/_health/`)
+      priority: 300
+      service: tpp-glitchtip-backend
+  services:
+    tpp-glitchtip-backend:
+      loadBalancer:
+        servers: [{url: 'http://compose-calculate-bluetooth-card-38zbkf:8080'}]
+    tpp-glitchtip-outpost:
+      loadBalancer:
+        servers: [{url: 'http://authentik-server:9000'}]
+  middlewares:
+    tpp-glitchtip-sso:
+      forwardAuth:
+        address: http://authentik-server:9000/outpost.goauthentik.io/auth/traefik
+        trustForwardHeader: false
+        authResponseHeaders: [X-authentik-username, X-authentik-email]

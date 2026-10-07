@@ -9,15 +9,18 @@ This is separate from the `kodeme.io` estate. Never stop legacy services based o
 | Existing GlitchTip | tpp-prod-01, 178.104.127.104 | p1m6OF1PtiVaYyYiriHjY | Existing v4.1 web/worker/Redis; database preserved |
 
 URLs: https://gatus.idtpp.com and https://glitchtip.idtpp.com.
-Gatus `/health` is public; its status API requires Basic authentication. The dashboard shell
-can return 200 without authentication but reveals no authenticated status data.
+Gatus `/health` is public; native status API reads require Basic authentication. Browser
+access to Gatus and GlitchTip uses Authentik forward authentication restricted to active
+Authentik Admins. Gatus injects its private upstream Basic credential after browser authorization.
 The private workstation operator file is `deploys/env/production/.env.tpp-monitoring-operator`
 (mode 0600), with `GATUS_USERNAME` and `GATUS_PASSWORD`. It is ignored, never committed.
 The password is not uploaded to Gatus: only its bcrypt-base64 hash is supplied.
 Use existing GlitchTip human/SSO login; the collector identity has no usable login password.
 
-`gatus.json` checks the verified HTTPS health URLs for Desk, ERP, Authentik, GlitchTip and
-Mattermost every minute, requiring status 200 and at least 14 days of certificate validity.
+`gatus.json` now checks 19 verified HTTPS endpoints every minute, requiring status 200
+and at least 14 days of certificate validity. An additional 42 runtime checks receive
+reviewed Compose readiness heartbeats. See [current coverage](COVERAGE.md) for the
+61 checks and the limits of runtime-only monitoring.
 Three failures trigger evidence intake; two successes send recovery. No human alert channel
 was added. `services.json` maps those health services and the eight existing Odoo GlitchTip
 projects, with exact project IDs and staging/production environments. Events without the

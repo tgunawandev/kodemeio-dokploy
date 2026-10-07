@@ -1,0 +1,99 @@
+{
+  "gatus": {
+    "web_checks": 19,
+    "runtime_checks": 42,
+    "total": 61,
+    "healthy_at_verification": 61,
+    "runtime_heartbeat_seconds": 180,
+    "host_interval_seconds": 60,
+    "cross_host_heartbeat_rejected": true,
+    "latest_verification": {
+      "total": 61,
+      "healthy": 61,
+      "unhealthy_names": [],
+      "observed_at": "2026-10-07T04:33:54.192227+00:00",
+      "maximum_runtime_age_seconds": 59
+    }
+  },
+  "authentik": {
+    "application_group": "DevOps",
+    "admin_group": "authentik Admins",
+    "allowed_usernames": [
+      "tri.gunawan",
+      "anggi.fernadi",
+      "abdul.hadi"
+    ],
+    "policy_tests": {
+      "33": true,
+      "155": true,
+      "57": true,
+      "275": false
+    }
+  },
+  "glitchtip_native_oidc": {
+    "native_login_status": 302,
+    "authorization_host": "auth.idtpp.com",
+    "callback_matches": true,
+    "scopes": [
+      "email profile openid"
+    ],
+    "client_secret_exposed": false,
+    "users": [
+      {
+        "email": "tri.gunawan@idtpp.com",
+        "active": true,
+        "password_usable": false,
+        "oidc_bound": true,
+        "organization": true
+      },
+      {
+        "email": "anggi.fernadi@idtpp.com",
+        "active": true,
+        "password_usable": false,
+        "oidc_bound": true,
+        "organization": true
+      },
+      {
+        "email": "abdul.hadi@idtpp.com",
+        "active": true,
+        "password_usable": false,
+        "oidc_bound": true,
+        "organization": true
+      }
+    ]
+  },
+  "sentinel_mcp": {
+    "skills_ref": "c75341bf337c6cfad0ec9bfdfdf687a2a9e50cee",
+    "image": "kodemeio-operations-read:c75341bf337c",
+    "native_container_test": {
+      "principal": "sentinel",
+      "action_count": 33,
+      "reads": {
+        "gatus.health": {
+          "count": 0,
+          "total": null,
+          "http_status": 200,
+          "healthy": 0
+        },
+        "gatus.endpoints": {
+          "count": 61,
+          "total": 61,
+          "http_status": null,
+          "healthy": 61
+        },
+        "glitchtip.health": {
+          "count": 0,
+          "total": null,
+          "http_status": 200,
+          "healthy": 0
+        },
+        "glitchtip.projects": {
+          "count": 9,
+          "total": 9,
+          "http_status": null,
+          "healthy": 0
+        }
+      }
+    }
+  }
+}
