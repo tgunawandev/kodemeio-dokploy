@@ -1,0 +1,236 @@
+{
+  "ovh": {
+    "url": "https://gatus.kodeme.io",
+    "host": "57.131.162.248",
+    "checks": [
+      {
+        "key": "host-ovh_glitchtip",
+        "container": "compose-override-haptic-matrix-76sjqs"
+      },
+      {
+        "key": "host-ovh_hermes-sentinel-tera",
+        "container": "kod-infra-hermes-sentinel-tera"
+      },
+      {
+        "key": "host-ovh_operations-read-sentinel",
+        "container": "kod-operations-read-sentinel"
+      },
+      {
+        "key": "host-ovh_hermes-jarvis-tera",
+        "container": "kod-infra-hermes-jarvis-tera"
+      },
+      {
+        "key": "host-ovh_weknora-frontend",
+        "container": "kod-weknora-frontend"
+      },
+      {
+        "key": "host-ovh_gatus-ovh",
+        "container": "kod-infra-gatus-ovh"
+      },
+      {
+        "key": "host-ovh_weknora-app",
+        "container": "kod-weknora-app"
+      },
+      {
+        "key": "host-ovh_weknora-reranker",
+        "container": "kod-weknora-reranker"
+      },
+      {
+        "key": "host-ovh_weknora-ollama",
+        "container": "kod-weknora-ollama"
+      },
+      {
+        "key": "host-ovh_weknora-docreader",
+        "container": "kod-weknora-docreader"
+      },
+      {
+        "key": "host-ovh_odoo-dev-odoo",
+        "container": "odoo-dev-odoo-1"
+      },
+      {
+        "key": "host-ovh_kodemeio-odoo-dev-pg",
+        "container": "kodemeio-odoo-dev-pg"
+      },
+      {
+        "key": "host-ovh_maintenance-maintenance",
+        "container": "compose-back-up-neural-firewall-q888th-maintenance-1"
+      },
+      {
+        "key": "host-ovh_odoo-hris-odoo-web",
+        "container": "compose-input-1080p-bus-fkpa79-odoo-web-1"
+      },
+      {
+        "key": "host-ovh_odoo-desk-odoo-web",
+        "container": "compose-connect-multi-byte-interface-6di1vh-odoo-web-1"
+      },
+      {
+        "key": "host-ovh_odoo-erp-odoo-web",
+        "container": "compose-copy-primary-monitor-jsjb1u-odoo-web-1"
+      },
+      {
+        "key": "host-ovh_mattermost-mattermost",
+        "container": "compose-bypass-wireless-application-kn5typ-mattermost-1"
+      },
+      {
+        "key": "host-ovh_mattermost-mm-postgres",
+        "container": "compose-bypass-wireless-application-kn5typ-mm-postgres-1"
+      },
+      {
+        "key": "host-ovh_mattermost-mm-backup",
+        "container": "compose-bypass-wireless-application-kn5typ-mm-backup-1"
+      },
+      {
+        "key": "host-ovh_mattermost-mm-files-backup",
+        "container": "compose-bypass-wireless-application-kn5typ-mm-files-backup-1"
+      },
+      {
+        "key": "host-ovh_legacy-hatchet-hatchet-dashboard",
+        "container": "compose-program-virtual-program-unh7z8-hatchet-dashboard-1"
+      },
+      {
+        "key": "host-ovh_legacy-hatchet-hatchet-engine",
+        "container": "compose-program-virtual-program-unh7z8-hatchet-engine-1"
+      },
+      {
+        "key": "host-ovh_legacy-hatchet-hatchet-backup",
+        "container": "compose-program-virtual-program-unh7z8-hatchet-backup-1"
+      },
+      {
+        "key": "host-ovh_legacy-hatchet-hatchet-postgres",
+        "container": "compose-program-virtual-program-unh7z8-hatchet-postgres-1"
+      },
+      {
+        "key": "host-ovh_odoo-erp-odoo-gevent",
+        "container": "compose-copy-primary-monitor-jsjb1u-odoo-gevent-1"
+      },
+      {
+        "key": "host-ovh_odoo-erp-odoo-cron",
+        "container": "compose-copy-primary-monitor-jsjb1u-odoo-cron-1"
+      },
+      {
+        "key": "host-ovh_odoo-hris-odoo-cron",
+        "container": "compose-input-1080p-bus-fkpa79-odoo-cron-1"
+      },
+      {
+        "key": "host-ovh_odoo-hris-odoo-gevent",
+        "container": "compose-input-1080p-bus-fkpa79-odoo-gevent-1"
+      },
+      {
+        "key": "host-ovh_odoo-desk-odoo-gevent",
+        "container": "compose-connect-multi-byte-interface-6di1vh-odoo-gevent-1"
+      },
+      {
+        "key": "host-ovh_odoo-desk-odoo-cron",
+        "container": "compose-connect-multi-byte-interface-6di1vh-odoo-cron-1"
+      },
+      {
+        "key": "host-ovh_shared-postgres-postgres",
+        "container": "compose-program-neural-microchip-k37w59-postgres-1"
+      },
+      {
+        "key": "host-ovh_shared-postgres-postgres-exporter",
+        "container": "compose-program-neural-microchip-k37w59-postgres-exporter-1"
+      },
+      {
+        "key": "host-ovh_shared-postgres-pgbouncer",
+        "container": "compose-program-neural-microchip-k37w59-pgbouncer-1"
+      },
+      {
+        "key": "host-ovh_omp-veronica",
+        "container": "kod-infra-omp-veronica"
+      },
+      {
+        "key": "host-ovh_omp-friday",
+        "container": "kod-infra-omp-friday"
+      },
+      {
+        "key": "host-ovh_dokploy-traefik",
+        "container": "dokploy-traefik"
+      }
+    ]
+  },
+  "hzc": {
+    "url": "https://gatus.kodeme.io",
+    "host": "49.13.116.191",
+    "checks": [
+      {
+        "key": "host-hzc_dokploy",
+        "swarm_service": "dokploy"
+      },
+      {
+        "key": "host-hzc_maintenance-maintenance",
+        "container": "compose-connect-neural-protocol-5dcn55-maintenance-1"
+      },
+      {
+        "key": "host-hzc_independent-gatus-heartbeat",
+        "container": "compose-generate-open-source-firewall-6bjabe-heartbeat-1"
+      },
+      {
+        "key": "host-hzc_independent-gatus-gatus",
+        "container": "compose-generate-open-source-firewall-6bjabe-gatus-1"
+      },
+      {
+        "key": "host-hzc_authentik-worker",
+        "container": "compose-program-solid-state-matrix-l6cgq6-worker-1"
+      },
+      {
+        "key": "host-hzc_authentik-server",
+        "container": "compose-program-solid-state-matrix-l6cgq6-server-1"
+      },
+      {
+        "key": "host-hzc_authentik-postgresql",
+        "container": "compose-program-solid-state-matrix-l6cgq6-postgresql-1"
+      },
+      {
+        "key": "host-hzc_dokploy-redis",
+        "swarm_service": "dokploy-redis"
+      },
+      {
+        "key": "host-hzc_dokploy-postgres",
+        "swarm_service": "dokploy-postgres"
+      },
+      {
+        "key": "host-hzc_kidneuro-immich-server",
+        "container": "kidneuro-immich-server"
+      },
+      {
+        "key": "host-hzc_kidneuro-immich-db",
+        "container": "kidneuro-immich-db"
+      },
+      {
+        "key": "host-hzc_kidneuro-immich-ml",
+        "container": "kidneuro-immich-ml"
+      },
+      {
+        "key": "host-hzc_kidneuro-immich-redis",
+        "container": "kidneuro-immich-redis"
+      },
+      {
+        "key": "host-hzc_dokploy-traefik",
+        "container": "dokploy-traefik"
+      }
+    ]
+  },
+  "orca": {
+    "url": "https://gatus.kodeme.io",
+    "host": "46.225.42.130",
+    "checks": [
+      {
+        "key": "host-orca_orca",
+        "container": "kod-infra-orca"
+      },
+      {
+        "key": "host-orca_orca-pair-redirect",
+        "container": "kod-infra-orca-pair-redirect"
+      },
+      {
+        "key": "host-orca_orca-gate",
+        "container": "kod-infra-orca-gate"
+      },
+      {
+        "key": "host-orca_dokploy-traefik",
+        "container": "dokploy-traefik"
+      }
+    ]
+  }
+}

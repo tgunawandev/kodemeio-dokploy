@@ -1,0 +1,15 @@
+[Unit]
+Description=Kodeme Docker health metadata for Gatus
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/kodemeio/gatus-collector/current/collect.py /etc/kodemeio/gatus-collector/checks.json /etc/kodemeio/gatus-collector/token.json
+User=root
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/etc/kodemeio/gatus-collector
+TimeoutStartSec=120

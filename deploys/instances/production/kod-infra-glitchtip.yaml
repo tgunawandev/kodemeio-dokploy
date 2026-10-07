@@ -1,20 +1,30 @@
 kind: instance
-extends: ../../bases/infra.yaml
-
+type: infrastructure
 instance:
   name: kod-infra-glitchtip
-  description: "GlitchTip error tracking"
-
-project: kod
-
-source_overrides:
+  description: Kodeme error tracking with native read-only SENTINEL MCP
+project: apps
+environment: production
+server: kod-ovh-01
+auto_deploy: false
+source:
+  type: github
+  owner: tgunawandev
   repo: kodemeio-glitchtip
-
+  branch: feat/kodeme-ovh
+  compose_path: ./docker-compose.kodeme.yml
 domain:
   host: glitchtip.kodeme.io
-  port: 8080
-  service: web
+  port: 8000
+  service: glitchtip
   https: true
   cert: letsencrypt
-
-env_file: ../../env/production/.env.kod-infra-glitchtip
+healthcheck:
+  path: /_health/
+  port: 8000
+  expected_status: 200
+  timeout: 20
+  start_period: 180
+env_file: ../../env/production/.env.kod-infra-glitchtip-ovh
+env_overrides:
+  COMPOSE_PROJECT_NAME: kod-infra-glitchtip
