@@ -48,8 +48,8 @@ http:
   middlewares:
     tpp-gatus-sso:
       forwardAuth:
-        address: https://auth.idtpp.com/outpost.goauthentik.io/auth/traefik
-        trustForwardHeader: true
+        address: https://gatus.idtpp.com/outpost.goauthentik.io/auth/traefik
+        trustForwardHeader: false
         authResponseHeaders:
         - X-authentik-username
         - X-authentik-email
