@@ -28,7 +28,7 @@ source:
   type: github
   owner: tgunawandev
   repo: kodemeio-hermes
-  branch: agent/kodeme-jarvis-sentinel
+  branch: agent/kodeme-weknora-mcp
   compose_path: docker-compose.kodeme-operators.yml
 auto_deploy: false
 healthcheck:
