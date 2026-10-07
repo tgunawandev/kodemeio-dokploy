@@ -1,0 +1,53 @@
+# OVH status reader; alerts stay with the independent hzc-01 monitor.
+storage:
+  type: sqlite
+  path: /data/data.db
+  maximum-number-of-results: 10
+  maximum-number-of-events: 10
+security:
+  basic:
+    username: ${GATUS_BASIC_USERNAME}
+    password-bcrypt-base64: ${GATUS_BASIC_PASSWORD_HASH}
+endpoints:
+- name: authentik
+  group: identity
+  url: https://auth.kodeme.io/-/health/live/
+  interval: 60s
+  conditions:
+  - '[STATUS] == 200'
+  - '[CERTIFICATE_EXPIRATION] > 168h'
+- name: odoo-erp
+  group: odoo
+  url: https://erp.kodeme.io/web/health
+  interval: 60s
+  conditions:
+  - '[STATUS] == 200'
+  - '[CERTIFICATE_EXPIRATION] > 168h'
+- name: odoo-desk
+  group: odoo
+  url: https://desk.kodeme.io/web/health
+  interval: 60s
+  conditions:
+  - '[STATUS] == 200'
+  - '[CERTIFICATE_EXPIRATION] > 168h'
+- name: mattermost
+  group: chat
+  url: https://mm.kodeme.io/api/v4/system/ping
+  interval: 60s
+  conditions:
+  - '[STATUS] == 200'
+  - '[CERTIFICATE_EXPIRATION] > 168h'
+- name: glitchtip
+  group: monitoring
+  url: https://glitchtip.kodeme.io/_health/
+  interval: 60s
+  conditions:
+  - '[STATUS] == 200'
+  - '[CERTIFICATE_EXPIRATION] > 168h'
+- name: dokploy
+  group: infrastructure
+  url: https://dokploy.kodeme.io/
+  interval: 60s
+  conditions:
+  - '[STATUS] == 200'
+  - '[CERTIFICATE_EXPIRATION] > 168h'

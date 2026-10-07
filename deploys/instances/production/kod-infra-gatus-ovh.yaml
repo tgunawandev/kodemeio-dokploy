@@ -1,0 +1,30 @@
+kind: instance
+type: infrastructure
+instance:
+  name: kod-infra-gatus-ovh
+  description: Kodeme OVH status history for SENTINEL; independent HZ alerting retained
+project: apps
+environment: production
+server: kod-ovh-01
+auto_deploy: false
+source:
+  type: github
+  owner: tgunawandev
+  repo: kodemeio-dokploy
+  branch: feat/kodeme-ovh-monitoring
+  compose_path: ./ops/monitoring/gatus-ovh/docker-compose.yml
+domain:
+  host: gatus.kodeme.io
+  port: 8080
+  service: gatus
+  https: true
+  cert: letsencrypt
+healthcheck:
+  path: /health
+  port: 8080
+  expected_status: 200
+  timeout: 20
+  start_period: 90
+env_file: ../../env/production/.env.kod-infra-gatus-ovh
+env_overrides:
+  COMPOSE_PROJECT_NAME: kod-infra-gatus-ovh

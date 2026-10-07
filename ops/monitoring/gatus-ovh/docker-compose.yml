@@ -1,0 +1,29 @@
+# Owner-selected OVH monitor. Existing hzc-01 independent alerting remains intact.
+services:
+  gatus:
+    image: ghcr.io/twin/gatus:v5.37.0
+    container_name: kod-infra-gatus-ovh
+    restart: unless-stopped
+    environment:
+      GATUS_BASIC_USERNAME: ${GATUS_BASIC_USERNAME:?Required}
+      GATUS_BASIC_PASSWORD_HASH: ${GATUS_BASIC_PASSWORD_HASH:?Required}
+    volumes:
+      - ./config.yaml:/config/config.yaml:ro
+      - gatus-data:/data
+    networks:
+      - dokploy-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+volumes:
+  gatus-data:
+networks:
+  dokploy-network:
+    external: true
