@@ -116,8 +116,12 @@ verified deployments are `kod-infra-hermes-jarvis-tera`
 and [SENTINEL manifest](../../deploys/instances/production/kod-infra-hermes-sentinel-tera.yaml)
 use `kodemeio-hermes:v2026.8.31`, pinned upstream commit
 `29112bef099274229cadff79cdff7bf7b99c4b77`, verified local build context
-`/opt/hermes-upstream/v2026.8.31`, and source branch
-`agent/kodeme-jarvis-sentinel` of `tgunawandev/kodemeio-hermes`.
+`/opt/hermes-upstream/v2026.8.31`. Their deployment source repository is
+`tgunawandev/kodemeio-hermes`.
+JARVIS uses source branch `agent/kodeme-weknora-mcp`; SENTINEL uses
+`agent/kodeme-monitoring-weknora`, preserving its monitoring configuration.
+Both have separate read-only WeKnora connections through
+`weknora-mcp.kodeme.io`; their endpoint credentials remain private.
 Auto-deploy is disabled. Never enable it by relying on the manifest alone:
 this installed deploy orchestrator initially left the new compose API flags true;
 explicit `compose update --no-auto-deploy` and re-reading the API corrected them.
