@@ -36,6 +36,6 @@ webhook, and Authentik routes. Any new alert endpoint must also be mapped in
 public browser access uses Authentik and the Authentik Admins policy.
 
 Sentinel's trusted operations adapter has a fixed 61-endpoint allowlist. Reads
-run with at most 16 concurrent requests, omit body/error text and secrets, and
-use existing pagination (50 rows per response). It has no arbitrary target URL,
+use one authenticated native request with one current result per endpoint, omit
+body/error text and secrets, and use existing pagination (50 rows per response). It has no arbitrary target URL,
 provider profile, or host push token.
