@@ -17,7 +17,19 @@ def main():
     parser.add_argument("--profile", required=True)
     parser.add_argument("server_id")
     parser.add_argument(
-        "action", choices=("facts", "status", "install-config", "load-image", "glitchtip-python", "collector-python", "protect-sso-file", "host-health-inventory", "install-host-health", "host-health-status")
+        "action",
+        choices=(
+            "facts",
+            "status",
+            "install-config",
+            "load-image",
+            "glitchtip-python",
+            "collector-python",
+            "protect-sso-file",
+            "host-health-inventory",
+            "install-host-health",
+            "host-health-status",
+        ),
     )
     parser.add_argument("--container")
     parser.add_argument("--apply", action="store_true")
@@ -51,27 +63,37 @@ def main():
             "docker logs --tail 15 tpp-infra-gatus"
         )
     elif args.action == "host-health-inventory":
-        from importlib.util import spec_from_file_location, module_from_spec
+        from importlib.util import module_from_spec, spec_from_file_location
         from pathlib import Path
-        path = Path(__file__).resolve().parents[1] / 'monitoring/idtpp/host_health.py'
-        spec = spec_from_file_location('host_health', path)
+
+        path = Path(__file__).resolve().parents[1] / "monitoring/idtpp/host_health.py"
+        spec = spec_from_file_location("host_health", path)
         module = module_from_spec(spec)
         spec.loader.exec_module(module)
-        code = 'import subprocess,json\nFORMAT=' + repr(module.FORMAT) + '\n' + """
+        code = (
+            "import subprocess,json\nFORMAT="
+            + repr(module.FORMAT)
+            + "\n"
+            + """
 ids=subprocess.check_output(['docker','ps','-aq'],text=True,timeout=8).split()
 rows=subprocess.check_output(['docker','inspect','--format',FORMAT,*ids],text=True,timeout=10) if ids else ''
 print(json.dumps([json.loads(x) for x in rows.splitlines()]))
 """
-        remote = shlex.join(['python3', '-c', code])
+        )
+        remote = shlex.join(["python3", "-c", code])
     elif args.action == "host-health-status":
-        remote = "systemctl is-active kodemeio-gatus-health.timer && journalctl -u kodemeio-gatus-health.service -n 3 --no-pager -o cat"
+        remote = (
+            "systemctl is-active kodemeio-gatus-health.timer && "
+            "journalctl -u kodemeio-gatus-health.service -n 3 --no-pager -o cat"
+        )
     elif args.action == "install-host-health":
         import sys
         from pathlib import Path
+
         payload = json.load(sys.stdin)
-        source = Path(__file__).resolve().parents[1] / 'monitoring/idtpp/host_health.py'
-        if payload.get('script') != source.read_text():
-            raise ValueError('exporter script must match reviewed repository source')
+        source = Path(__file__).resolve().parents[1] / "monitoring/idtpp/host_health.py"
+        if payload.get("script") != source.read_text():
+            raise ValueError("exporter script must match reviewed repository source")
         code = r"""
 import json,os,pathlib,re,subprocess,sys
 payload=json.load(sys.stdin)
@@ -90,18 +112,43 @@ root=pathlib.Path('/etc/kodemeio/gatus-exporter');root.mkdir(parents=True,exist_
 script=pathlib.Path('/usr/local/lib/kodemeio/gatus_host_health.py');script.parent.mkdir(parents=True,exist_ok=True)
 (root/'config.json').write_text(json.dumps(config));os.chmod(root/'config.json',0o600)
 script.write_text(payload['script']);os.chmod(script,0o644)
-pathlib.Path('/etc/systemd/system/kodemeio-gatus-health.service').write_text('[Unit]\nDescription=TPP container readiness to Gatus\nAfter=docker.service network-online.target\n[Service]\nType=oneshot\nExecStart=/usr/bin/python3 /usr/local/lib/kodemeio/gatus_host_health.py\nTimeoutStartSec=40\nNoNewPrivileges=true\nProtectSystem=strict\nProtectHome=true\nPrivateTmp=true\nReadOnlyPaths=/etc/kodemeio/gatus-exporter\n')
-pathlib.Path('/etc/systemd/system/kodemeio-gatus-health.timer').write_text('[Unit]\nDescription=TPP Gatus readiness heartbeat\n[Timer]\nOnBootSec=30s\nOnUnitActiveSec=60s\nAccuracySec=5s\n[Install]\nWantedBy=timers.target\n')
+pathlib.Path('/etc/systemd/system/kodemeio-gatus-health.service').write_text(
+ '[Unit]\n'
+ 'Description=TPP container readiness to Gatus\n'
+ 'After=docker.service network-online.target\n'
+ '[Service]\n'
+ 'Type=oneshot\n'
+ 'ExecStart=/usr/bin/python3 /usr/local/lib/kodemeio/gatus_host_health.py\n'
+ 'TimeoutStartSec=40\n'
+ 'NoNewPrivileges=true\n'
+ 'ProtectSystem=strict\n'
+ 'ProtectHome=true\n'
+ 'PrivateTmp=true\n'
+ 'ReadOnlyPaths=/etc/kodemeio/gatus-exporter\n'
+)
+pathlib.Path('/etc/systemd/system/kodemeio-gatus-health.timer').write_text(
+ '[Unit]\n'
+ 'Description=TPP Gatus readiness heartbeat\n'
+ '[Timer]\n'
+ 'OnBootSec=30s\n'
+ 'OnUnitActiveSec=60s\n'
+ 'AccuracySec=5s\n'
+ '[Install]\n'
+ 'WantedBy=timers.target\n'
+)
 subprocess.run(['systemctl','daemon-reload'],check=True)
 subprocess.run(['systemctl','enable','--now','kodemeio-gatus-health.timer'],check=True)
 subprocess.run(['systemctl','start','kodemeio-gatus-health.service'],check=True)
 print('Installed fixed Gatus readiness heartbeat')
 """
-        remote = shlex.join(['python3', '-c', code])
+        remote = shlex.join(["python3", "-c", code])
     elif args.action == "load-image":
         remote = "docker load"
     elif args.action == "protect-sso-file":
-        remote = "chmod 600 /etc/dokploy/traefik/dynamic/tpp-gatus-authentik.yml && stat -c '%a' /etc/dokploy/traefik/dynamic/tpp-gatus-authentik.yml"
+        remote = (
+            "chmod 600 /etc/dokploy/traefik/dynamic/tpp-gatus-authentik.yml && "
+            "stat -c '%a' /etc/dokploy/traefik/dynamic/tpp-gatus-authentik.yml"
+        )
     elif args.action == "install-config":
         code = """
 import json, os, pathlib, tempfile, sys
@@ -157,7 +204,9 @@ print('Installed two monitoring configuration files')
                 remote,
             ],
             input=json.dumps(payload).encode() if args.action == "install-host-health" else None,
-            stdin=None if args.action not in {"facts", "status", "host-health-inventory", "host-health-status"} else subprocess.DEVNULL,
+            stdin=None
+            if args.action not in {"facts", "status", "host-health-inventory", "host-health-status"}
+            else subprocess.DEVNULL,
         ).returncode
     )
 
