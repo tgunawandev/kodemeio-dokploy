@@ -12,9 +12,9 @@ instance:
   name: kod-infra-gatus
   description: "Gatus external uptime + admin-gate monitor for the kod (kodeme.io) estate -- Telegram + email alerts, Healthchecks.io heartbeat"
 
-project: kod
+project: apps
 environment: production
-server: kod-prod-01  # founder: monitor host — must NOT be the kod production server (spec D6, G1)
+server: kod-hzc-01  # founder: monitor host — must NOT be the kod production server (spec D6, G1)
 
 # Deployed from THIS repo (Wave 0 spec D6). The old `source_overrides: repo:
 # kodemeio-gatus` is retired: that repo was a stale copy nothing kept in sync.

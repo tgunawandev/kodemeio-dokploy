@@ -6,7 +6,7 @@ instance:
   description: "Grafana Alloy monitoring agent"
 
 project: kod
-server: kod-prod-01
+server: kod-hzc-01
 
 source_overrides:
   repo: kodemeio-grafana

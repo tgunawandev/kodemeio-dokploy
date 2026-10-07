@@ -7,7 +7,7 @@ instance:
   description: "Plausible CE — self-hosted privacy analytics"
 
 project: kod
-server: kod-prod-01
+server: kod-hzc-01
 
 source_overrides:
   repo: kodemeio-plausible

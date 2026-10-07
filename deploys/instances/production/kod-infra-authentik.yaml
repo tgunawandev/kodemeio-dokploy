@@ -7,7 +7,7 @@ instance:
 
 project: kod
 environment: production
-server: kod-prod-03-data    # rehosted here after old kod-prod-02 (49.13.14.79) was removed
+server: kod-hzc-01    # kod: Dokploy + Immich + Authentik (founder, 2026-10-05); was kod-prod-03-data (deleted)
 
 source_overrides:
   owner: tgunawandev

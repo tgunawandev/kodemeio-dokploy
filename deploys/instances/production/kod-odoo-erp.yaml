@@ -1,0 +1,38 @@
+kind: instance
+extends: ../../bases/odoo.yaml
+
+instance:
+  name: kod-odoo-erp
+  description: "KOD - ERP (erp.kodeme.io) - database restored from the 2026-09-25 kod_odoo_erp dump; rehosted onto kod-ovh-01 on 2026-10-05"
+
+project: apps
+environment: production
+server: kod-ovh-01
+
+dns:
+  zone: kodeme.io
+  name: erp
+domain:
+  host: erp.kodeme.io
+  port: 8069
+  service: odoo-web
+  https: true
+  cert: letsencrypt
+
+database:
+  name: kod_odoo_erp
+  user: odoo
+
+env_file: ../../env/production/.env.kod-odoo-erp
+
+env_overrides:
+  COMPOSE_PROJECT_NAME: kod-odoo-erp
+  TENANT: kod
+  PGDATABASE: kod_odoo_erp
+  PGUSER: odoo
+  PGHOST: kod-infra-postgres
+  ODOO_DB_FILTER: ^kod_odoo_erp$
+  DOMAIN: erp.kodeme.io
+  ODOO_WORKERS: "2"
+
+post_deploy: {}

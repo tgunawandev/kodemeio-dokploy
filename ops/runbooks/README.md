@@ -14,6 +14,7 @@ safe operating instructions.
 | [jitsi-sg-migration-execution-2026-10-05.md](jitsi-sg-migration-execution-2026-10-05.md) | Completed Jitsi Singapore migration: production placement, latency, swap, Mattermost validation, deployment, and rollback |
 | [jitsi-sg-migration-assessment-2026-10-05.md](jitsi-sg-migration-assessment-2026-10-05.md) | Jitsi capacity and migration assessment before execution; current state is in the execution report |
 | [hetzner-disk-resize.md](hetzner-disk-resize.md) | Resize Hetzner disks and filesystems |
+| [kod-ovh-01.md](kod-ovh-01.md) | Provision and operate the OVHcloud host `kod-ovh-01`: access, hardening, OVH API rebuild recipe, Dokploy registration |
 | [odoo-mcp-governance-rollout.md](odoo-mcp-governance-rollout.md) | Install/upgrade the MCP governance addons (fail-closed binding, kill switch, rollback) |
 | [chatwoot-host.md](chatwoot-host.md) | CW1: provision the Chatwoot/kido_chat host (M1) |
 | [chatwoot-meta-whatsapp.md](chatwoot-meta-whatsapp.md) | CW1: Meta Business Manager, WABA, number, template (M2/M3) |

@@ -8,7 +8,7 @@
   "project": "apps",
   "environment": "production",
   "auto_deploy": false,
-  "server": "kod-prod-02",
+  "server": "kod-ovh-01",
   "source": {
     "type": "github",
     "owner": "tgunawandev",

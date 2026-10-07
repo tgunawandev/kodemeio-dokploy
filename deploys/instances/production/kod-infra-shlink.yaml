@@ -7,7 +7,7 @@ instance:
   description: "Shlink — self-hosted URL shortener"
 
 project: kod
-server: kod-prod-01
+server: kod-hzc-01
 
 source_overrides:
   repo: kodemeio-shlink

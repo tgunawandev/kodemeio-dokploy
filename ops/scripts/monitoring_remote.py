@@ -17,7 +17,7 @@ def main():
     parser.add_argument("--profile", required=True)
     parser.add_argument("server_id")
     parser.add_argument(
-        "action", choices=("facts", "status", "install-config", "load-image", "glitchtip-python", "collector-python")
+        "action", choices=("facts", "status", "install-config", "load-image", "glitchtip-python", "collector-python", "protect-sso-file")
     )
     parser.add_argument("--container")
     parser.add_argument("--apply", action="store_true")
@@ -52,6 +52,8 @@ def main():
         )
     elif args.action == "load-image":
         remote = "docker load"
+    elif args.action == "protect-sso-file":
+        remote = "chmod 600 /etc/dokploy/traefik/dynamic/tpp-gatus-authentik.yml && stat -c '%a' /etc/dokploy/traefik/dynamic/tpp-gatus-authentik.yml"
     elif args.action == "install-config":
         code = """
 import json, os, pathlib, tempfile, sys

@@ -1,0 +1,38 @@
+kind: instance
+extends: ../../bases/odoo.yaml
+
+instance:
+  name: kod-odoo-desk
+  description: "KOD - Desk / helpdesk (desk.kodeme.io) - database restored from the 2026-09-25 kod_odoo_desk dump; rehosted onto kod-ovh-01 on 2026-10-05"
+
+project: apps
+environment: production
+server: kod-ovh-01
+
+dns:
+  zone: kodeme.io
+  name: desk
+domain:
+  host: desk.kodeme.io
+  port: 8069
+  service: odoo-web
+  https: true
+  cert: letsencrypt
+
+database:
+  name: kod_odoo_desk
+  user: odoo
+
+env_file: ../../env/production/.env.kod-odoo-desk
+
+env_overrides:
+  COMPOSE_PROJECT_NAME: kod-odoo-desk
+  TENANT: kod
+  PGDATABASE: kod_odoo_desk
+  PGUSER: odoo
+  PGHOST: kod-infra-postgres
+  ODOO_DB_FILTER: ^kod_odoo_desk$
+  DOMAIN: desk.kodeme.io
+  ODOO_WORKERS: "2"
+
+post_deploy: {}
