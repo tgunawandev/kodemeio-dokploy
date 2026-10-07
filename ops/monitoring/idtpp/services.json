@@ -225,7 +225,7 @@
     "environment": "production",
     "gatus_endpoints": [
       "tpp-react-erp",
-      "tpp-react-erp"
+      "tpp-react-erp-runtime"
     ]
   },
   "tpp-hrms": {

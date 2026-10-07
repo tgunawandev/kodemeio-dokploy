@@ -21,8 +21,10 @@ def inventory():
                          check=True, timeout=8).stdout.split()
     if not ids:
         return []
+    # A container may disappear after ps. Docker still prints surviving rows
+    # with a nonzero exit status; retain them so only the missing stack fails.
     result = subprocess.run(['docker', 'inspect', '--format', FORMAT, *ids],
-                            capture_output=True, text=True, check=True, timeout=10)
+                            capture_output=True, text=True, check=False, timeout=10)
     return [json.loads(line) for line in result.stdout.splitlines()]
 
 
