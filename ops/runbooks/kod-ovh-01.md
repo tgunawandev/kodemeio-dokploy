@@ -1,7 +1,7 @@
-# kod-ovh-01 — OVHcloud VPS for kod/Teracorp capacity
+# kod-ovh-01 — OVHcloud VPS for kod/Kodeme capacity
 
 Status: **active**, provisioned 2026-10-05. Registered in Dokploy as `kod-ovh-01`
-(server id `W-sYqWjxLu9cAhp41pwpA`). Purpose: kod/Teracorp production capacity
+(server id `W-sYqWjxLu9cAhp41pwpA`). Purpose: kod/Kodeme production capacity
 (COST_MODEL.md §4 trigger — offload `abc-prod-02` instead of rescaling).
 
 ## Identity

@@ -27,7 +27,7 @@ def test_production_requires_an_immutable_prebuilt_image():
 def test_rollout_preserves_the_existing_target_and_provider():
     release = manifest()
     assert release["instance"]["name"] == "kod-infra-omp"
-    assert (release["project"], release["environment"], release["server"]) == ("apps", "production", "kod-prod-02")
+    assert (release["project"], release["environment"], release["server"]) == ("apps", "production", "kod-ovh-01")
     assert release["env_overrides"]["OMP_PRESET"] == "deepseek"
     assert release["env_file"] == "../../env/production/.env.kod-infra-omp"
     assert not any("KEY" in key or "TOKEN" in key or "PASSWORD" in key for key in release["env_overrides"])

@@ -25,7 +25,7 @@ http:
     tpp-glitchtip-ingest:
       entryPoints: [websecure]
       tls: {certResolver: letsencrypt}
-      rule: Host(`glitchtip.idtpp.com`) && Method(`POST`) && PathRegexp(`^/api/[0-9]+/(store|envelope|security|minidump|unreal)/?$`)
+      rule: Host(`glitchtip.idtpp.com`) && (Method(`POST`) || Method(`OPTIONS`)) && PathRegexp(`^/api/[0-9]+/(store|envelope|security|minidump|unreal)/?$`)
       priority: 300
       service: tpp-glitchtip-backend
       observability: {accessLogs: false, tracing: false}

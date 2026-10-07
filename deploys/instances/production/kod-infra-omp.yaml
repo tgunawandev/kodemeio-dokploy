@@ -22,8 +22,8 @@
     "OMP_PRESET": "deepseek",
     "OMP_IMAGE_TAG": "6779db2e6be05d01d04e00c6b4e3db59f0c21239",
     "OMP_BUILD_COMMIT": "6779db2e6be05d01d04e00c6b4e3db59f0c21239",
-    "OMP_MEMORY_LIMIT": "768m",
-    "OMP_CPU_LIMIT": "1",
+    "OMP_MEMORY_LIMIT": "3g",
+    "OMP_CPU_LIMIT": "2",
     "TZ": "Asia/Jakarta",
     "OMP_IMAGE": "ghcr.io/tgunawandev/kodemeio-omp@sha256:aac0a855a0e95efb0054d29bef89d01f3cf5e1df0f6f79d3bdddaf6a80ea5163"
   },

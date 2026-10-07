@@ -1,0 +1,85 @@
+{
+  "schema": "omp.host-migration-plan.v1",
+  "source_sha": "6779db2e6be05d01d04e00c6b4e3db59f0c21239",
+  "image": "ghcr.io/tgunawandev/kodemeio-omp@sha256:aac0a855a0e95efb0054d29bef89d01f3cf5e1df0f6f79d3bdddaf6a80ea5163",
+  "image_id": "sha256:d059deccec05fd8dbead041e4f2b0b292cc05e3124b8e9de410f0b00a7180cc2",
+  "destination": {
+    "name": "kod-ovh-01",
+    "server_id": "W-sYqWjxLu9cAhp41pwpA",
+    "ip": "57.131.162.248",
+    "memory_total_kib": 11956708,
+    "memory_available_kib": 11335144,
+    "cpus": 6,
+    "disk_free_bytes": 99720445952
+  },
+  "per_terminal": {
+    "memory": "3g",
+    "cpus": "2",
+    "non_root": true,
+    "read_only_root": true,
+    "public_ports": [],
+    "auto_deploy": false
+  },
+  "old_compose_id": "OaeHlGC5BvVH6R3W-rh9q",
+  "old_compose_lookup": "404 Compose not found",
+  "old_host": "88.198.151.167",
+  "old_host_connection": "SSH banner timeout directly and TCP22 timeout from destination",
+  "old_backup_location": "/root/omp-release-backups/6779db2-20261005",
+  "data_selection": "pending founder reply; do not queue live deployment",
+  "missing_automatic_adapters_remain_disabled": true,
+  "uncommitted_application_changes_excluded": true,
+  "replacement": {
+    "compose_id": "QNgRohOENxsbnmFdGhJoC",
+    "app_name": "compose-override-online-protocol-4e2bjl",
+    "environment_id": "k0aSx0yqY5o3brJYjtaw3",
+    "server_id": "W-sYqWjxLu9cAhp41pwpA",
+    "data_selection_pending": true,
+    "deployed": false
+  },
+  "image_preload": {
+    "image": "ghcr.io/tgunawandev/kodemeio-omp@sha256:aac0a855a0e95efb0054d29bef89d01f3cf5e1df0f6f79d3bdddaf6a80ea5163",
+    "image_id": "sha256:d059deccec05fd8dbead041e4f2b0b292cc05e3124b8e9de410f0b00a7180cc2",
+    "source_sha": "6779db2e6be05d01d04e00c6b4e3db59f0c21239",
+    "registry_credentials_persisted": false,
+    "founder_token_forwarded": false,
+    "verified_at": 1791212880.34729
+  },
+  "cloud_canary": {
+    "passed": true,
+    "provider": "deepseek/deepseek-flash",
+    "published": false,
+    "independent_worktrees": true,
+    "separate_planning_and_review": true,
+    "developer_committed": true,
+    "required_check_passed": true,
+    "verdict": "approve",
+    "original_checkout_unchanged": true,
+    "verified_at": 1791213229.9092793,
+    "image": "ghcr.io/tgunawandev/kodemeio-omp@sha256:aac0a855a0e95efb0054d29bef89d01f3cf5e1df0f6f79d3bdddaf6a80ea5163",
+    "image_id": "sha256:d059deccec05fd8dbead041e4f2b0b292cc05e3124b8e9de410f0b00a7180cc2",
+    "source_sha": "6779db2e6be05d01d04e00c6b4e3db59f0c21239",
+    "memory_limit": "3g",
+    "cpu_limit": "2",
+    "production_mounts": false,
+    "target_server": "kod-ovh-01"
+  },
+  "staged_readback": {
+    "compose_id": "QNgRohOENxsbnmFdGhJoC",
+    "server_id": "W-sYqWjxLu9cAhp41pwpA",
+    "volume_project": "compose-program-optical-panel-vswhbh",
+    "image": "ghcr.io/tgunawandev/kodemeio-omp@sha256:aac0a855a0e95efb0054d29bef89d01f3cf5e1df0f6f79d3bdddaf6a80ea5163",
+    "source_sha": "6779db2e6be05d01d04e00c6b4e3db59f0c21239",
+    "resource_budget_verified": true,
+    "environment_preserved": true,
+    "deployed": false,
+    "data_selection_pending": true
+  },
+  "validation": {
+    "pinned_application_tests": "76 passed",
+    "upstream_settings": "600 settings; 12 presets/tool plans; 132 model-role bindings valid",
+    "owning_private_worktree_tests": "1516 passed, 29 skipped; cross-repository fixtures unavailable in isolated checkout",
+    "focused_migration_and_legacy_guards": "49 passed",
+    "ruff": "passed",
+    "live_cutover": "not queued; human data selection pending"
+  }
+}

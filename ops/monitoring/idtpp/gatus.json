@@ -321,7 +321,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST0_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -334,7 +334,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST0_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -347,7 +347,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST1_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -360,7 +360,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST2_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -373,7 +373,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST3_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -386,7 +386,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST0_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -399,7 +399,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST2_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -412,7 +412,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST2_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -425,7 +425,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST2_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -438,7 +438,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST3_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -451,7 +451,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST2_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -464,7 +464,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST0_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -477,7 +477,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST0_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -490,7 +490,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST1_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -503,7 +503,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST2_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -516,7 +516,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST3_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -529,7 +529,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST4_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -542,7 +542,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST3_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -555,7 +555,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST0_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -568,7 +568,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST2_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -581,7 +581,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST2_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -594,7 +594,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST0_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -607,7 +607,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST0_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -620,7 +620,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST0_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -633,7 +633,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST1_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -646,7 +646,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST0_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -659,7 +659,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST0_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -672,7 +672,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST0_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -685,7 +685,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST2_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -698,7 +698,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST2_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -711,7 +711,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST4_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -724,7 +724,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST1_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -737,7 +737,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST4_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -750,7 +750,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST1_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -763,7 +763,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST1_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -776,7 +776,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST4_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -789,7 +789,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST1_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -802,7 +802,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST0_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -815,11 +815,14 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST1_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
-          "type": "custom"
+          "type": "custom",
+          "provider-override": {
+            "body": "{\"endpoint\": \"tpp-react-erp-runtime\", \"state\": \"[ALERT_TRIGGERED_OR_RESOLVED]\"}"
+          }
         }
       ]
     },
@@ -828,7 +831,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST4_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -841,7 +844,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST4_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {
@@ -854,7 +857,7 @@
       "group": "TPP Runtime",
       "token": "${GATUS_HOST4_TOKEN}",
       "heartbeat": {
-        "interval": "180s"
+        "interval": "90s"
       },
       "alerts": [
         {

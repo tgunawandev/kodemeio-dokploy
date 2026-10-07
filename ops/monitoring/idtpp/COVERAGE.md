@@ -17,7 +17,12 @@ does not prove a recent successful backup or restoration.
 `host_health.py` runs every 60 seconds using a root-owned systemd timer on each
 host. It reads only Compose project/service labels, runtime state, exit codes,
 and health status. It never collects environment values or health-check logs.
-Gatus marks missing external heartbeats failed after 180 seconds. Each host
+The reviewed configuration uses a 90-second Gatus heartbeat interval. Since
+Gatus uses this for both expiry and polling, the first failed dashboard result
+appears 90–180 seconds after the last push under normal scheduling. Incident
+notifications additionally require the configured three consecutive failures.
+The 2026-10-07 deployment evidence predates this review fix and used 180-second
+intervals; apply the updated configuration to enforce the shorter bound. Each host
 has its own bearer, valid only for that host's reviewed endpoints. The exact
 POST paths are routed through Traefik; Gatus checks each bearer. Docker and
 provider credentials are not given to Sentinel.
@@ -39,3 +44,8 @@ Sentinel's trusted operations adapter has a fixed 61-endpoint allowlist. Reads
 use one authenticated native request with one current result per endpoint, omit
 body/error text and secrets, and use existing pagination (50 rows per response). It has no arbitrary target URL,
 provider profile, or host push token.
+
+React ERP HTTPS and runtime alerts use distinct webhook endpoint aliases, mapped
+to the same service. Collector incident identity includes that alias, so one
+check recovering cannot close the other check's incident. The runtime alert body
+override preserves its native Gatus endpoint name and Sentinel API key.
