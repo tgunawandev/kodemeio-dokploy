@@ -1,0 +1,91 @@
+# ntfy — self-hosted push notifications for agent completion (Pi + Codex) and
+# platform alerts. Desired placement is deploys/instances/production/kod-infra-ntfy.yaml;
+# this file is the Dokploy **raw Compose** source for that stack (no GitHub source).
+#
+# Routing: Traefik terminates TLS for ntfy.kodeme.io and forwards to this
+# service on container port 80 over the external dokploy-network. No port is
+# published directly.
+#
+# Auth model: deny-all. `ntfy-auth` seeds the user database idempotently on
+# every stack start, creating:
+#   - ${NTFY_AGENTS_USER}: regular user, read-write on ${NTFY_TOPIC} only.
+#     Used by the Pi extension and the Codex notify hook to publish.
+#   - ${NTFY_ADMIN_USER}: admin user for the ntfy web UI and phone apps.
+# Neither the secrets nor the user database are in git; the credentials live in
+# 1Password (Kodemeio vault, item `kod-infra-ntfy`) and the gitignored
+# deploys/env/production/.env.kod-infra-ntfy.
+services:
+  # One-shot user/ACL bootstrap. `--ignore-exists` and the idempotent `access`
+  # grant make repeat starts safe; it exits 0 so `ntfy` can gate on it.
+  ntfy-auth:
+    image: binwiederhier/ntfy:v2.29.0
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -eu
+        # `user add` is a subcommand and does not inherit --auth-file; the CLI
+        # reads NTFY_AUTH_FILE from the environment instead (set below). The
+        # CLI also refuses to touch an auth file that does not exist yet, so
+        # seed an empty file first; ntfy migrates it to the schema on open.
+        : > "$$NTFY_AUTH_FILE"
+        NTFY_PASSWORD="$${NTFY_AGENTS_PASSWORD}" ntfy user add \
+          --role=user --ignore-exists "$${NTFY_AGENTS_USER}"
+        ntfy access "$${NTFY_AGENTS_USER}" "$${NTFY_TOPIC}" rw
+        NTFY_PASSWORD="$${NTFY_ADMIN_PASSWORD}" ntfy user add \
+          --role=admin --ignore-exists "$${NTFY_ADMIN_USER}"
+    environment:
+      NTFY_AUTH_FILE: /var/lib/ntfy/user.db
+      NTFY_AGENTS_USER: ${NTFY_AGENTS_USER:?NTFY_AGENTS_USER is required}
+      NTFY_AGENTS_PASSWORD: ${NTFY_AGENTS_PASSWORD:?NTFY_AGENTS_PASSWORD is required}
+      NTFY_ADMIN_USER: ${NTFY_ADMIN_USER:?NTFY_ADMIN_USER is required}
+      NTFY_ADMIN_PASSWORD: ${NTFY_ADMIN_PASSWORD:?NTFY_ADMIN_PASSWORD is required}
+      NTFY_TOPIC: ${NTFY_TOPIC:?NTFY_TOPIC is required}
+    volumes:
+      - ntfy-data:/var/lib/ntfy
+    restart: "no"
+
+  ntfy:
+    image: binwiederhier/ntfy:v2.29.0
+    command: serve
+    restart: unless-stopped
+    depends_on:
+      ntfy-auth:
+        condition: service_completed_successfully
+    environment:
+      NTFY_BASE_URL: https://ntfy.kodeme.io
+      NTFY_LISTEN_HTTP: ":80"
+      NTFY_BEHIND_PROXY: "true"
+      NTFY_CACHE_FILE: /var/lib/ntfy/cache.db
+      NTFY_AUTH_FILE: /var/lib/ntfy/user.db
+      NTFY_AUTH_DEFAULT_ACCESS: deny-all
+      NTFY_ATTACHMENT_CACHE_DIR: /var/lib/ntfy/attachments
+      NTFY_CACHE_DURATION: 24h
+      TZ: ${TZ:-UTC}
+    volumes:
+      - ntfy-data:/var/lib/ntfy
+    networks:
+      - dokploy-network
+    healthcheck:
+      # The image is Alpine, so busybox wget is available inside it.
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/v1/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  ntfy-data:
+
+networks:
+  dokploy-network:
+    external: true

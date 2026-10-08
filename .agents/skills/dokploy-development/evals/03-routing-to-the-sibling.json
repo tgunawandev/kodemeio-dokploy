@@ -1,0 +1,14 @@
+{
+  "id": "dokploy-development-03-routing-to-the-sibling",
+  "skill": "dokploy-development",
+  "why": "The pair splits on working tree versus live target. Getting the split wrong is how both skills end up competing for the same trigger.",
+  "prompt": "Roll back the last dokploy deployment on kodemeio.",
+  "expect_skill_fires": false,
+  "expect": [
+    "hands off to dokploy-deployment",
+    "explains the split: this repo's files versus a live target"
+  ],
+  "must_not": [
+    "answer it directly without naming the sibling skill"
+  ]
+}

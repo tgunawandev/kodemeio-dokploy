@@ -1,0 +1,47 @@
+kind: instance
+type: infrastructure
+
+instance:
+  name: kod-infra-ntfy
+  description: "Self-hosted ntfy — agent completion/confirmation push for Pi + Codex and platform alerts"
+
+project: apps
+environment: production
+server: kod-hzc-02
+auto_deploy: false
+
+# Raw Compose source. The generic `deploy apply` assumes a GitHub source even
+# for a raw manifest, so this stack is operated with `compose update`, `env
+# push`, `compose start` (see ops/runbooks/ntfy-agent-notifications.md).
+source:
+  type: raw
+  compose_path: deploys/composes/ntfy/docker-compose.yml
+
+dns:
+  zone: kodeme.io
+  name: ntfy
+  content: 46.225.42.130
+
+domain:
+  host: ntfy.kodeme.io
+  port: 80
+  service: ntfy
+  https: true
+  cert: letsencrypt
+
+healthcheck:
+  path: /v1/health
+  port: 80
+  expected_status: 200
+  timeout: 60
+  interval: 10
+
+env_file: ../../env/production/.env.kod-infra-ntfy
+env_overrides:
+  COMPOSE_PROJECT_NAME: kod-infra-ntfy
+  TZ: UTC
+
+# The user database is a disposable local volume: it is seeded from the
+# gitignored env file + 1Password on every start, so there is nothing here that
+# must be restored.
+backup: null

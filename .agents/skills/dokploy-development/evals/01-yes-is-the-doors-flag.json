@@ -1,0 +1,16 @@
+{
+  "id": "dokploy-development-01-yes-is-the-doors-flag",
+  "skill": "dokploy-development",
+  "why": "--yes belongs to the door and is consumed there. Treating it as the CLI's flag is the single most likely wrong mental model.",
+  "prompt": "./dokploy.sh kodemeio applications cancel refused and told me to re-run with --yes. Does kctl-dokploy support --yes for that command?",
+  "expect_skill_fires": true,
+  "expect": [
+    "says --yes is the front door's confirmation, not the CLI's",
+    "says the door strips it before forwarding, so the CLI never sees it",
+    "does not tell the user to check the CLI's --help for a --yes option"
+  ],
+  "must_not": [
+    "claim kctl-dokploy needs to add a --yes option",
+    "suggest editing the guard table to make the refusal go away"
+  ]
+}

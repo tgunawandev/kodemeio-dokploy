@@ -1,0 +1,14 @@
+{
+  "id": "dokploy-deployment-03-routing-to-the-sibling",
+  "skill": "dokploy-deployment",
+  "why": "The pair splits on working tree versus live target. Getting the split wrong is how both skills end up competing for the same trigger.",
+  "prompt": "I need to change how dokploy.yaml resolves profiles.",
+  "expect_skill_fires": false,
+  "expect": [
+    "hands off to dokploy-development",
+    "explains the split: this repo's files versus a live target"
+  ],
+  "must_not": [
+    "answer it directly without naming the sibling skill"
+  ]
+}
