@@ -31,6 +31,9 @@ services:
         NTFY_PASSWORD="$${NTFY_AGENTS_PASSWORD}" ntfy user add \
           --role=user --ignore-exists "$${NTFY_AGENTS_USER}"
         ntfy access "$${NTFY_AGENTS_USER}" "$${NTFY_TOPIC}" rw
+        # Anonymous write-only on the ack topic: the notification's Acknowledge
+        # button records a read without embedding a credential in the payload.
+        ntfy access everyone "$${NTFY_ACK_TOPIC}" write
         NTFY_PASSWORD="$${NTFY_ADMIN_PASSWORD}" ntfy user add \
           --role=admin --ignore-exists "$${NTFY_ADMIN_USER}"
     environment:
@@ -40,6 +43,7 @@ services:
       NTFY_ADMIN_USER: ${NTFY_ADMIN_USER:?NTFY_ADMIN_USER is required}
       NTFY_ADMIN_PASSWORD: ${NTFY_ADMIN_PASSWORD:?NTFY_ADMIN_PASSWORD is required}
       NTFY_TOPIC: ${NTFY_TOPIC:?NTFY_TOPIC is required}
+      NTFY_ACK_TOPIC: ${NTFY_ACK_TOPIC:?NTFY_ACK_TOPIC is required}
     volumes:
       - ntfy-data:/var/lib/ntfy
     restart: "no"
@@ -60,6 +64,7 @@ services:
       NTFY_AUTH_DEFAULT_ACCESS: deny-all
       NTFY_ATTACHMENT_CACHE_DIR: /var/lib/ntfy/attachments
       NTFY_CACHE_DURATION: 24h
+      NTFY_ACK_TOPIC: ${NTFY_ACK_TOPIC:?NTFY_ACK_TOPIC is required}
       TZ: ${TZ:-UTC}
     volumes:
       - ntfy-data:/var/lib/ntfy
