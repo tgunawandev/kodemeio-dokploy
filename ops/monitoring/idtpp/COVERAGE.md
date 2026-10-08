@@ -27,6 +27,13 @@ has its own bearer, valid only for that host's reviewed endpoints. The exact
 POST paths are routed through Traefik; Gatus checks each bearer. Docker and
 provider credentials are not given to Sentinel.
 
+A one-shot init container that has already exited successfully still counts as a
+failure until it is named in the target's `init_services`. The production ERP on
+prod03 keeps a completed `odoo-init` container in its Compose project, so the
+`tpp-odoo-erp` target must declare `init_services: ["odoo-init"]`, exactly as
+staging does. Without it the `tpp-odoo-erp` runtime heartbeat is permanently red
+while `odoo-web`, `odoo-gevent`, and `odoo-cron` are all healthy.
+
 Operator installation goes through `./dokploy.sh monitoring-remote`, with an
 explicit preview and `--apply`. Configuration lives under
 `/etc/kodemeio/gatus-exporter/config.json` (0600). Units are

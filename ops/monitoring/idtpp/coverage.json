@@ -417,7 +417,9 @@
       "odoo-gevent",
       "odoo-web"
     ],
-    "init_services": [],
+    "init_services": [
+      "odoo-init"
+    ],
     "health_checks": [
       "odoo-cron",
       "odoo-gevent",
