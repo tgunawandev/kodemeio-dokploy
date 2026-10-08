@@ -61,6 +61,19 @@ curl -sS -u "$NTFY_ADMIN_USER:$NTFY_ADMIN_PASSWORD" \
 curl -sS -o /dev/null -w '%{http_code}\n' "https://ntfy.kodeme.io/$NTFY_TOPIC"  # 403
 ```
 
+## Subscribe on a phone
+
+The phone must use the native **ntfy app** (`io.heckel.ntfy`, Play Store or
+F-Droid) — the web page at <https://ntfy.kodeme.io/kod-orca-agents> shows
+messages but never sounds. Add server `https://ntfy.kodeme.io`, sign in as the
+admin user, and subscribe to `kod-orca-agents`.
+
+Sound is owned by the Android notification channel, not the server. Set a sound
+on ntfy's "High priority" and "Max priority" channels (Settings → Apps → ntfy →
+Notifications), enable **Instant delivery**, and give ntfy **Unrestricted**
+battery usage. Messages are sent at high (4) for `finished` and urgent (5) for
+`needs-input`/`needs-approval` so they use those channels.
+
 ## Agent integration
 
 Both harnesses call one shared helper, `kodemeio-agent-notify`, so they format
