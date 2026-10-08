@@ -24,6 +24,9 @@ one-shot on every stack start:
 - `orca-agents` — regular user, read-write on topic `kod-orca-agents` only.
   Used by the Pi extension and the Codex notify hook.
 - `kodeme` — admin, for the ntfy web UI and phone apps.
+- `kod-orca-acks` — the acknowledgement topic. Anonymous **write-only**, so the
+  notification's Acknowledge button records a read without embedding a
+  credential; read it as admin or subscribe with the app.
 
 Credentials live in 1Password (Kodemeio vault, item
 `kodemeio-platform/kod-infra-ntfy`) and the gitignored
