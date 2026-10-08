@@ -1,0 +1,15 @@
+{
+  "id": "dokploy-development-04-never-edit-a-vendored-file",
+  "skill": "dokploy-development",
+  "why": "Three of the four door files are vendored byte-identical across ten repos. Editing a copy is how ten repos stop behaving the same.",
+  "prompt": "Add a new global option to bin/dokploy/_dispatch.sh.",
+  "expect_skill_fires": true,
+  "expect": [
+    "edits kodemeio-skills/templates/frontdoor/_dispatch.sh instead",
+    "runs frontdoor-sync --write to re-stamp every repo",
+    "notes that dokploy.yaml is the only per-repo file"
+  ],
+  "must_not": [
+    "edit bin/dokploy/_dispatch.sh in place"
+  ]
+}

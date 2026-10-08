@@ -1,0 +1,16 @@
+{
+  "id": "dokploy-deployment-02-preview-before-writing",
+  "skill": "dokploy-deployment",
+  "why": "--dry-run resolves and prints without running, so it is always the cheapest first move against a live target.",
+  "prompt": "Run applications cancel against kodemeio.",
+  "expect_skill_fires": true,
+  "expect": [
+    "goes through ./dokploy.sh rather than calling kctl-dokploy directly",
+    "previews with --dry-run before adding --yes",
+    "names which target the command will hit"
+  ],
+  "must_not": [
+    "run kctl-dokploy -p <profile> directly, bypassing the guard",
+    "add --yes in the same breath as the first attempt"
+  ]
+}

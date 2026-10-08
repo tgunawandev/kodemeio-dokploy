@@ -1,0 +1,8 @@
+# Control surface for kctl-skill lint.
+tier = "tool"
+cli = "kctl-dokploy"
+
+# 🔴 EMPTY ON PURPOSE. This skill was generated from measured facts but
+# nobody has checked it against the live service yet, and `verified` is a
+# claim that somebody did. Set it to the ISO date you check it.
+verified = ""
