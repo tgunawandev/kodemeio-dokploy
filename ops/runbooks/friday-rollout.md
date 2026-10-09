@@ -1,5 +1,9 @@
 # SW1 / FRIDAY rollout runbook
 
+> **Retired.** FRIDAY, VERONICA and OMP no longer exist; the current stack is
+> Orca with native Pi/Codex sessions. This file is kept as a historical record —
+> do not run these procedures.
+
 **Founder-gated.** Every command below is prepared, not run, by writing this document — no
 GitHub token, label, webhook, branch protection rule, secret, or deployment described here has
 been created or changed. The founder runs each step (or explicitly authorizes running one

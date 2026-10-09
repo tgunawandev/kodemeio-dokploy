@@ -42,7 +42,7 @@ This is an inspected local build, not a published clean Git release or remote CI
 ## Reproduce through the operator front door
 
 Keep `KCTL_DOKPLOY_PROFILE=idtpp` explicit. `monitoring-remote` is an operator transport;
-never expose it or the operator profiles to OMP. First load the reviewed image on host06:
+never expose it or the operator profiles to an agent session. First load the reviewed image on host06:
 
 ```sh
 docker save kodemeio-incident-triage:local -o /private/path/collector.tar
@@ -84,7 +84,7 @@ zero quarantine, fresh heartbeat. Do not route unrelated faults to that rollout 
 Desk remains the canonical ticket system: preserve an existing human report and record
 triage, fixes, tests, independent review and explicit human production acceptance there.
 Use the operator bridge `../incidents/desk.py`; inspect selected evidence before publishing.
-The collector does not automatically create tickets or dispatch OMP. A dedicated unattended
+The collector does not automatically create tickets or dispatch agents. A dedicated unattended
 Desk identity, contained model dispatch, spending stops, real staging SDK/source-map acceptance
 and an independent external dead-man alarm remain follow-up work. Installing monitoring does
 not prove every application's SDK is sending events or fix the meeting execution defect.

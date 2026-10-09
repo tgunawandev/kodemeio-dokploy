@@ -25,7 +25,7 @@ safe operating instructions.
 | [kod-offsite-backup.md](kod-offsite-backup.md) | kodeme.io backups: what is copied where, and restore when Hetzner is down |
 | [restore-drill.md](restore-drill.md) | Timed, isolated Odoo + Authentik restore drill from B2; record RPO/RTO |
 | [supabase-export.md](supabase-export.md) | Founder-run Supabase (TeraKidz) export to B2 and sandbox restore |
-| [friday-rollout.md](friday-rollout.md) | Roll out FRIDAY (SW1 software factory): GitHub tokens/labels/webhooks, branch protection, deploy the `friday` container and `friday_dispatch` worker, kill switch, rollback |
+| [friday-rollout.md](friday-rollout.md) | **Retired** — FRIDAY (SW1 software factory) rollout. Historical record; the current stack is Orca with native Pi/Codex |
 | [midtrans-rollout.md](midtrans-rollout.md) | PAY1: Midtrans QRIS/VA payments for Terakidz (keys, sandbox→production switch, monitoring, kill switch) |
 | [factory-website-terakidz.md](factory-website-terakidz.md) | FC1–FC5 + F2: install the factory commons, push the brand kits, govern the Terakidz site, deploy the landing renderer, smoke test and roll back |
 | [digital-delivery-rollout.md](digital-delivery-rollout.md) | R6 / DIG1: attach a released factory artefact, deliver paid bytes once, and revoke on full refund |
