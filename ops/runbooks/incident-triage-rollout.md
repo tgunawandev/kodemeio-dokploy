@@ -1,5 +1,9 @@
 # VERONICA incident triage rollout
 
+> **Retired.** FRIDAY, VERONICA and OMP no longer exist. The evidence collector
+> and its ingress remain; the persona/agent triage workflow described here does
+> not. Treat this as a historical record.
+
 ## Verified starting state (2026-10-05)
 
 `KCTL_DOKPLOY_PROFILE=kodemeio ./dokploy.sh services kodemeio --json` returned

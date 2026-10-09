@@ -1,5 +1,9 @@
 # VERONICA monitoring rollout status — 2026-10-05
 
+> **Retired.** FRIDAY, VERONICA and OMP no longer exist; the current stack is
+> Orca with native Pi/Codex sessions. This file is kept as a historical record —
+> do not run these procedures.
+
 ## Required workflow
 
 The existing **https://desk.idtpp.com** is the central ticket record for

@@ -1,5 +1,9 @@
 # OMP migration to kod-ovh-01
 
+> **Retired.** FRIDAY, VERONICA and OMP no longer exist; the current stack is
+> Orca with native Pi/Codex sessions. This file is kept as a historical record —
+> do not run these procedures.
+
 Status: deployed fresh on 2026-10-05 after the founder instructed "go ahead,
 deploy it. merge the PR." following the backup/fresh-start explanation.
 [Cutover evidence](../evidence/omp-ovh-cutover-2026-10-05.json) records the merged
