@@ -2,7 +2,7 @@
 *Dari Satu Ide ke Kebiasaan Unggah yang Konsisten*
 Tim Terakona
 
-> Logo: asset:image-terakon-cover-placeholder
+> Logo: asset:image-terakona-cover-placeholder
 
 ## Memilih Niche yang Bisa Dijalani
 

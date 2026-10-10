@@ -60,7 +60,7 @@ uv run python ops/channel_portfolio/evaluate.py --channels-dir channels \
 
 The output is serialised with sorted keys and compact separators, so it is byte-stable.
 `examples/decision-90d.expected.json` is the committed decision for the synthetic 90-day series:
-`terakon-niche-a` continues, `terakon-niche-b` stops, and niche-b's two pending items are
+`terakona-niche-a` continues, `terakona-niche-b` stops, and niche-b's two pending items are
 proposed for cancellation.
 
 ## Limits
@@ -68,7 +68,7 @@ proposed for cancellation.
 - Synthetic fixtures are not targets or evidence. The thresholds in `channels/` are
   placeholders, and the founder sets the real ones.
 - Live metrics ingestion, platform accounts and real niche kits are operational gates. See
-  `ops/runbooks/terakon-b5-channel-portfolio.md`.
+  `ops/runbooks/terakona-b5-channel-portfolio.md`.
 - Video is listed in every channel but stays disabled (TB-D6).
 
 Tests:

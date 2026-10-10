@@ -25,10 +25,10 @@ Roadmap row: **B5**.
 | Piece | Path | Notes |
 |---|---|---|
 | Contract | `contracts/channels/channel.v1.schema.json` (+ `contracts/examples/channels/`) | `code`, `kit`, F8 `platform`, `cadence_per_week`, `formats` (video allowed, disabled), `stop_rule` in G2 threshold format, with `on_miss.day_60` `pivot`/`stop` and `on_miss.day_90` = `stop` |
-| Channel A | `channels/terakon/niche-a.yaml` | Instagram, carousel and caption, 3/week, views ≥ 5000 (PLACEHOLDER) |
-| Channel B | `channels/terakon/niche-b.yaml` | TikTok, script and caption, 5/week, views ≥ 10000 and watch time ≥ 36000 s (PLACEHOLDER) |
-| Sub-brand kits | `brands/terakon-niche-a.yaml`, `brands/terakon-niche-b.yaml` | `draft` PLACEHOLDER, `expert_logins: []`, a `kit uji coba` disclaimer, distinct palette and font per kit |
-| Line | `product_lines/terakon-channels.yaml` | One `content_piece` per channel under its own kit, one variant per enabled format, `publish: none`, `launch: []` |
+| Channel A | `channels/terakona/niche-a.yaml` | Instagram, carousel and caption, 3/week, views ≥ 5000 (PLACEHOLDER) |
+| Channel B | `channels/terakona/niche-b.yaml` | TikTok, script and caption, 5/week, views ≥ 10000 and watch time ≥ 36000 s (PLACEHOLDER) |
+| Sub-brand kits | `brands/terakona-niche-a.yaml`, `brands/terakona-niche-b.yaml` | `draft` PLACEHOLDER, `expert_logins: []`, a `kit uji coba` disclaimer, distinct palette and font per kit |
+| Line | `product_lines/terakona-channels.yaml` | One `content_piece` per channel under its own kit, one variant per enabled format, `publish: none`, `launch: []` |
 | Evaluator | `ops/channel_portfolio/evaluate.py` (+ README, tests, synthetic series and expected decision) | Stop rule → G2 → `continue`/`pivot`/`stop`, plus a list of pending F10 items proposed for cancellation |
 
 🔴 **Everything here is EXAMPLE CONTENT (TB-D9), and both niches are placeholders.** Each piece
@@ -87,7 +87,7 @@ are proposed for cancellation.
 
 | # | Gate | What closes it |
 |---|---|---|
-| G1 | **Real niche choice** | Pick the niches. Rename or replace `channels/terakon/niche-*.yaml` and their kits (`code` = `<dir>-<stem>`, kit `code` = file stem). |
+| G1 | **Real niche choice** | Pick the niches. Rename or replace `channels/terakona/niche-*.yaml` and their kits (`code` = `<dir>-<stem>`, kit `code` = file stem). |
 | G2 | **Approved sub-brand kits** | Write the real voice, audience, forbidden phrases, disclaimers and palette. Keep `status: draft` and the `kit uji coba` disclaimer until approval. Then set `active`, drop `PLACEHOLDER` and the trial disclaimer, and update `test_terakidz_stays_the_one_active_kit` in the same reviewed change. |
 | G3 | **Named experts** | Put real reviewer logins in `reviewers.expert_logins`. The synthetic overlay never leaves the test DB. |
 | G4 | **Platform accounts** | Create one publisher account per channel in Odoo F10 (`content.publisher.account`) on the kod estate. The mode stays `creator_handoff` until the founder approves anything else. |

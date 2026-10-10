@@ -15,15 +15,15 @@ are both built-local; membership is not in this line file and needs no step here
 
 ## What the line is (committed, read-only)
 
-`product_lines/terakon.yaml` (contract `product_line.v1`), every item under the `terakon` kit:
+`product_lines/terakona.yaml` (contract `product_line.v1`), every item under the `terakona` kit:
 
 | Item | Source | Factory | Digital kind | Publish path | Placeholder price (IDR) |
 |---|---|---|---|---|---|
-| Weekly planner (2 variants: week 40/41) | `templates/terakon-planner` (F3, pre-existing) | F3 xlsx | `planner` | `factory_digital` | 29 000 |
-| Content calendar (2 variants: Oct/Nov 2026) | `templates/terakon-content-calendar` | F3 xlsx | `template_pack` | `factory_digital` | 39 000 |
-| Prompt pack (2 variants: two niches) | `templates/terakon-prompt-pack` | F3 xlsx | `prompt_pack` | `factory_digital` | 49 000 |
-| Playbook e-book (PDF + EPUB) | `ebooks/terakon-playbook-channel-niche` | F4 | `book` (no `playbook` code exists) | `digital` via K2 `factory_ebook_digital` | 79 000 |
-| Course (3 modules, 2 quizzes, no video) | `courses/terakon-channel-niche-101` | F5 html | `course` | `digital` (course publisher) | 149 000 |
+| Weekly planner (2 variants: week 40/41) | `templates/terakona-planner` (F3, pre-existing) | F3 xlsx | `planner` | `factory_digital` | 29 000 |
+| Content calendar (2 variants: Oct/Nov 2026) | `templates/terakona-content-calendar` | F3 xlsx | `template_pack` | `factory_digital` | 39 000 |
+| Prompt pack (2 variants: two niches) | `templates/terakona-prompt-pack` | F3 xlsx | `prompt_pack` | `factory_digital` | 49 000 |
+| Playbook e-book (PDF + EPUB) | `ebooks/terakona-playbook-channel-niche` | F4 | `book` (no `playbook` code exists) | `digital` via K2 `factory_ebook_digital` | 79 000 |
+| Course (3 modules, 2 quizzes, no video) | `courses/terakona-channel-niche-101` | F5 html | `course` | `digital` (course publisher) | 149 000 |
 
 Launch: three F8 briefs — Instagram carousel (prompt pack), TikTok script (playbook), YouTube script
 (course) — all `creator_handoff` through F10. Nothing publishes directly.
@@ -35,7 +35,7 @@ course reading and deck), so `factory.check.brand_rules` **refuses** any render 
 kit that lacks the trial-kit notice. That refusal is the guard: an accidental release cannot pass for
 real Terakona product.
 
-Read-only proof (any time): `uv run pytest deploys/tests/test_terakon_line.py deploys/tests/test_contracts_product_lines.py -q`.
+Read-only proof (any time): `uv run pytest deploys/tests/test_terakona_line.py deploys/tests/test_contracts_product_lines.py -q`.
 
 ## Local end-to-end (built-local bar, no founder step)
 
@@ -43,29 +43,29 @@ Runs on a disposable DB after K1 (committed) and K2 (the harness, kodemeio-odoo)
 
 ```bash
 cd kodemeio-odoo
-bin/product-line-acceptance terakon --db odoo_test_tb_b6
+bin/product-line-acceptance terakona --db odoo_test_tb_b6
 ```
 
 It must pass L1–L10 (spec §3.3) and, for this line specifically:
 
-- **L2**: all 5 items × their variants render under `terakon`; each artefact's text contains
+- **L2**: all 5 items × their variants render under `terakona`; each artefact's text contains
   `kit uji coba`; the two variants of each workbook have distinct `input_sha256`.
 - **L3**: the negative variant injects the kit's first forbidden phrase (`dijamin untung`) into a
   copy of one source and gets a named `brand_rules` refusal that never echoes the text.
 - **L8** is **not exercised by this line** (no free item). L9: three briefs, and no F10 publication
   exists before approval.
 - The harness must register, **in the test DB only**, synthetic verified assets for
-  `asset:font-inter` (font, OFL) and `asset:image-terakon-cover-placeholder` (image) — the kit's
+  `asset:font-inter` (font, OFL) and `asset:image-terakona-cover-placeholder` (image) — the kit's
   experts list is empty, so the harness's synthetic expert/founder overlay applies and the result
   records `experts: synthetic-overlay`.
 
-Record the result JSON path (`logs/track-b/terakon-<utc>.json`) and counts in the TB6 ledger.
+Record the result JSON path (`logs/track-b/terakona-<utc>.json`) and counts in the TB6 ledger.
 
 ---
 
 ## G1 — A real Terakona brand kit (M)
 
-The committed `brands/terakon.yaml` is a test fixture (`status: draft`, every value `PLACEHOLDER`,
+The committed `brands/terakona.yaml` is a test fixture (`status: draft`, every value `PLACEHOLDER`,
 `expert_logins: []`). Before anything is sold:
 
 1. Commission and approve the Terakona brief (voice, audience, palette, fonts with licence evidence).
@@ -75,7 +75,7 @@ The committed `brands/terakon.yaml` is a test fixture (`status: draft`, every va
    `terakidz` as the only active kit today — update that pin **in the same commit** as the kit.
 4. Decide the forbidden phrases. The draft forbids only `dijamin untung` and `bebas risiko`; the
    TB6 copy is additionally held to a no-outcome-claim list (`CLAIM_PHRASES` in
-   `deploys/tests/test_terakon_line.py`). A course about running a channel is where
+   `deploys/tests/test_terakona_line.py`). A course about running a channel is where
    guaranteed-growth or guaranteed-income claims creep in — carry that list into the real kit.
 5. Import the kit on the instance through `factory_base` (the F3 runbook's kit-import step,
    `ops/runbooks/factory-template-rollout.md`).
@@ -87,10 +87,10 @@ decks and quizzes) and the founder approves it. Then:
 
 - remove the `EXAMPLE CONTENT` headers only from files whose copy is approved (the line-file header
   test in `test_contracts_product_lines.py` requires the marker on EVERY line file, and
-  `test_terakon_line.py` on every TB6 YAML source — change those tests deliberately in the same
+  `test_terakona_line.py` on every TB6 YAML source — change those tests deliberately in the same
   commit, never by deleting the marker alone);
 - bump each changed source's `version` (the importer refuses a lower or equal version);
-- regenerate `ebooks/terakon-playbook-channel-niche/book.md` from `ebook.yaml` (it is derived; the
+- regenerate `ebooks/terakona-playbook-channel-niche/book.md` from `ebook.yaml` (it is derived; the
   test fails on drift);
 - the prompt pack stays prompt TEXT: no links, no tool names that imply an endorsement, no personal
   data (the `links` and `pii` checks refuse them anyway).
@@ -100,7 +100,7 @@ decks and quizzes) and the founder approves it. Then:
 | Asset key | Kind | Licence evidence needed | Used by |
 |---|---|---|---|
 | `font-inter` | font | OFL-1.1 (already the kit's font; re-verify if G1 changes fonts) | every item |
-| `image-terakon-cover-placeholder` | image | owned or stock licence — **rename the key** to the real logo's key in `ebook.yaml` when G1 lands | playbook cover |
+| `image-terakona-cover-placeholder` | image | owned or stock licence — **rename the key** to the real logo's key in `ebook.yaml` when G1 lands | playbook cover |
 
 Register and verify each as a usable `factory.asset` on the instance before importing any source;
 a font or image that is not verified, commercial and unexpired refuses the import by name.
@@ -115,7 +115,7 @@ a font or image that is not verified, commercial and unexpired refuses the impor
 
 ## G5 — Pricing (M)
 
-The prices in `product_lines/terakon.yaml` are placeholders. Set real prices (integer IDR) in the line
+The prices in `product_lines/terakona.yaml` are placeholders. Set real prices (integer IDR) in the line
 file, commit, and re-run the harness locally before touching the instance.
 
 ## G6 — Seller of record and live payments (M)
@@ -136,8 +136,8 @@ submit → checks → **expert approve → founder approve** → release → pub
 
 ## G8 — Launch (M)
 
-Create the three F8 briefs named in the line (`terakon-prompt-pack-launch`,
-`terakon-playbook-launch`, `terakon-course-launch`), pass their gate, approve, then schedule each
+Create the three F8 briefs named in the line (`terakona-prompt-pack-launch`,
+`terakona-playbook-launch`, `terakona-course-launch`), pass their gate, approve, then schedule each
 through F10 as `creator_handoff`. An F10 publication exists only after approval.
 
 ## Membership (not this runbook)

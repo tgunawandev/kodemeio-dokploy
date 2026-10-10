@@ -38,7 +38,7 @@ def _yaml(path: Path) -> dict:
 
 
 def test_the_registry_holds_the_current_brands():
-    assert {"terakidz", "terakon", "terafin", "terakod"} <= registry()
+    assert {"terakidz", "terakona", "terafin", "terakod"} <= registry()
 
 
 @pytest.mark.parametrize("path,where", BRAND_FIELDS, ids=lambda v: v.name if isinstance(v, Path) else "/".join(v))

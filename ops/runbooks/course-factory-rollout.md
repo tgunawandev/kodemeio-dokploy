@@ -131,7 +131,7 @@ Factory → Assets → New, then **a second person** verifies. What the shipped 
 | Asset | kind | Licence | Notes |
 |---|---|---|---|
 | `font-nunito` | font | OFL-1.1 | family `Nunito`; named by `brands/terakidz.yaml` already |
-| `font-inter` | font | OFL-1.1 | family `Inter`; named by `brands/terakon.yaml` |
+| `font-inter` | font | OFL-1.1 | family `Inter`; named by `brands/terakona.yaml` |
 | `image-terakidz-learning-hero` | image | owned (or a stock licence) | the course's cover role |
 | `footage-terakidz-intro` | **footage** | the source's own licence | the `l2-rutinitas` video (spec D4: video is F6) |
 
@@ -173,7 +173,7 @@ c = json.dumps(d, sort_keys=True, separators=(",", ":"))
 print(json.dumps([d, hashlib.sha256(c.encode()).hexdigest()]))
 PY
 kctl-odoo -p kodemeio-kod-odoo-erp shell call factory.brand.kit import_kit "$(cat /tmp/terakidz-kit.json)"
-# …and brands/terakon.yaml the same way (a DRAFT fixture: import it only to prove the two-kit
+# …and brands/terakona.yaml the same way (a DRAFT fixture: import it only to prove the two-kit
 # variant, never as approved brand content)
 
 # 2. the course: three positional args — (payload, sha256, sources map key -> Markdown text)
@@ -200,7 +200,7 @@ kctl-odoo -p kodemeio-kod-odoo-erp shell call factory.course search_read \
   -k '{"fields":["code","version","title","level","locale","renderer","brand_kits","source_sha256","sources_sha256"]}'
 kctl-odoo -p kodemeio-kod-odoo-erp shell call factory.course.lesson search_read \
   '[[]]' -k '{"fields":["course_id","module_id","lesson_id","title","video_asset"],"order":"sequence"}'
-# expect: terakidz-komunikasi-dasar v1, html, kits [terakidz, terakon], 4 lessons in 3 modules
+# expect: terakidz-komunikasi-dasar v1, html, kits [terakidz, terakona], 4 lessons in 3 modules
 ```
 
 **Rollback:** a course is archived by importing a newer version, or by an administrator clearing
@@ -231,7 +231,7 @@ Factory → Work Orders → New:
    target and records the kernel's `action_done`. 🔴 An absent target refuses the whole release by
    name and nothing is marked released — the artefacts and the pack already exist; the course
    simply does not ship.
-7. The second kit: repeat with the `terakon` kit (a distinct render, distinct token values).
+7. The second kit: repeat with the `terakona` kit (a distinct render, distinct token values).
 
 **Verify (read-only):**
 
@@ -342,4 +342,4 @@ without `slide.channel`.
 - **No MCP tools for courses** — the `mcp_base` conflict is unresolved (spec section 7).
 - **Factory roles are not in `install/roles-erp.yaml`**, so M2 assigns groups by hand.
 - **The shipped course is an example.** Real curriculum content is the factory's job later, and
-  `terakon` is a `draft` kit that is itself a test fixture.
+  `terakona` is a `draft` kit that is itself a test fixture.

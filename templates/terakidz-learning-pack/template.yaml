@@ -88,4 +88,4 @@ outputs: [pdf]
 # two-kit proof a real render rather than a special case: one template, two kits, two
 # documents. A kit not listed here refuses the render by name.
 brand:
-  kits: ["terakidz", "terakon"]
+  kits: ["terakidz", "terakona"]

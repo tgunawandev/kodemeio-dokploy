@@ -3,7 +3,7 @@
 # EXAMPLE CONTENT — not approved product copy (see template.yaml's header).
 #
 # DATA, NOT CODE (spec D2 amendment, 2026-09-27): the renderer INTERPRETS this file and never
-# executes it. Same closed vocabulary as templates/terakon-planner/layout.yaml:
+# executes it. Same closed vocabulary as templates/terakona-planner/layout.yaml:
 #   cell.<one of> text | var | block | formula
 #   block    heading/paragraph/footer/disclaimer -> this cell; list -> one cell per item,
 #            downwards; table -> the header row across, then one row per declared row

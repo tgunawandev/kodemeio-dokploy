@@ -475,7 +475,7 @@ def test_cli_reads_are_bounded_and_huge_integer_is_sanitized(tmp_path, monkeypat
 
 def test_brands_come_from_the_registry_not_a_closed_list(tmp_path):
     # Default: the committed brands/<code>.yaml files are the registry.
-    assert {"terakod", "terakidz", "terafin", "terakon"} <= hooks.known_brands()
+    assert {"terakod", "terakidz", "terafin", "terakona"} <= hooks.known_brands()
     for name in ("hook_library.v1.schema.json", "hook_performance_window.v1.schema.json"):
         schema = json.loads((Path(__file__).resolve().parents[3] / "ops/contracts" / name).read_text())
         brand = schema.get("$defs", {}).get("brand") or schema["properties"]["brand"]

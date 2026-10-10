@@ -251,14 +251,14 @@ kctl-odoo -p kodemeio-kod-odoo-erp shell call factory.brand.kit import_kit "$(ca
 Before importing, the founder must fill in the two placeholders the kit ships with:
 `reviewers.expert_logins` (the logins from M2) and — if the palette/WhatsApp number are to
 change — `colors.*` / `contact.whatsapp`. Both kits have been prepared and schema-validated
-locally; `brands/terakon.yaml` exists to prove two brands render differently from one tool.
+locally; `brands/terakona.yaml` exists to prove two brands render differently from one tool.
 
 **Verify**
 
 ```bash
 kctl-odoo -p kodemeio-kod-odoo-erp shell call factory.brand.kit search_read '[[]]' \
   -k '{"fields":["code","version","status","active"],"order":"code"}'
-# expect terakidz 1 active (and terakon 1 draft/active per the file)
+# expect terakidz 1 active (and terakona 1 draft/active per the file)
 ```
 
 The Odoo view (Factory → Brand Kits) shows the same rows read-only: a kit is a snapshot of

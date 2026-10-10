@@ -1,5 +1,5 @@
 {
-  "id": "terakon-planner",
+  "id": "terakona-planner",
   "version": 2,
   "title": "Terakona Weekly Planner",
   "kind": "xlsx",
@@ -81,7 +81,7 @@
     },
     {
       "type": "image",
-      "asset": "asset:image-terakon-hero",
+      "asset": "asset:image-terakona-hero",
       "alt": "x"
     }
   ],
@@ -133,7 +133,7 @@
   ],
   "brand": {
     "kits": [
-      "terakon"
+      "terakona"
     ]
   }
 }

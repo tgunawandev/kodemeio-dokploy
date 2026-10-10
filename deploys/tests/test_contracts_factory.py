@@ -118,17 +118,17 @@ def test_no_pii_property_names(schema_path):
     assert not pii_hits(names), pii_hits(names)
 
 
-# --- brand_kit.v1 + the terakidz/terakon kits -------------------------------
+# --- brand_kit.v1 + the terakidz/terakona kits -------------------------------
 
 
-@pytest.mark.parametrize("name", ["terakidz", "terakon"])
+@pytest.mark.parametrize("name", ["terakidz", "terakona"])
 def test_brand_kit_validates(name):
     validator_for(BRAND_KIT_SCHEMA).validate(_kit(name))
 
 
-def test_terakidz_is_active_and_terakon_is_draft():
+def test_terakidz_is_active_and_terakona_is_draft():
     assert _kit("terakidz")["status"] == "active"
-    assert _kit("terakon")["status"] == "draft"
+    assert _kit("terakona")["status"] == "draft"
 
 
 def test_terakidz_has_no_expert_reviewers_yet_founder_fills():
@@ -157,7 +157,7 @@ def test_terakidz_forbidden_phrases_and_required_disclaimer():
     )
 
 
-@pytest.mark.parametrize("name", ["terakidz", "terakon"])
+@pytest.mark.parametrize("name", ["terakidz", "terakona"])
 def test_required_disclaimers_do_not_contain_the_kits_own_forbidden_phrases(name):
     # A brand_rules check (Task 6, factory_base) that matches forbidden phrases
     # case-insensitively must never be tripped by the kit's own mandatory copy.
@@ -169,7 +169,7 @@ def test_required_disclaimers_do_not_contain_the_kits_own_forbidden_phrases(name
         assert not hits, f"{name} required_disclaimer contains forbidden phrase(s) {hits}: {disclaimer!r}"
 
 
-@pytest.mark.parametrize("name", ["terakidz", "terakon"])
+@pytest.mark.parametrize("name", ["terakidz", "terakona"])
 def test_every_font_reference_is_a_declared_asset(name):
     kit = _kit(name)
     assets = set(kit["assets"])
@@ -177,14 +177,14 @@ def test_every_font_reference_is_a_declared_asset(name):
         assert asset_ref in assets, f"{name}.fonts.{font_key}={asset_ref} not declared in assets"
 
 
-def test_terakidz_and_terakon_differ_in_primary_color_and_heading_font():
-    terakidz, terakon = _kit("terakidz"), _kit("terakon")
-    assert terakidz["colors"]["primary"] != terakon["colors"]["primary"]
-    assert terakidz["fonts"]["heading"] != terakon["fonts"]["heading"]
+def test_terakidz_and_terakona_differ_in_primary_color_and_heading_font():
+    terakidz, terakona = _kit("terakidz"), _kit("terakona")
+    assert terakidz["colors"]["primary"] != terakona["colors"]["primary"]
+    assert terakidz["fonts"]["heading"] != terakona["fonts"]["heading"]
 
 
 _CONTRAST_CASES = [
-    (kit_name, base, fg) for kit_name in ("terakidz", "terakon") for base, fg in _color_pairs(_kit(kit_name)["colors"])
+    (kit_name, base, fg) for kit_name in ("terakidz", "terakona") for base, fg in _color_pairs(_kit(kit_name)["colors"])
 ]
 
 

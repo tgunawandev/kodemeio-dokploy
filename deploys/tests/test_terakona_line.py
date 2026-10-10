@@ -1,12 +1,12 @@
 """The Terakona product line B6, content part (Track B, slice TB6; spec B6).
 
-`product_lines/terakon.yaml` sells five paid items under the **placeholder** `terakon` kit:
+`product_lines/terakona.yaml` sells five paid items under the **placeholder** `terakona` kit:
 
-- F3 workbooks: the existing `terakon-planner`, plus `terakon-content-calendar` and the prompt
-  pack `terakon-prompt-pack` (digital kind `prompt_pack`);
-- the F4 playbook `ebooks/terakon-playbook-channel-niche` (digital kind `book`: there is no
+- F3 workbooks: the existing `terakona-planner`, plus `terakona-content-calendar` and the prompt
+  pack `terakona-prompt-pack` (digital kind `prompt_pack`);
+- the F4 playbook `ebooks/terakona-playbook-channel-niche` (digital kind `book`: there is no
   `playbook` code in `digital.kind`, and K1 pinned the enum);
-- the F5 course `courses/terakon-channel-niche-101`.
+- the F5 course `courses/terakona-channel-niche-101`.
 
 Membership (MEM, kodemeio-odoo) is a separate slice and closes the B6 row with this one.
 
@@ -53,19 +53,19 @@ from test_contracts_templates import (
 from test_contracts_templates import resolve_problems as template_problems
 
 REPO = CONTRACTS.parent
-LINE_PATH = REPO / "product_lines" / "terakon.yaml"
-KIT_PATH = REPO / "brands" / "terakon.yaml"
+LINE_PATH = REPO / "product_lines" / "terakona.yaml"
+KIT_PATH = REPO / "brands" / "terakona.yaml"
 
-NEW_TEMPLATES = ("terakon-content-calendar", "terakon-prompt-pack")
-PLANNER = "terakon-planner"
-BOOK = "terakon-playbook-channel-niche"
-COURSE = "terakon-channel-niche-101"
+NEW_TEMPLATES = ("terakona-content-calendar", "terakona-prompt-pack")
+PLANNER = "terakona-planner"
+BOOK = "terakona-playbook-channel-niche"
+COURSE = "terakona-channel-niche-101"
 
 # The B6 catalogue (spec B6 "Content line"): (kind, ref) -> (digital_kind, publish).
 CATALOGUE = {
     ("template", PLANNER): ("planner", "factory_digital"),
-    ("template", "terakon-content-calendar"): ("template_pack", "factory_digital"),
-    ("template", "terakon-prompt-pack"): ("prompt_pack", "factory_digital"),
+    ("template", "terakona-content-calendar"): ("template_pack", "factory_digital"),
+    ("template", "terakona-prompt-pack"): ("prompt_pack", "factory_digital"),
     ("ebook", BOOK): ("book", "digital"),
     ("course", COURSE): ("course", "digital"),
 }
@@ -161,10 +161,10 @@ def test_the_line_validates_and_resolves_against_the_committed_repo():
     assert line_problems(payload) == []
 
 
-def test_the_line_renders_under_the_placeholder_terakon_kit_only():
+def test_the_line_renders_under_the_placeholder_terakona_kit_only():
     payload = line()
-    assert payload["brand_kit"] == "terakon"
-    assert all(item.get("kit", "terakon") == "terakon" for item in payload["items"])
+    assert payload["brand_kit"] == "terakona"
+    assert all(item.get("kit", "terakona") == "terakona" for item in payload["items"])
     assert kit()["status"] == "draft"
     assert any("kit uji coba" in text for text in kit()["rules"]["required_disclaimers"])
 
@@ -248,7 +248,7 @@ def test_every_workbook_block_is_placed_and_the_disclaimer_is_among_them(templat
 
 
 def test_the_prompt_pack_is_a_table_of_prompt_text():
-    template = template_yaml("terakon-prompt-pack")
+    template = template_yaml("terakona-prompt-pack")
     tables = [block for block in template["blocks"] if block["type"] == "table"]
     assert len(tables) == 1
     table = tables[0]
@@ -288,7 +288,7 @@ def test_the_playbook_ships_both_formats():
     assert book["renderers"] == {"pdf": "typst", "epub": "pandoc"}
 
 
-def test_the_playbook_cover_uses_a_terakon_asset_not_a_terakidz_one():
+def test_the_playbook_cover_uses_a_terakona_asset_not_a_terakidz_one():
     book = book_yaml()
     refs = [book["cover"]["logo"], *book["assets"]["fonts"].values(), *(book["assets"].get("images") or {}).values()]
     refs += [block["asset"] for block in book_blocks(book) if block["type"] == "image"]
@@ -338,11 +338,11 @@ def test_every_authored_yaml_header_marks_example_content(path):
     assert "EXAMPLE CONTENT" in path.read_text().split("\n\n", 1)[0], path.name
 
 
-def test_every_tb6_source_is_approved_for_terakon_only():
+def test_every_tb6_source_is_approved_for_terakona_only():
     for template_id in NEW_TEMPLATES:
-        assert template_yaml(template_id)["brand"]["kits"] == ["terakon"]
-    assert book_yaml()["brand"]["kits"] == ["terakon"]
-    assert course_yaml()["brand"]["kits"] == ["terakon"]
+        assert template_yaml(template_id)["brand"]["kits"] == ["terakona"]
+    assert book_yaml()["brand"]["kits"] == ["terakona"]
+    assert course_yaml()["brand"]["kits"] == ["terakona"]
 
 
 @pytest.mark.parametrize("path", sold_files(), ids=lambda path: path.relative_to(REPO).as_posix())

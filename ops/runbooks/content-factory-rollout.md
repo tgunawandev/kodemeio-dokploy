@@ -20,7 +20,7 @@ and no production write happens anywhere in this document without `--yes`.
 | 1 | Refreshed F8 acceptance: **143 factory_content tests, 0 failed/0 errors** (Odoo summary: 115 post-tests). The composed `factory_base` neighbor run remains **2 failures of 336**, exactly `factory_landing` A6/A8 HTTP 404s; these are known and the neighbor suite is not green. Rerun `factory_landing` and resolve those failures before treating the neighbor suite as a rollout prerequisite | `/tmp/factory_content_f8n_isolated.log`; `/tmp/factory_base_f8n.log` |
 | 2 | Bundle group `content` exists in `install/private-factory.yaml` (depends `core`, one module) and the bundle `requires` `private-content`; `bin/validate-bundles` reports **0 errors** | `bin/validate-bundles` |
 | 3 | The channel limits are committed: `factory_content/data/content_channel_rules.yaml` — four channels (`tiktok`, `youtube`, `instagram`, `facebook`), materialised into `factory.content.channel.rule` rows on install **and on every upgrade** | the file; the module's `CLAUDE.md` |
-| 4 | 🔴 **Only the Terakidz kit is real.** `brands/terakidz.yaml` carries a written voice, a do/don't list, forbidden phrases, a required disclaimer and an AI-disclosure line; `terakon` is a draft fixture, and **`terafin` and `terakod` have no kit file at all** | `kodemeio-dokploy/brands/` |
+| 4 | 🔴 **Only the Terakidz kit is real.** `brands/terakidz.yaml` carries a written voice, a do/don't list, forbidden phrases, a required disclaimer and an AI-disclosure line; `terakona` is a draft fixture, and **`terafin` and `terakod` have no kit file at all** | `kodemeio-dokploy/brands/` |
 | 5 | The F8 fix wave adds a `LITELLM` provider adapter while generation, prompts, prices, budget reservations, idempotency and assets remain in the content framework. Its recorded-response test passes; no estate key or live gateway is used | F8 fix-wave source and `/tmp/factory_content_f8n_isolated.log` |
 | 6 | 🔴 **Nothing publishes.** `action_release_content` sets `released`; publication (TikTok/YouTube/Meta) is F10 (`publishing`) and `content_publish_base` is not even a dependency of this module | spec D5; `tests/test_acceptance.py::test_nothing_is_published` |
 | 7 | The content kernel's own FAKE transport is registered only under `--test-enable`; no production instance has a second generation path | `content_base/models/__init__.py` |
@@ -47,7 +47,7 @@ manager creates one; (2) **a brand kit that is not usable** — a kit whose font
 ```
 Target instance:        [ ] kod (erp.kodeme.io)     [ ] kod-desk (desk.kodeme.io)
 Channels in scope first:[ ] tiktok  [ ] youtube  [ ] instagram  [ ] facebook
-Brands turned on:       [ ] terakidz                [ ] terakon  [ ] terafin  [ ] terakod
+Brands turned on:       [ ] terakidz                [ ] terakona  [ ] terafin  [ ] terakod
 Copy engine:            [ ] use configured LITELLM content account, price line and budget
 ```
 
@@ -140,7 +140,7 @@ Order matters: a piece whose kit font is not a verified asset cannot be derived 
 
    ```
    terakidz:  REAL   (voice, rules, disclaimer, AI disclosure)
-   terakon:   PLACEHOLDER — draft fixture, no confirmed voice
+   terakona:   PLACEHOLDER — draft fixture, no confirmed voice
    terafin:   PLACEHOLDER — no kit file
    terakod:   PLACEHOLDER — no kit file
    ```

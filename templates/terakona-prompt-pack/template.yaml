@@ -1,6 +1,6 @@
 # Terakona prompt pack -- a paid F3 workbook sold as digital kind `prompt_pack` (Track B TB6, spec B6).
 #
-# EXAMPLE CONTENT — not approved product copy. Terakona's kit (brands/terakon.yaml) is a `draft`
+# EXAMPLE CONTENT — not approved product copy. Terakona's kit (brands/terakona.yaml) is a `draft`
 # PLACEHOLDER, so every prompt below is Claude-authored example copy (Track B TB-D9) that experts
 # and the founder replace at the operational gate. Every render under the draft kit carries the
 # kit's `kit uji coba` disclaimer through the `disclaimer` block below, which the sidecar places.
@@ -8,7 +8,7 @@
 # The pack is a TABLE OF PROMPT TEXT: no links, no tool names, no personal data. A bracketed
 # [KATA] is a slot the buyer fills in by hand; it is plain text, not a template placeholder.
 # `niche` is the variant axis: one render per niche, each its own input sha.
-id: terakon-prompt-pack
+id: terakona-prompt-pack
 version: 2
 title: "Terakona Prompt Pack"
 kind: xlsx
@@ -82,4 +82,4 @@ assets:
 outputs: [xlsx]
 
 brand:
-  kits: ["terakon"]
+  kits: ["terakona"]
