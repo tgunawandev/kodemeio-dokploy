@@ -50,7 +50,7 @@ Owners: this repo holds the schemas; each service repo implements them.
   is one kit file, never a schema or code edit. The schemas alone no longer close these
   values: a consumer that validates only against a schema must also consult the registry
   (`brands/`, `entitlements/apps.v1.json`) or it will accept an unregistered code. `brands/terakidz.yaml` is
-  `active`; `brands/terakon.yaml` is a `draft` test fixture only (no real product yet).
+  `active`; `brands/terakona.yaml` is a `draft` test fixture only (no real product yet).
 - `templates/template.v1.schema.json` is a factory template (template factory, F3):
   a committed `templates/<id>/template.yaml` plus the layout sidecar it names (`.html` for
   `typst`/`wkhtml`, `.yaml`/`.json` for `xlsx` — the renderer pins the extension). **A layout is
@@ -72,7 +72,7 @@ Owners: this repo holds the schemas; each service repo implements them.
   and `{{blocks}}` in a layout source. The human label is `title`, not `name`: `name` is
   refused by the shared PII property-name denylist in `deploys/tests/contracts_lib.py`. The
   two shipped examples are `templates/terakidz-learning-pack/` (PDF) and
-  `templates/terakon-planner/` (workbook); `deploys/tests/test_contracts_templates.py` checks
+  `templates/terakona-planner/` (workbook); `deploys/tests/test_contracts_templates.py` checks
   both the schema and the semantics it cannot express (every placeholder resolves, every image
   block names a declared role).
 - `ebooks/ebook.v1.schema.json` is an e-book (e-book factory, F4): a committed
@@ -117,6 +117,6 @@ Owners: this repo holds the schemas; each service repo implements them.
   express (every placeholder resolves, every lesson's source keys are declared and on disk, every
   quiz answer is one of its options, and every source stays inside the closed Markdown
   vocabulary the renderer implements).
-- `product_lines/product_line.v1.schema.json` is a product line as data (Track B, K1): a committed `product_lines/<id>.yaml` naming its `brand_kit`, `items` (`kind` template|ebook|course|content_piece|physical, `ref` to a committed source id, optional per-item `kit`, `variants` setting only declared variables, `price_idr` ≥0 with 0 = free, a seeded `digital_kind`, `publish` factory_digital|digital|none) and `launch` F8 briefs (`platform`, `shape`, `brief_key`, optional F10 `publish_mode`); no value is ever a URL, and `deploys/tests/test_contracts_product_lines.py` resolves every ref and kit against this repo. Draft (placeholder) kits — `terakon`, `terafin`, `terakod` — must carry a `kit uji coba` required disclaimer (`deploys/tests/test_placeholder_kits.py`).
+- `product_lines/product_line.v1.schema.json` is a product line as data (Track B, K1): a committed `product_lines/<id>.yaml` naming its `brand_kit`, `items` (`kind` template|ebook|course|content_piece|physical, `ref` to a committed source id, optional per-item `kit`, `variants` setting only declared variables, `price_idr` ≥0 with 0 = free, a seeded `digital_kind`, `publish` factory_digital|digital|none) and `launch` F8 briefs (`platform`, `shape`, `brief_key`, optional F10 `publish_mode`); no value is ever a URL, and `deploys/tests/test_contracts_product_lines.py` resolves every ref and kit against this repo. Draft (placeholder) kits — `terakona`, `terafin`, `terakod` — must carry a `kit uji coba` required disclaimer (`deploys/tests/test_placeholder_kits.py`).
 - `entitlements/app_checkout.v1` and `entitlements/entitlement.v1` define the app entitlement bridge (ENT, TB-D1). An app asks Odoo PAY1 for a checkout using opaque refs only: `app` (a slug, valid iff listed in the data registry `entitlements/apps.v1.json`), a uuid `app_account_ref`, `plan_code`, `idempotency_key` and `issued_at`. Odoo replies later with a signed `active` or `revoked` event carrying an `event_id` ULID, `valid_from` and `valid_until`. Both directions use HMAC-SHA256 with the `order_intake` scheme under generic `X-Webhook-*` header names. `entitlements/README.md` fixes the header names, the time window and the semantics. `examples/entitlements/signing.v1.vector.json` is the byte-exact test vector (`deploys/tests/test_contracts_entitlements.py`).
 - Tests: `uv run pytest deploys/tests -k contracts`.

@@ -1,6 +1,6 @@
 # Terakona course -- a paid F5 course in the Terakona line (Track B TB6, spec B6).
 #
-# EXAMPLE CONTENT — not approved product copy. Terakona's kit (brands/terakon.yaml) is a `draft`
+# EXAMPLE CONTENT — not approved product copy. Terakona's kit (brands/terakona.yaml) is a `draft`
 # PLACEHOLDER, so the three modules and their Markdown sources are Claude-authored example copy
 # (Track B TB-D9) that experts and the founder replace at the operational gate. Every lesson's
 # reading AND slides place `{{kit.disclaimers}}`, so each rendered lesson carries `kit uji coba`.
@@ -10,7 +10,7 @@
 # slides; no tables, links, images, HTML or code). No lesson names a video: video is F6, and a
 # lesson video refuses the render by name until a licensed footage asset exists, which would
 # stop the B6 line's end-to-end run. Published through the `digital` course publisher.
-id: terakon-channel-niche-101
+id: terakona-channel-niche-101
 version: 2
 title: "Terakona: Kanal Niche 101"
 level: starter
@@ -123,4 +123,4 @@ assets:
 outputs: [html]
 
 brand:
-  kits: ["terakon"]
+  kits: ["terakona"]

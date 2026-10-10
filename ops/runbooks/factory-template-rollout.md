@@ -17,7 +17,7 @@ amendment** (a layout is never a program). Roadmap row: **F3** (TPL1).
 
 | # | Fact | How it was read |
 |---|---|---|
-| 1 | The two templates and the contract are committed: `templates/terakidz-learning-pack/{template.yaml,layout.html}`, `templates/terakon-planner/{template.yaml,layout.yaml}`, `contracts/templates/template.v1.schema.json` (`kodemeio-dokploy` **1ca1052**) — 27 contract tests green, 0 errors | `uv run pytest deploys/tests -k contracts -q`; `git show --stat 1ca1052` |
+| 1 | The two templates and the contract are committed: `templates/terakidz-learning-pack/{template.yaml,layout.html}`, `templates/terakona-planner/{template.yaml,layout.yaml}`, `contracts/templates/template.v1.schema.json` (`kodemeio-dokploy` **1ca1052**) — 27 contract tests green, 0 errors | `uv run pytest deploys/tests -k contracts -q`; `git show --stat 1ca1052` |
 | 2 | The module `factory_template` is committed on `18.0` (`kodemeio-odoo` **31abc3607** T2, **2f02ce6b2** T3, **ca6cf7cf3** T4, **7ce2ddb5e** + **51c9f14f3** final-review fix wave) — **140 tests, 0 failed**; `factory_base` 140 and `factory_landing` 48 stay green on the same test DB | `TEST_DB=odoo_test_factory_tpl ./odoo.sh dev t factory_template` |
 | 3 | Bundle group `templates` exists in `install/private-factory.yaml` (depends `core`, one module); `bin/validate-bundles` reports **0 errors** | `bin/validate-bundles install` |
 | 4 | 🔴 **The `typst` Python package is NOT in the image** — `python3 -c "import typst"` → `ModuleNotFoundError`. The renderer ships implemented and **refuses with the named error `typst not installed`** at materialise time. It renders the same closed block vocabulary as `wkhtml` (`image` and `spacer` included) and refuses a block it cannot render **by name**, but it does **not** interpret the `.html` layout sidecar — it builds its document from the blocks, the kit's tokens and the page box | `docker exec <odoo> python3 -c "import typst"` (dev image, 2026-09-27); `factory_template/tests/test_formats.py` |
@@ -47,7 +47,7 @@ second person.
 ```
 Target instance:       [ ] kod (erp.kodeme.io)   [ ] kod-desk (desk.kodeme.io)
 PDF renderer:          [ ] wkhtml (today)        [ ] typst (needs M1b)
-Import both templates: [ ] terakidz-learning-pack  [ ] terakon-planner
+Import both templates: [ ] terakidz-learning-pack  [ ] terakona-planner
 ```
 
 **Rollback:** none — this step decides, it does not change anything.
@@ -139,7 +139,7 @@ Factory → Assets → New, then **a second person** verifies. What the shipped 
 | Asset | kind | Licence | Notes |
 |---|---|---|---|
 | `font-nunito` | font | OFL-1.1 | family `Nunito`; evidence = the Google Fonts licence URL. Already named by `brands/terakidz.yaml` |
-| `font-inter` | font | OFL-1.1 | family `Inter`; named by `brands/terakon.yaml` |
+| `font-inter` | font | OFL-1.1 | family `Inter`; named by `brands/terakona.yaml` |
 | `image-terakidz-learning-hero` | image | owned (or a stock licence) | the printable's one image role. `owned` needs an author note; a stock licence needs its receipt attached |
 
 Per asset: `key` (`^[a-z0-9-]+$`), `name`, `kind`, `public_url` (**https** — no other scheme),
@@ -176,11 +176,11 @@ c = json.dumps(d, sort_keys=True, separators=(",", ":"))
 print(json.dumps([d, hashlib.sha256(c.encode()).hexdigest()]))
 PY
 kctl-odoo -p kodemeio-kod-odoo-erp shell call factory.brand.kit import_kit "$(cat /tmp/terakidz-kit.json)"
-# …and brands/terakon.yaml the same way (it is a DRAFT fixture: import it only to prove the
+# …and brands/terakona.yaml the same way (it is a DRAFT fixture: import it only to prove the
 # two-kit variant, never as approved brand content)
 
 # 2. the templates: (payload, sha256, layout sidecar) — three positional args
-for T in terakidz-learning-pack terakon-planner; do
+for T in terakidz-learning-pack terakona-planner; do
 python3 - "$T" <<'PY' > "/tmp/$T.json"
 import hashlib, json, sys, yaml
 t = sys.argv[1]
@@ -203,7 +203,7 @@ variable, and any font/image that is not a usable asset.
 ```bash
 kctl-odoo -p kodemeio-kod-odoo-erp shell call factory.template search_read '[[]]' \
   -k '{"fields":["code","version","kind","renderer","layout","active"],"order":"code"}'
-# expect: terakidz-learning-pack 1 pdf wkhtml active; terakon-planner 1 xlsx xlsx active
+# expect: terakidz-learning-pack 1 pdf wkhtml active; terakona-planner 1 xlsx xlsx active
 ```
 
 **Rollback:** a template is archived by importing a newer version, or by an administrator
@@ -231,7 +231,7 @@ Factory → Work Orders → New:
    against what they are NOW, re-runs the checks, and only then marks the order done and the
    render released. 🔴 A kit superseded, a font revoked or an asset expired after the approval
    refuses here by name — the fix is a new submission, never a force (there is none).
-7. For the workbook: repeat with `terakon-planner` and the `terakon` kit.
+7. For the workbook: repeat with `terakona-planner` and the `terakona` kit.
 
 **Verify (read-only):**
 
@@ -325,4 +325,4 @@ verified `font` asset.
 - **Factory roles are not in `install/roles-erp.yaml`**, so M2 assigns groups by hand (the same
   follow-up the F2 runbook records).
 - **The two shipped templates are examples.** Real pack/planner content is the factory's job
-  later; `terakon-planner` renders under a `draft` kit that is itself a test fixture.
+  later; `terakona-planner` renders under a `draft` kit that is itself a test fixture.

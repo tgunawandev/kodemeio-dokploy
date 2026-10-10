@@ -156,7 +156,7 @@ Factory → Assets → New, then **a second person** verifies. What the shipped 
 | Asset | kind | Licence | Notes |
 |---|---|---|---|
 | `font-nunito` | font | OFL-1.1 | family `Nunito`; evidence = the Google Fonts licence URL. Named by `brands/terakidz.yaml` |
-| `font-inter` | font | OFL-1.1 | family `Inter`; named by `brands/terakon.yaml` |
+| `font-inter` | font | OFL-1.1 | family `Inter`; named by `brands/terakona.yaml` |
 | `image-terakidz-book-logo` | image | owned (or a stock licence) | **the cover logo** — the one asset the cover block set places (spec D3). `owned` needs an author note; a stock licence needs its receipt attached |
 | `image-terakidz-learning-hero` | image | owned (or a stock licence) | the book's one in-chapter illustration |
 
@@ -201,7 +201,7 @@ c = json.dumps(d, sort_keys=True, separators=(",", ":"))
 print(json.dumps([d, hashlib.sha256(c.encode()).hexdigest()]))
 PY
 kctl-odoo -p kodemeio-kod-odoo-erp shell call factory.brand.kit import_kit "$(cat /tmp/terakidz-kit.json)"
-# …and brands/terakon.yaml the same way (it is a DRAFT fixture: import it only to prove the
+# …and brands/terakona.yaml the same way (it is a DRAFT fixture: import it only to prove the
 # two-kit variant, never as approved brand content)
 
 # 2. the book: (payload, sha256, markdown_source) — three positional args. The Markdown is
@@ -362,5 +362,5 @@ asset.
 - **Factory roles are not in `install/roles-erp.yaml`**, so M2 assigns groups by hand (the same
   follow-up the F2 and F3 runbooks record).
 - **The shipped book is an example.** Real catalogue content is the factory's job later;
-  `terakidz-example` renders under a `draft` kit (`terakon`) for the two-kit proof, never as
+  `terakidz-example` renders under a `draft` kit (`terakona`) for the two-kit proof, never as
   approved brand content.

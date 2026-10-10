@@ -1,14 +1,14 @@
 # Terakona monthly content calendar -- a paid F3 workbook in the Terakona line (Track B TB6, spec B6).
 #
-# EXAMPLE CONTENT — not approved product copy. Terakona's kit (brands/terakon.yaml) is a `draft`
+# EXAMPLE CONTENT — not approved product copy. Terakona's kit (brands/terakona.yaml) is a `draft`
 # PLACEHOLDER, so every string below is Claude-authored example copy (Track B TB-D9) that experts
 # and the founder replace at the operational gate. Every render under the draft kit carries the
 # kit's `kit uji coba` disclaimer through the `disclaimer` block below, which the sidecar places.
 #
-# House style: templates/terakon-planner (the xlsx proof). The layout sidecar `layout.yaml` is
+# House style: templates/terakona-planner (the xlsx proof). The layout sidecar `layout.yaml` is
 # DATA the renderer interprets (sheets -> cells, closed style and formula vocabularies), never
 # code. `edition_month` is the variant axis: one render per month, each its own input sha.
-id: terakon-content-calendar
+id: terakona-content-calendar
 version: 2
 title: "Terakona Content Calendar"
 kind: xlsx
@@ -81,4 +81,4 @@ assets:
 outputs: [xlsx]
 
 brand:
-  kits: ["terakon"]
+  kits: ["terakona"]

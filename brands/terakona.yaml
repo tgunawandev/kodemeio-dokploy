@@ -8,10 +8,10 @@
 # real, schema-valid kit to render against. Nothing here should be treated as
 # approved brand content — status stays `draft` until a founder-approved
 # Terakona brief exists.
-code: terakon
+code: terakona
 version: 2
 status: draft
-brand: terakon
+brand: terakona
 locale: id_ID
 
 voice:

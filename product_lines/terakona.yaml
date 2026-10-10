@@ -1,10 +1,10 @@
 # Terakona product line B6, content part (Track B, slice TB6; spec B6, contract
 # contracts/product_lines/product_line.v1.schema.json). EXAMPLE CONTENT — not approved product
-# copy: every item renders under the `draft` PLACEHOLDER `terakon` kit, so every artefact carries
+# copy: every item renders under the `draft` PLACEHOLDER `terakona` kit, so every artefact carries
 # the kit's `kit uji coba` disclaimer, and every price below is a placeholder for the founder to
-# set at the operational gate (ops/runbooks/terakon-b6-line.md).
+# set at the operational gate (ops/runbooks/terakona-b6-line.md).
 #
-# Read by the product-line harness (kodemeio-odoo `bin/product-line-acceptance terakon --db
+# Read by the product-line harness (kodemeio-odoo `bin/product-line-acceptance terakona --db
 # odoo_test_tb_b6`). Membership (the monthly drop, slice MEM in kodemeio-odoo) is NOT in this
 # file: it sells released drop products through R6 unchanged and closes the B6 row with this one.
 #
@@ -12,12 +12,12 @@
 # `factory_ebook_digital` adapter (`digital`, kind `book` -- there is no `playbook` code); the
 # course through the `digital` course publisher. Launch briefs hand off to a creator (F10
 # `creator_handoff`): nothing publishes directly from a placeholder kit.
-id: terakon
-brand_kit: terakon
+id: terakona
+brand_kit: terakona
 
 items:
   - kind: template
-    ref: terakon-planner
+    ref: terakona-planner
     variants:
       - key: minggu-40
         vars: {week_number: 40, week_start: "2026-09-28"}
@@ -28,7 +28,7 @@ items:
     publish: factory_digital
 
   - kind: template
-    ref: terakon-content-calendar
+    ref: terakona-content-calendar
     variants:
       - key: oktober-2026
         vars: {edition_month: "Oktober 2026", start_date: "2026-10-01"}
@@ -39,7 +39,7 @@ items:
     publish: factory_digital
 
   - kind: template
-    ref: terakon-prompt-pack
+    ref: terakona-prompt-pack
     variants:
       - key: resep-rumahan
         vars: {niche: "Resep Rumahan"}
@@ -50,7 +50,7 @@ items:
     publish: factory_digital
 
   - kind: ebook
-    ref: terakon-playbook-channel-niche
+    ref: terakona-playbook-channel-niche
     variants:
       - key: resep-rumahan
         vars: {niche: "Resep Rumahan", weekly_uploads: 3}
@@ -59,7 +59,7 @@ items:
     publish: digital
 
   - kind: course
-    ref: terakon-channel-niche-101
+    ref: terakona-channel-niche-101
     variants:
       - key: default
     price_idr: 149000
@@ -69,13 +69,13 @@ items:
 launch:
   - platform: instagram
     shape: carousel
-    brief_key: terakon-prompt-pack-launch
+    brief_key: terakona-prompt-pack-launch
     publish_mode: creator_handoff
   - platform: tiktok
     shape: script
-    brief_key: terakon-playbook-launch
+    brief_key: terakona-playbook-launch
     publish_mode: creator_handoff
   - platform: youtube
     shape: script
-    brief_key: terakon-course-launch
+    brief_key: terakona-course-launch
     publish_mode: creator_handoff

@@ -63,7 +63,7 @@ rules:
   affiliate_disclosure: "Terafina tidak memiliki tautan afiliasi berbayar pada halaman ini."
 
 colors:
-  primary: "#0f766e"            # PLACEHOLDER — teal, distinct from terakidz green / terakon blue
+  primary: "#0f766e"            # PLACEHOLDER — teal, distinct from terakidz green / terakona blue
   primary_foreground: "#ffffff"
   accent: "#b45309"             # PLACEHOLDER — amber
   accent_foreground: "#ffffff"
@@ -79,7 +79,7 @@ colors:
 
 fonts:
   # licence: OFL-1.1 (SIL Open Font License 1.1) — Google Fonts "Inter"; an existing asset key
-  # (terakon registers it), so no new licence evidence is needed. PLACEHOLDER family choice.
+  # (terakona registers it), so no new licence evidence is needed. PLACEHOLDER family choice.
   heading: "asset:font-inter"
   body: "asset:font-inter"
 

@@ -1,6 +1,6 @@
 # Terakona playbook -- a paid F4 e-book in the Terakona line (Track B TB6, spec B6).
 #
-# EXAMPLE CONTENT — not approved product copy. Terakona's kit (brands/terakon.yaml) is a `draft`
+# EXAMPLE CONTENT — not approved product copy. Terakona's kit (brands/terakona.yaml) is a `draft`
 # PLACEHOLDER, so the chapters are Claude-authored example prose (Track B TB-D9) that experts and
 # the founder replace at the operational gate. The first and last chapters place
 # `{{kit.disclaimers}}`, so both formats rendered under the draft kit carry `kit uji coba`.
@@ -10,14 +10,14 @@
 #
 # House style: ebooks/terakidz-example. `book.md` beside this file is DERIVED from it (the
 # canonical rendering pinned by deploys/tests/test_contracts_ebooks.py `render_markdown`, and by
-# deploys/tests/test_terakon_line.py for this book): edit this file, then regenerate book.md.
+# deploys/tests/test_terakona_line.py for this book): edit this file, then regenerate book.md.
 #
-# The cover logo `asset:image-terakon-cover-placeholder` is a key into the consumer's
+# The cover logo `asset:image-terakona-cover-placeholder` is a key into the consumer's
 # licence-checked asset library; the renderer draws a labelled placeholder and fetches nothing.
 # It is NOT yet registered with licence evidence -- the runbook
-# (ops/runbooks/terakon-b6-line.md) owns that gate, and the K2 harness registers a
+# (ops/runbooks/terakona-b6-line.md) owns that gate, and the K2 harness registers a
 # synthetic verified asset under this key in the test DB only.
-id: terakon-playbook-channel-niche
+id: terakona-playbook-channel-niche
 version: 2
 title: "Playbook Kanal Niche"
 subtitle: "Dari Satu Ide ke Kebiasaan Unggah yang Konsisten"
@@ -34,7 +34,7 @@ page:
     left: 14
 
 cover:
-  logo: "asset:image-terakon-cover-placeholder"
+  logo: "asset:image-terakona-cover-placeholder"
   palette: primary
 
 chapters:
@@ -129,7 +129,7 @@ assets:
     heading: "asset:font-inter"
     body: "asset:font-inter"
   images:
-    logo: "asset:image-terakon-cover-placeholder"
+    logo: "asset:image-terakona-cover-placeholder"
 
 # Both formats (spec D2): the PDF through Typst, the EPUB through Pandoc. A renderer missing from
 # the consuming image refuses with its own named error.
@@ -139,4 +139,4 @@ renderers:
   epub: pandoc
 
 brand:
-  kits: ["terakon"]
+  kits: ["terakona"]

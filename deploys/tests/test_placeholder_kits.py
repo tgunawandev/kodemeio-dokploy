@@ -84,7 +84,7 @@ ACTIVE_KITS = _kits_with_status("active")
 
 
 def test_the_placeholder_kits_exist_and_are_drafts():
-    for name in ("terakon", *K1_KITS):
+    for name in ("terakona", *K1_KITS):
         assert name in DRAFT_KITS, f"brands/{name}.yaml must be a status: draft placeholder kit"
 
 

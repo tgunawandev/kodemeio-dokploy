@@ -2,16 +2,16 @@
 # (2026-09-28 Track B, slice TB5; spec B5).
 #
 # A sub-brand kit for ONE example niche channel of the Terakona channel portfolio
-# (channels/terakon/niche-b.yaml). No niche has been chosen, approved or launched: EVERY
+# (channels/terakona/niche-b.yaml). No niche has been chosen, approved or launched: EVERY
 # invented value below is marked `# PLACEHOLDER` and exists only so the F8 factory can render
 # brand-switched example pieces per channel and the portfolio evaluator can attribute F0f
 # aggregates per channel kit. Nothing here is approved brand content; the `kit uji coba`
 # disclaimer rides every artefact. Choosing a real niche and approving its kit is an
-# operational gate (ops/runbooks/terakon-b5-channel-portfolio.md).
-code: terakon-niche-b
+# operational gate (ops/runbooks/terakona-b5-channel-portfolio.md).
+code: terakona-niche-b
 version: 2
 status: draft
-brand: terakon
+brand: terakona
 locale: id_ID
 
 voice:

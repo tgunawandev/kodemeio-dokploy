@@ -103,7 +103,7 @@ def test_no_pii_property_names(path):
 
 def test_app_registry_is_data_and_keeps_the_three_paid_apps():
     # The allowed apps live in apps.v1.json (data); the schemas pin only the slug shape.
-    assert registered_apps() == ["terakidz", "terafin", "terakon-studio"]
+    assert registered_apps() == ["terakidz", "terafin", "terakona-studio"]
     for schema in SCHEMAS.values():
         app = load(schema)["properties"]["app"]
         assert "enum" not in app and "const" not in app

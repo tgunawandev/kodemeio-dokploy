@@ -233,7 +233,7 @@ def _brands_with(tmp_path: Path, code: str, status: str | None) -> Path:
     for path in BRANDS_DIR.glob("*.yaml"):
         (brands / path.name).write_text(path.read_text())
     if status is not None:
-        kit = _yaml(BRANDS_DIR / "terakon.yaml")
+        kit = _yaml(BRANDS_DIR / "terakona.yaml")
         kit.update(code=code, status=status)
         (brands / f"{code}.yaml").write_text(yaml.safe_dump(kit))
     return brands
@@ -241,16 +241,16 @@ def _brands_with(tmp_path: Path, code: str, status: str | None) -> Path:
 
 def test_a_missing_kit_refuses_by_name(tmp_path):
     payload = example("channel.v1.valid.json")
-    payload["kit"] = "terakon-niche-z"
+    payload["kit"] = "terakona-niche-z"
     problems = EVALUATE.channel_problems(payload, _brands_with(tmp_path, "unused", None))
-    assert problems == [f"channel {payload['code']}: kit terakon-niche-z is missing"]
+    assert problems == [f"channel {payload['code']}: kit terakona-niche-z is missing"]
 
 
 def test_a_retired_kit_refuses_by_name(tmp_path):
     payload = example("channel.v1.valid.json")
-    payload["kit"] = "terakon-niche-z"
-    problems = EVALUATE.channel_problems(payload, _brands_with(tmp_path, "terakon-niche-z", "retired"))
-    assert problems == [f"channel {payload['code']}: kit terakon-niche-z is retired"]
+    payload["kit"] = "terakona-niche-z"
+    problems = EVALUATE.channel_problems(payload, _brands_with(tmp_path, "terakona-niche-z", "retired"))
+    assert problems == [f"channel {payload['code']}: kit terakona-niche-z is retired"]
 
 
 def test_a_format_the_platform_does_not_accept_refuses_by_name():
@@ -372,11 +372,11 @@ def _channel_lines() -> list[Path]:
 
 
 def test_the_channel_line_is_committed():
-    assert "terakon-channels.yaml" in [path.name for path in _channel_lines()]
+    assert "terakona-channels.yaml" in [path.name for path in _channel_lines()]
 
 
 def test_the_channel_line_lists_one_piece_per_channel_under_its_kit():
-    line = _yaml(LINES_DIR / "terakon-channels.yaml")
+    line = _yaml(LINES_DIR / "terakona-channels.yaml")
     channels = {channel["code"]: channel for channel in EVALUATE.load_portfolio(_CHANNELS, BRANDS_DIR)}
     pieces = {item["ref"]: item for item in line["items"]}
     assert set(pieces) == set(channels), "one content_piece item per committed channel"

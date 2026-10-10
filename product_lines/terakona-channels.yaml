@@ -10,13 +10,13 @@
 # only after expert then founder approval (manual `creator_handoff`). `launch` is empty: a
 # launch brief carries no kit, and every piece here must render under its channel kit.
 # Nothing is sold (`publish: none`, price 0).
-id: terakon-channels
-brand_kit: terakon
+id: terakona-channels
+brand_kit: terakona
 
 items:
   - kind: content_piece
-    ref: terakon-niche-a
-    kit: terakon-niche-a
+    ref: terakona-niche-a
+    kit: terakona-niche-a
     variants:
       - key: carousel
       - key: caption
@@ -24,8 +24,8 @@ items:
     publish: none
 
   - kind: content_piece
-    ref: terakon-niche-b
-    kit: terakon-niche-b
+    ref: terakona-niche-b
+    kit: terakona-niche-b
     variants:
       - key: script
       - key: caption

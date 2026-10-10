@@ -32,7 +32,7 @@ TEMPLATE_DIR = CONTRACTS.parent / "templates"
 BRANDS_DIR = CONTRACTS.parent / "brands"
 
 # The two committed templates this contract exists for (spec D10: one PDF, one workbook).
-SHIPPED = ("terakidz-learning-pack", "terakon-planner")
+SHIPPED = ("terakidz-learning-pack", "terakona-planner")
 
 # `{{name}}` / `{{name.with.dots}}` -- the whole placeholder vocabulary of template.v1.
 PLACEHOLDER_RE = re.compile(r"\{\{\s*([A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)*)\s*\}\}")
@@ -208,7 +208,7 @@ def test_examples_match_the_shipped_yaml():
     # The examples are derived from the shipped files; this pins them together so a change to
     # one without the other fails here rather than at a consumer.
     assert example("template.v1.valid.json") == template_yaml("terakidz-learning-pack")
-    assert example("template.v1.xlsx.json") == template_yaml("terakon-planner")
+    assert example("template.v1.xlsx.json") == template_yaml("terakona-planner")
 
 
 @pytest.mark.parametrize("name", ["template.v1.valid.json", "template.v1.xlsx.json"])
@@ -236,7 +236,7 @@ def test_supported_kits_are_committed_kits(template_id):
 def test_the_workbook_sidecar_is_data_in_a_closed_vocabulary():
     """The xlsx sidecar is interpreted, never executed (spec D2 amendment). Every key it may
     carry, every content source, every style and every formula name is one of a fixed set."""
-    template = template_yaml("terakon-planner")
+    template = template_yaml("terakona-planner")
     sidecar = _yaml(TEMPLATE_DIR / template["id"] / template["layout"])
     declared = {variable["key"] for variable in template["variables"]}
     blocks = template["blocks"]
@@ -347,7 +347,7 @@ def test_a_heading_level_is_an_integer():
 def test_an_xlsx_template_refuses_image_and_spacer_blocks():
     payload = example("template.v1.invalid-xlsx-image-block.json")
     assert errors_under(payload, ("blocks",)), "an image block validated in an xlsx template"
-    for block in template_yaml("terakon-planner")["blocks"]:
+    for block in template_yaml("terakona-planner")["blocks"]:
         assert block["type"] in XLSX_BLOCKS
 
 

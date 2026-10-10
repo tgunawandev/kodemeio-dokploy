@@ -26,7 +26,7 @@ CHANNELS = sorted((REPO / "channels").glob("*/*.yaml"))
 BRANDS = REPO / "brands"
 SERIES = ROOT / "examples" / "performance-90d.synthetic.json"
 EXPECTED = ROOT / "examples" / "decision-90d.expected.json"
-A, B = "terakon-niche-a", "terakon-niche-b"
+A, B = "terakona-niche-a", "terakona-niche-b"
 
 
 def series() -> dict:
@@ -269,7 +269,7 @@ def test_an_unknown_observation_key_refuses():
 
 def test_a_channel_outside_the_portfolio_refuses():
     payload = series()
-    payload["channels"].append({"code": "terakon-niche-z", "launch_date": None, "pending_publications": []})
+    payload["channels"].append({"code": "terakona-niche-z", "launch_date": None, "pending_publications": []})
     refuses(payload, "channels do not match the portfolio")
 
 

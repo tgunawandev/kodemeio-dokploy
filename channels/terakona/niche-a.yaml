@@ -1,14 +1,14 @@
 # Terakona niche channel "niche-a" (Track B, slice TB5; spec B5; contract
 # contracts/channels/channel.v1.schema.json). EXAMPLE CONTENT — not an approved channel:
 # every value is a PLACEHOLDER for the founder to replace at the operational gate
-# (ops/runbooks/terakon-b5-channel-portfolio.md). It renders under its own draft sub-brand
-# kit, brands/terakon-niche-a.yaml, so each piece carries the `kit uji coba` disclaimer.
+# (ops/runbooks/terakona-b5-channel-portfolio.md). It renders under its own draft sub-brand
+# kit, brands/terakona-niche-a.yaml, so each piece carries the `kit uji coba` disclaimer.
 #
 # Read by ops/channel_portfolio/evaluate.py (stop rule -> G2 -> continue|pivot|stop) and, via
-# product_lines/terakon-channels.yaml, by the product-line harness (F8 pieces, F10 manual
+# product_lines/terakona-channels.yaml, by the product-line harness (F8 pieces, F10 manual
 # schedule, the `performance` step). Video stays disabled (TB-D6).
-code: terakon-niche-a
-kit: terakon-niche-a
+code: terakona-niche-a
+kit: terakona-niche-a
 platform: instagram
 cadence_per_week: 3            # PLACEHOLDER
 

@@ -4,7 +4,7 @@
 #
 # DATA, NOT CODE (spec D2 amendment, 2026-09-27): the renderer interprets this file, it never
 # executes it. The shape and the closed vocabularies are documented in
-# templates/terakon-planner/layout.yaml. Every block of template.yaml is placed below, the
+# templates/terakona-planner/layout.yaml. Every block of template.yaml is placed below, the
 # disclaimer block on both sheets, so the kit's `kit uji coba` notice is in every rendered
 # workbook whichever sheet a buyer opens first.
 sheets:
