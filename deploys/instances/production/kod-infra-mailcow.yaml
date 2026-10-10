@@ -1,15 +1,26 @@
 kind: instance
-extends: ../../bases/infra.yaml
+type: infrastructure
 
 instance:
   name: kod-infra-mailcow
-  description: "Mailcow mail server"
+  description: "Mailcow mail server (kodeme.io) — Traefik-terminated web UI, direct host ports for mail"
 
-project: kod
+project: apps
+environment: production
+server: kod-ovh-01
 
-source_overrides:
+# Standalone (no `extends: ../../bases/infra.yaml`): the infra base inherits a
+# postgres backup block, which does not apply to a mailcow (MariaDB) stack and
+# would fail every deploy (see CLAUDE.md, "backup: {} does not disable anything").
+source:
+  type: github
+  owner: tgunawandev
   repo: kodemeio-mailcow
-  branch: "master"
+  branch: main
+  compose_path: ./docker-compose.prod.yml
+# mailcow-dockerized is a git submodule of the repo; the compose `include`s it.
+enable_submodules: true
+auto_deploy: false
 
 domain:
   host: mail.kodeme.io
@@ -18,4 +29,17 @@ domain:
   https: true
   cert: letsencrypt
 
+healthcheck:
+  path: /
+  port: 8080
+  expected_status: 200
+  timeout: 300
+  interval: 10
+
 env_file: ../../env/production/.env.kod-infra-mailcow
+env_defaults:
+  TZ: "Asia/Jakarta"
+env_overrides:
+  MAILCOW_HOSTNAME: mail.kodeme.io
+  COMPOSE_PROJECT_NAME: kod-infra-mailcow
+  TZ: Asia/Jakarta
