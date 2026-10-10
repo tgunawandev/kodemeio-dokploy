@@ -43,3 +43,23 @@ env_overrides:
   MAILCOW_HOSTNAME: mail.kodeme.io
   COMPOSE_PROJECT_NAME: kod-infra-mailcow
   TZ: Asia/Jakarta
+
+# Backups: only two volumes here cannot be rebuilt — the mail spool and the
+# mailcow database (redis/rspamd/clamd/sogo caches and the vmail index all
+# regenerate). Dokploy names compose volumes {appName}_{volume} and appName is
+# generated for this service, so the exact host names were read from
+# `docker volume ls` on kod-ovh-01 after the 2026-10-10 deployment and must be
+# re-read if the compose service is ever recreated under a new appName.
+volume_backups:
+  - service: dovecot-mailcow
+    volume: compose-program-digital-application-k6rdk6_vmail-vol-1
+    destination: kodemeio-s3-backups
+    prefix: kod-infra-mailcow/vmail
+    cron_schedule: "0 2 * * *"
+    keep_latest: 7
+  - service: mysql-mailcow
+    volume: compose-program-digital-application-k6rdk6_mysql-vol-1
+    destination: kodemeio-s3-backups
+    prefix: kod-infra-mailcow/mysql
+    cron_schedule: "0 2 * * *"
+    keep_latest: 7

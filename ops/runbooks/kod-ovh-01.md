@@ -20,12 +20,25 @@ Status: **active**, provisioned 2026-10-05. Registered in Dokploy as `kod-ovh-01
 - `ssh -i ~/.ssh/id_rsa_kodeme root@57.131.162.248` — the estate key; the same
   keypair is registered in Dokploy as `kodeme-ssh` (`sx6ML42xnSGcIuaIZTMo-`).
 - Operator credentials: `~/.config/ovh/api.env` (0600, never committed) —
-  `OVH_APPLICATION_KEY` / `OVH_APPLICATION_SECRET` / `OVH_CONSUMER_KEY` + the
-  current per-install console password. TODO: move to a 1Password `OVH` item in
-  the Kodemeio vault (the kctl-op CLI cannot create items yet — needs the
-  desktop-app integration).
+  `OVH_APPLICATION_KEY` / `OVH_APPLICATION_SECRET` / `OVH_CONSUMER_KEY`, plus
+  the same three values in the 1Password **`OVH`** item in the Kodemeio vault
+  (created 2026-10-10, which closes the earlier TODO). The consumer key in both
+  places is the one scoped `GET /me`, `GET /vps/*`, `GET /ip/*`, `POST /ip/*`,
+  `PUT /ip/*`. Two earlier keys that could not reach the reverse API stay
+  recorded in that item's notes and can be revoked.
 - OVH API requests sign `$1$` + SHA1(`AS+CK+METHOD+URL+BODY+TIMESTAMP`) and send
   `X-Ovh-Application` / `X-Ovh-Consumer` / `X-Ovh-Signature` / `X-Ovh-Timestamp`.
+  A credential can be requested programmatically with `POST /auth/credential`
+  (signed with an *empty* consumer key); it returns a `validationUrl` a human
+  approves and a consumer key that becomes valid on approval.
+- **Reverse DNS (PTR)** is set with `POST /ip/{ip}/reverse`
+  (`{"ipReverse": "<ip>", "reverse": "<host>"}`). Do not use
+  `/vps/{service}/reverse` (404 — the endpoint does not exist) and do not use
+  `PUT /vps/{service}/ips/{ip}` — the manager's internal API uses it, but the
+  public `/1.0` API answers `403 not implemented`. A VPS IP does appear in the
+  IP API (`GET /ip/{ip}` → `type: vps`). `~/.local/bin/ovh-set-ptr.py` wraps the
+  signing + call and is idempotent:
+  `ovh-set-ptr.py --ip 57.131.162.248 --reverse mail.kodeme.io`.
 
 ## Hardening (Hetzner parity, plus documented deltas)
 
@@ -107,6 +120,24 @@ PostgreSQL compose backups, including the database user and service/database
 selection. Manifest schedule/retention metadata alone does not prove that a job
 can be recreated. Inspect the existing native jobs before a replay; successful
 backup creation is separate from archive/restore acceptance.
+
+## Mailcow — mail.kodeme.io (2026-10-10)
+
+`kod-infra-mailcow` (`YWH3SbofhTieHaJZld2jG`, `apps` / `production`) serves
+kodeme.io from this host. Mailcow itself is installed at
+`/opt/mailcow-dockerized`, pinned to the latest stable tag (`2026-09a`); the
+compose project only *includes* that path. Dokploy re-clones the repo on every
+deploy, so mailcow's `data/` must never live inside the clone — when it did,
+vhosts ended up bind-mounted to a deleted inode and `/api/v1` answered 404.
+
+Provisioning and the production gate live in the mailcow repo:
+`make provision` (idempotent phases) and `make verify` (health, containers,
+queue, LE certs, published DKIM, FCrDNS, real admin-UI login, end-to-end
+delivery with a DKIM signature). PTR `57.131.162.248 → mail.kodeme.io` is live
+and forward-confirmed. Volume backups for the two volumes that cannot be
+rebuilt — `vmail-vol-1` (mail spool) and `mysql-vol-1` (mailcow database) — are
+declared in the
+[instance manifest](../../deploys/instances/production/kod-infra-mailcow.yaml).
 
 ## Kodeme operator agents — 2026-10-07
 
