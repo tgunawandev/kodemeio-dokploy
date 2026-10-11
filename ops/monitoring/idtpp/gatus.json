@@ -395,19 +395,6 @@
       ]
     },
     {
-      "name": "tpp-infra-hermes-friday",
-      "group": "TPP Runtime",
-      "token": "${GATUS_HOST2_TOKEN}",
-      "heartbeat": {
-        "interval": "90s"
-      },
-      "alerts": [
-        {
-          "type": "custom"
-        }
-      ]
-    },
-    {
       "name": "tpp-infra-hermes-jarvis",
       "group": "TPP Runtime",
       "token": "${GATUS_HOST2_TOKEN}",
