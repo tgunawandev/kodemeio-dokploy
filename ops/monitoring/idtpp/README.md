@@ -18,9 +18,9 @@ The password is not uploaded to Gatus: only its bcrypt-base64 hash is supplied.
 Use existing GlitchTip human/SSO login; the collector identity has no usable login password.
 
 `gatus.json` now checks 19 verified HTTPS endpoints every minute, requiring status 200
-and at least 14 days of certificate validity. An additional 42 runtime checks receive
+and at least 14 days of certificate validity. An additional 41 runtime checks receive
 reviewed Compose readiness heartbeats. See [current coverage](COVERAGE.md) for the
-61 checks and the limits of runtime-only monitoring.
+60 checks and the limits of runtime-only monitoring.
 Three failures trigger evidence intake; two successes send recovery. No human alert channel
 was added. `services.json` maps those health services and the eight existing Odoo GlitchTip
 projects, with exact project IDs and staging/production environments. Events without the

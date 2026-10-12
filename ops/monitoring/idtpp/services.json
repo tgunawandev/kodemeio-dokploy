@@ -305,13 +305,6 @@
       "tpp-infra-glitchtip"
     ]
   },
-  "tpp-infra-hermes-friday": {
-    "repo": "kodemeio-hermes",
-    "environment": "production",
-    "gatus_endpoints": [
-      "tpp-infra-hermes-friday"
-    ]
-  },
   "tpp-infra-hermes-jarvis": {
     "repo": "kodemeio-hermes",
     "environment": "production",

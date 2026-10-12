@@ -54,7 +54,6 @@ http:
         || Path(`/api/v1/endpoints/tpp-runtime_tpp-odoo-filestore-backup/external`)
         || Path(`/api/v1/endpoints/tpp-runtime_tpp-odoo-helpdesk/external`) || Path(`/api/v1/endpoints/tpp-runtime_tpp-odoo-hrms/external`)
         || Path(`/api/v1/endpoints/tpp-runtime_tpp-react-erp/external`) || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-drawio/external`)
-        || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-hermes-friday/external`)
         || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-hermes-jarvis/external`)
         || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-hermes-sentinel/external`)
         || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-kctl/external`) || Path(`/api/v1/endpoints/tpp-runtime_tpp-infra-maintenance-prod04/external`)

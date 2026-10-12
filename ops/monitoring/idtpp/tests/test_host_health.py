@@ -58,8 +58,8 @@ class AlertIdentityTest(unittest.TestCase):
                     'body', config['alerting']['custom']['body'])
                 signal = json.loads(body.replace('[ENDPOINT_NAME]', endpoint['name']))['endpoint']
                 signals.append(signal)
-        self.assertEqual(len(signals), 61)
-        self.assertEqual(len(set(signals)), 61)
+        self.assertEqual(len(signals), 60)
+        self.assertEqual(len(set(signals)), 60)
         mapped = [alias for service in services.values() for alias in service.get('gatus_endpoints', [])]
         for signal in signals:
             self.assertEqual(mapped.count(signal), 1, signal)
@@ -71,6 +71,21 @@ class AlertIdentityTest(unittest.TestCase):
         config = json.loads((Path(__file__).parents[1] / 'gatus.json').read_text())
         for endpoint in config['external-endpoints']:
             self.assertEqual(endpoint['heartbeat']['interval'], '90s')
+
+class RuntimeCoverageTest(unittest.TestCase):
+    def test_retired_friday_is_not_in_the_runtime_inventory(self):
+        coverage = json.loads((Path(__file__).parents[1] / 'coverage.json').read_text())
+        self.assertNotIn(
+            'tpp-infra-hermes-friday',
+            {entry['name'] for entry in coverage},
+        )
+
+    def test_hermes_and_odoo_one_shot_init_containers_are_exempt(self):
+        coverage = json.loads((Path(__file__).parents[1] / 'coverage.json').read_text())
+        targets = {entry['name']: entry for entry in coverage}
+        for name in ('tpp-infra-hermes-jarvis', 'tpp-infra-hermes-sentinel'):
+            self.assertEqual(targets[name]['init_services'], ['init'])
+        self.assertEqual(targets['tpp-odoo-erp']['init_services'], ['odoo-init'])
 
 if __name__ == '__main__':
     unittest.main()

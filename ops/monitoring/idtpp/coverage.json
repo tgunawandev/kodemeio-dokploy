@@ -75,27 +75,15 @@
     ]
   },
   {
-    "name": "tpp-infra-hermes-friday",
-    "host": 2,
-    "services": [
-      "dashboard",
-      "hermes",
-      "vault-sync"
-    ],
-    "init_services": [],
-    "health_checks": [
-      "dashboard",
-      "hermes"
-    ]
-  },
-  {
     "name": "tpp-infra-hermes-jarvis",
     "host": 2,
     "services": [
       "hermes",
       "vault-sync"
     ],
-    "init_services": [],
+    "init_services": [
+      "init"
+    ],
     "health_checks": [
       "hermes"
     ]
