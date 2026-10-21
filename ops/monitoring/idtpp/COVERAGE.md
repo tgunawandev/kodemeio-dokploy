@@ -1,6 +1,7 @@
 # TPP service monitoring
 
-The live Gatus configuration includes 19 HTTPS checks and 41 Compose runtime
+The live Gatus configuration includes 26 HTTPS checks (7 of them Mattermost-only,
+alerting `IT Odoo`, outside the incident pipeline) and 41 Compose runtime
 checks. It covers all deployed TPP and TPP25 Compose stacks found on prod01,
 prod03, prod04, prod06, and prod07 on 2026-10-07. `coverage.json` records the
 required services, successful init jobs, and services with native health checks.

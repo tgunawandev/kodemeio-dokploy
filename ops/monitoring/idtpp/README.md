@@ -17,12 +17,21 @@ The private workstation operator file is `deploys/env/production/.env.tpp-monito
 The password is not uploaded to Gatus: only its bcrypt-base64 hash is supplied.
 Use existing GlitchTip human/SSO login; the collector identity has no usable login password.
 
-`gatus.json` now checks 19 verified HTTPS endpoints every minute, requiring status 200
-and at least 14 days of certificate validity. An additional 41 runtime checks receive
+`gatus.json` now checks 26 verified HTTPS endpoints every minute, requiring status 200
+(and, for the web checks, at least 14 days of certificate validity). An additional 41 runtime checks receive
 reviewed Compose readiness heartbeats. See [current coverage](COVERAGE.md) for the
 60 checks and the limits of runtime-only monitoring.
-Three failures trigger evidence intake; two successes send recovery. No human alert channel
-was added. `services.json` maps those health services and the eight existing Odoo GlitchTip
+Three failures trigger evidence intake; two successes send recovery.
+
+**Human alerts go to Mattermost `IT Odoo`** (team TPP, channel `it`) through Gatus's
+`mattermost` provider, for the Odoo checks only: the existing `tpp-erp` web check plus
+seven Mattermost-only checks, the web health of tpp25, mac and mac-hrms prod and the
+background-job health (`/queue_runner_guard/health`, which must answer `200 ok`; a 503
+body names `stalled`, `failing` or `cron-late`) of tpp, tpp25, mac and mac-hrms prod.
+The incoming-webhook URL is the secret `GATUS_MM_ODOO_IT_WEBHOOK` in the ignored
+`.env.tpp-infra-gatus`; the webhook is "Gatus - Odoo health" on that channel. A
+Mattermost-only check opens no incident, so it needs no `services.json` mapping and no
+Sentinel allowlist slot; `tests/test_host_health.py` counts only `custom` alerts. `services.json` maps those health services and the eight existing Odoo GlitchTip
 projects, with exact project IDs and staging/production environments. Events without the
 configured environment tag are refused rather than assigned to an environment by guess.
 

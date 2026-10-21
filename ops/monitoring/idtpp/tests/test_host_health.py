@@ -54,6 +54,10 @@ class AlertIdentityTest(unittest.TestCase):
         signals = []
         for endpoint in config['endpoints'] + config['external-endpoints']:
             for alert in endpoint['alerts']:
+                if alert['type'] != 'custom':
+                    # Human-channel alerts (Mattermost) open no incident and
+                    # need no services.json mapping or Sentinel allowlist slot.
+                    continue
                 body = alert.get('provider-override', {}).get(
                     'body', config['alerting']['custom']['body'])
                 signal = json.loads(body.replace('[ENDPOINT_NAME]', endpoint['name']))['endpoint']
