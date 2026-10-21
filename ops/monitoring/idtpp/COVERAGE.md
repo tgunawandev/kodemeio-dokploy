@@ -48,8 +48,9 @@ runs a repository-matching script and has no writable system directories.
 When changing monitoring configuration, regenerate the config revision in all
 three monitoring services, install both config files, preserve/push the complete
 live environment, and deploy through Dokploy. Preserve the machine API, health,
-webhook, and Authentik routes. Any new alert endpoint must also be mapped in
-`services.json`. Native Basic authentication remains for approved machine reads;
+webhook, and Authentik routes. Any new endpoint with an incident-ingress `custom`
+alert must also be mapped in `services.json`; a Mattermost-only endpoint needs no
+mapping. Native Basic authentication remains for approved machine reads;
 public browser access uses Authentik and the Authentik Admins policy.
 
 Sentinel's trusted operations adapter has a fixed 60-endpoint allowlist. Reads
