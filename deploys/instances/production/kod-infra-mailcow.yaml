@@ -1,3 +1,9 @@
+# SUPERSEDED 2026-10-18 by kod-infra-stalwart (kod-hzc-01): mail.kodeme.io now
+# points there. This stack stays running, unused, as the rollback target until
+# 2026-10-25 — see ops/runbooks/stalwart-migration-kodemeio.md. Do not redeploy:
+# its ACME would fight Stalwart for mail.kodeme.io.
+# 2026-10-22: /opt/mailcow-dockerized/docker-compose.yml hand-patched to
+# phpfpm 8.2.35-1 for PHP2Shell (ops/runbooks/php2shell-2026-10.md).
 kind: instance
 type: infrastructure
 

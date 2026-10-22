@@ -1,0 +1,67 @@
+kind: instance
+type: infrastructure
+
+instance:
+  name: kod-infra-stalwart
+  description: "Stalwart mail server + Roundcube webmail (kodeme.io) — replaces kod-infra-mailcow"
+
+project: apps
+environment: production
+server: kod-hzc-01
+auto_deploy: false
+
+# Raw Compose source. The generic `deploy apply` assumes a GitHub source even
+# for a raw manifest, so this stack is operated with `compose update`, `env
+# push`, `compose redeploy` (see ops/runbooks/stalwart-migration-kodemeio.md).
+# Dokploy compose ID: rW7XoyGT-OclHEytipNx5 (appName compose-transmit-neural-panel-hxge1l).
+source:
+  type: raw
+  compose_path: deploys/composes/stalwart/docker-compose.yml
+
+# mail.kodeme.io (and autoconfig/autodiscover via CNAME) carries MX, SPF `mx`
+# and the TLS-ALPN certificate; webmail.kodeme.io is Roundcube.
+dns:
+  zone: kodeme.io
+  name: mail
+  content: 49.13.116.191
+
+# Only Roundcube is a Dokploy domain. mail/autoconfig/autodiscover are TLS
+# passthrough labels in the compose (Stalwart holds that certificate), and the
+# mail ports 25/465/587/993/4190 are published on the host.
+domain:
+  host: webmail.kodeme.io
+  port: 80
+  service: roundcube
+  https: true
+  cert: letsencrypt
+
+healthcheck:
+  path: /healthz/live
+  port: 8080
+  expected_status: 200
+  timeout: 60
+  interval: 10
+
+env_file: ../../env/production/.env.kod-infra-stalwart
+env_overrides:
+  TZ: Asia/Jakarta
+
+# No database dump applies (RocksDB + SQLite inside volumes). Stalwart's whole
+# state — configuration, accounts, mail — lives in the data volume, backed up
+# with the container stopped so RocksDB is consistent. Volume names are
+# {appName}_{volume}, read from `docker volume ls` on kod-hzc-01.
+backup: null
+volume_backups:
+  - service: stalwart
+    volume: compose-transmit-neural-panel-hxge1l_stalwart-data
+    destination: kodemeio-s3-backups
+    prefix: kod-infra-stalwart/data
+    cron_schedule: "30 2 * * *"
+    keep_latest: 7
+    turn_off: true
+  - service: roundcube
+    volume: compose-transmit-neural-panel-hxge1l_roundcube-db
+    destination: kodemeio-s3-backups
+    prefix: kod-infra-stalwart/roundcube
+    cron_schedule: "35 2 * * *"
+    keep_latest: 7
