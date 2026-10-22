@@ -1,6 +1,7 @@
 # TPP service monitoring
 
-The live Gatus configuration includes 19 HTTPS checks and 41 Compose runtime
+The live Gatus configuration includes 26 HTTPS checks (7 of them Mattermost-only,
+alerting `IT Odoo`, outside the incident pipeline) and 41 Compose runtime
 checks. It covers all deployed TPP and TPP25 Compose stacks found on prod01,
 prod03, prod04, prod06, and prod07 on 2026-10-07. `coverage.json` records the
 required services, successful init jobs, and services with native health checks.
@@ -47,8 +48,9 @@ runs a repository-matching script and has no writable system directories.
 When changing monitoring configuration, regenerate the config revision in all
 three monitoring services, install both config files, preserve/push the complete
 live environment, and deploy through Dokploy. Preserve the machine API, health,
-webhook, and Authentik routes. Any new alert endpoint must also be mapped in
-`services.json`. Native Basic authentication remains for approved machine reads;
+webhook, and Authentik routes. Any new endpoint with an incident-ingress `custom`
+alert must also be mapped in `services.json`; a Mattermost-only endpoint needs no
+mapping. Native Basic authentication remains for approved machine reads;
 public browser access uses Authentik and the Authentik Admins policy.
 
 Sentinel's trusted operations adapter has a fixed 60-endpoint allowlist. Reads

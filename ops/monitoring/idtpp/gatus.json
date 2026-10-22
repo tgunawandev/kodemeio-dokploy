@@ -24,6 +24,15 @@
         "success-threshold": 2,
         "send-on-resolved": true
       }
+    },
+    "mattermost": {
+      "webhook-url": "${GATUS_MM_ODOO_IT_WEBHOOK}",
+      "default-alert": {
+        "enabled": true,
+        "failure-threshold": 3,
+        "success-threshold": 2,
+        "send-on-resolved": true
+      }
     }
   },
   "endpoints": [
@@ -54,6 +63,122 @@
       "alerts": [
         {
           "type": "custom"
+        },
+        {
+          "type": "mattermost",
+          "description": "tpp prod web"
+        }
+      ]
+    },
+    {
+      "name": "tpp25-erp",
+      "group": "IDTPP Odoo",
+      "url": "https://tpp25-erp.idtpp.com/web/health",
+      "interval": "60s",
+      "conditions": [
+        "[STATUS] == 200",
+        "[CERTIFICATE_EXPIRATION] > 336h"
+      ],
+      "alerts": [
+        {
+          "type": "mattermost",
+          "description": "tpp25 prod web"
+        }
+      ]
+    },
+    {
+      "name": "mac-erp",
+      "group": "IDTPP Odoo",
+      "url": "https://mac-erp.idtpp.com/web/health",
+      "interval": "60s",
+      "conditions": [
+        "[STATUS] == 200",
+        "[CERTIFICATE_EXPIRATION] > 336h"
+      ],
+      "alerts": [
+        {
+          "type": "mattermost",
+          "description": "mac prod web"
+        }
+      ]
+    },
+    {
+      "name": "mac-hrms",
+      "group": "IDTPP Odoo",
+      "url": "https://mac-hrms.idtpp.com/web/health",
+      "interval": "60s",
+      "conditions": [
+        "[STATUS] == 200",
+        "[CERTIFICATE_EXPIRATION] > 336h"
+      ],
+      "alerts": [
+        {
+          "type": "mattermost",
+          "description": "mac-hrms prod web"
+        }
+      ]
+    },
+    {
+      "name": "tpp-erp-queue",
+      "group": "IDTPP Odoo queue",
+      "url": "https://erp.idtpp.com/queue_runner_guard/health",
+      "interval": "60s",
+      "conditions": [
+        "[STATUS] == 200",
+        "[BODY] == ok"
+      ],
+      "alerts": [
+        {
+          "type": "mattermost",
+          "description": "tpp prod background jobs (stalled / failing / cron-late)"
+        }
+      ]
+    },
+    {
+      "name": "tpp25-erp-queue",
+      "group": "IDTPP Odoo queue",
+      "url": "https://tpp25-erp.idtpp.com/queue_runner_guard/health",
+      "interval": "60s",
+      "conditions": [
+        "[STATUS] == 200",
+        "[BODY] == ok"
+      ],
+      "alerts": [
+        {
+          "type": "mattermost",
+          "description": "tpp25 prod background jobs (stalled / failing / cron-late)"
+        }
+      ]
+    },
+    {
+      "name": "mac-erp-queue",
+      "group": "IDTPP Odoo queue",
+      "url": "https://mac-erp.idtpp.com/queue_runner_guard/health",
+      "interval": "60s",
+      "conditions": [
+        "[STATUS] == 200",
+        "[BODY] == ok"
+      ],
+      "alerts": [
+        {
+          "type": "mattermost",
+          "description": "mac prod background jobs (stalled / failing / cron-late)"
+        }
+      ]
+    },
+    {
+      "name": "mac-hrms-queue",
+      "group": "IDTPP Odoo queue",
+      "url": "https://mac-hrms.idtpp.com/queue_runner_guard/health",
+      "interval": "60s",
+      "conditions": [
+        "[STATUS] == 200",
+        "[BODY] == ok"
+      ],
+      "alerts": [
+        {
+          "type": "mattermost",
+          "description": "mac-hrms prod background jobs (stalled / failing / cron-late)"
         }
       ]
     },
