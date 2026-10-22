@@ -28,7 +28,7 @@ trigger evidence intake and two successes send recovery.
 `mattermost` provider, for the Odoo checks only: the existing `tpp-erp` web check plus
 seven Mattermost-only checks, the web health of tpp25, mac and mac-hrms prod and the
 background-job health (`/queue_runner_guard/health`, which must answer `200 ok`; a 503
-body names `stalled`, `failing` or `cron-late`) of tpp, tpp25, mac and mac-hrms prod.
+body names `stalled`, `failing`, `cron-late` or `cron-failing`) of tpp, tpp25, mac and mac-hrms prod.
 The incoming-webhook URL is the secret `GATUS_MM_ODOO_IT_WEBHOOK` in the ignored
 `.env.tpp-infra-gatus`; the webhook is "Gatus - Odoo health" on that channel. A
 Mattermost-only check opens no incident, so it needs no `services.json` mapping and no
