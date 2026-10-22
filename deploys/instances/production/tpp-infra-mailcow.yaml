@@ -1,3 +1,12 @@
+# 🔴 Do NOT redeploy through Dokploy yet. Unlike kod (e1fbc48 in
+# kodemeio-mailcow), TPP still keeps mailcow runtime state (DKIM, certs,
+# generated nginx config) INSIDE the Dokploy clone at
+# /etc/dokploy/compose/compose-calculate-solid-state-panel-9iuz57/code/mailcow/data.
+# A redeploy re-clones and deletes it under the running containers. The live
+# checkout is a5e6c54 from the dead `master` branch (hence branch below).
+# 2026-10-22: phpfpm hand-patched on the host to 8.2.35-1 for PHP2Shell — see
+# ops/runbooks/php2shell-2026-10.md. Migrate to /opt/mailcow-dockerized at
+# mailcow 2026-10 in a planned window, then retarget branch to main.
 kind: instance
 extends: ../../bases/infra.yaml
 

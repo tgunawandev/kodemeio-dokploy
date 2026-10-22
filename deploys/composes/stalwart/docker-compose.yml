@@ -1,0 +1,134 @@
+# Stalwart mail server + Roundcube webmail for kodeme.io. Desired placement is
+# deploys/instances/production/kod-infra-stalwart.yaml; this file is the Dokploy
+# **raw Compose** source for that stack (no GitHub source). Migration notes:
+# ops/runbooks/stalwart-migration-kodemeio.md.
+#
+# Routing: Traefik passes TLS for mail/autoconfig/autodiscover through to
+# stalwart:443 (Stalwart holds that certificate) and terminates TLS only for
+# webmail -> roundcube:80, all over the external dokploy-network. The mail
+# ports are published on the host on purpose: SMTP,
+# submission and IMAP cannot ride Traefik's HTTP routers, and publishing them
+# directly keeps the real client IP for Stalwart's spam and rate-limit checks.
+#
+# Configuration lives in Stalwart's own store (v0.16 is configured through its
+# API, not a TOML file), so the only state is the two volumes below.
+services:
+  stalwart:
+    image: stalwartlabs/stalwart:v0.16.24
+    hostname: mail.kodeme.io
+    restart: unless-stopped
+    environment:
+      # No STALWART_RECOVERY_ADMIN here: it pins an admin credential that
+      # Stalwart says must not stay set in production. Add it back only for a
+      # recovery (ops/runbooks/stalwart-migration-kodemeio.md).
+      TZ: ${TZ:-Asia/Jakarta}
+    ports:
+      - "25:25"
+      - "465:465"
+      - "587:587"
+      - "993:993"
+      - "4190:4190"
+    volumes:
+      - stalwart-etc:/etc/stalwart
+      - stalwart-data:/var/lib/stalwart
+    networks:
+      dokploy-network:
+      mail:
+        # Roundcube reaches Stalwart by its public name, so the certificate
+        # it presents matches without exposing traffic outside this network.
+        aliases:
+          - mail.kodeme.io
+    labels:
+      # TLS for the web names is passed through to Stalwart untouched, so one
+      # certificate (Stalwart's own ACME, TLS-ALPN-01 over this passthrough)
+      # serves both HTTPS and the mail ports. PROXY protocol carries the real
+      # client IP; Stalwart's https listener trusts it from Traefik only.
+      - traefik.enable=true
+      - traefik.docker.network=dokploy-network
+      - traefik.tcp.routers.kod-stalwart-tls.rule=HostSNI(`mail.kodeme.io`) || HostSNI(`autoconfig.kodeme.io`) || HostSNI(`autodiscover.kodeme.io`)
+      - traefik.tcp.routers.kod-stalwart-tls.entrypoints=websecure
+      - traefik.tcp.routers.kod-stalwart-tls.tls.passthrough=true
+      - traefik.tcp.routers.kod-stalwart-tls.service=kod-stalwart-tls
+      - traefik.tcp.services.kod-stalwart-tls.loadbalancer.server.port=443
+      - traefik.tcp.services.kod-stalwart-tls.loadbalancer.proxyProtocol.version=2
+      # Port 80 serves only the autoconfig XML (public, no credentials), which
+      # Thunderbird fetches over plain HTTP. Everything else on these names —
+      # /admin, JMAP, the login API — is redirected to HTTPS so no credential
+      # ever crosses port 80.
+      - traefik.http.routers.kod-stalwart-autoconfig.rule=Host(`autoconfig.kodeme.io`) && Path(`/mail/config-v1.1.xml`)
+      - traefik.http.routers.kod-stalwart-autoconfig.entrypoints=web
+      - traefik.http.routers.kod-stalwart-autoconfig.priority=100
+      - traefik.http.routers.kod-stalwart-autoconfig.service=kod-stalwart-web
+      - traefik.http.services.kod-stalwart-web.loadbalancer.server.port=8080
+      - traefik.http.routers.kod-stalwart-to-https.rule=Host(`mail.kodeme.io`) || Host(`autoconfig.kodeme.io`) || Host(`autodiscover.kodeme.io`)
+      - traefik.http.routers.kod-stalwart-to-https.entrypoints=web
+      - traefik.http.routers.kod-stalwart-to-https.priority=10
+      - traefik.http.routers.kod-stalwart-to-https.middlewares=kod-stalwart-https
+      - traefik.http.routers.kod-stalwart-to-https.service=kod-stalwart-web
+      - traefik.http.middlewares.kod-stalwart-https.redirectscheme.scheme=https
+      - traefik.http.middlewares.kod-stalwart-https.redirectscheme.permanent=true
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/healthz/live"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  roundcube:
+    image: roundcube/roundcubemail:1.7.5-apache
+    restart: unless-stopped
+    depends_on:
+      stalwart:
+        condition: service_healthy
+    environment:
+      ROUNDCUBEMAIL_DEFAULT_HOST: ssl://mail.kodeme.io
+      ROUNDCUBEMAIL_DEFAULT_PORT: "993"
+      ROUNDCUBEMAIL_SMTP_SERVER: ssl://mail.kodeme.io
+      ROUNDCUBEMAIL_SMTP_PORT: "465"
+      ROUNDCUBEMAIL_USERNAME_DOMAIN: kodeme.io
+      ROUNDCUBEMAIL_DB_TYPE: sqlite
+      ROUNDCUBEMAIL_DES_KEY: ${ROUNDCUBE_DES_KEY:?ROUNDCUBE_DES_KEY is required}
+      ROUNDCUBEMAIL_SKIN: elastic
+      ROUNDCUBEMAIL_UPLOAD_MAX_FILESIZE: 25M
+      TZ: ${TZ:-Asia/Jakarta}
+    volumes:
+      - roundcube-db:/var/roundcube/db
+    networks:
+      - dokploy-network
+      - mail
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:80/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  stalwart-etc:
+  stalwart-data:
+  roundcube-db:
+
+networks:
+  mail:
+  dokploy-network:
+    external: true
